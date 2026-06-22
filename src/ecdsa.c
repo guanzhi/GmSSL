@@ -23,8 +23,11 @@ int ecdsa_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, cons
 {
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
-	secp256r1_print(fp, fmt, ind, "r", sig->r);
-	secp256r1_print(fp, fmt, ind, "s", sig->s);
+	if (secp256r1_print(fp, fmt, ind, "r", sig->r) != 1
+		|| secp256r1_print(fp, fmt, ind, "s", sig->s) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -53,21 +56,33 @@ int ecdsa_do_sign_ex(const SECP256R1_KEY *key, const secp256r1_t k, const uint8_
 	SECP256R1_POINT P;
 
 	// e = hash(m)
-	secp256r1_from_32bytes(e, dgst);
-	secp256r1_modn(e, e);
+	if (secp256r1_from_32bytes(e, dgst) != 1
+		|| secp256r1_modn(e, e) != 1) {
+		error_print();
+		return -1;
+	}
 
 	// (x1, y1) = k*G
-	secp256r1_point_mul_generator(&P, k);
-	secp256r1_point_get_xy(&P, x1, y1);
+	if (secp256r1_point_mul_generator(&P, k) != 1
+		|| secp256r1_point_get_xy(&P, x1, y1) != 1) {
+		error_print();
+		return -1;
+	}
 
 	// r = x1 mod n
-	secp256r1_modn(sig->r, x1);
+	if (secp256r1_modn(sig->r, x1) != 1) {
+		error_print();
+		return -1;
+	}
 
 	// s = k^-1 * (e + d * r) mod n
-	secp256r1_modn_inv(k_inv, k);
-	secp256r1_modn_mul(sig->s, key->private_key, sig->r);
-	secp256r1_modn_add(sig->s, sig->s, e);
-	secp256r1_modn_mul(sig->s, sig->s, k_inv);
+	if (secp256r1_modn_inv(k_inv, k) != 1
+		|| secp256r1_modn_mul(sig->s, key->private_key, sig->r) != 1
+		|| secp256r1_modn_add(sig->s, sig->s, e) != 1
+		|| secp256r1_modn_mul(sig->s, sig->s, k_inv) != 1) {
+		error_print();
+		return -1;
+	}
 
 	return 1;
 }
@@ -114,26 +129,46 @@ int ecdsa_do_verify(const SECP256R1_KEY *key, const uint8_t dgst[32], const ECDS
 	}
 
 	// e = hash(m)
-	secp256r1_from_32bytes(e, dgst);
-	secp256r1_modn(e, e);
+	if (secp256r1_from_32bytes(e, dgst) != 1
+		|| secp256r1_modn(e, e) != 1) {
+		error_print();
+		return -1;
+	}
 
 	// w = s^-1 (mod n)
-	secp256r1_modn_inv(w, sig->s);
+	if (secp256r1_modn_inv(w, sig->s) != 1) {
+		error_print();
+		return -1;
+	}
 
 	// u1 = e * w (mod n)
-	secp256r1_modn_mul(u1, e, w);
+	if (secp256r1_modn_mul(u1, e, w) != 1) {
+		error_print();
+		return -1;
+	}
 
 	// u2 = r * w (mod n)
-	secp256r1_modn_mul(u2, sig->r, w);
+	if (secp256r1_modn_mul(u2, sig->r, w) != 1) {
+		error_print();
+		return -1;
+	}
 
 	// (x1, y1) = u1*G + u2*Q
-	secp256r1_point_mul_generator(&P, u1);
-	secp256r1_point_mul(&Q, u2, &key->public_key);
-	secp256r1_point_add(&R, &P, &Q);
-	secp256r1_point_get_xy(&R, x1, y1);
+	if (secp256r1_point_mul_generator(&P, u1) != 1
+		|| secp256r1_point_mul(&Q, u2, &key->public_key) != 1
+		|| secp256r1_point_add(&R, &P, &Q) != 1) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_point_get_xy(&R, x1, y1) != 1) {
+		return 0;
+	}
 
 	// x1 = x1 mod n
-	secp256r1_modn(x1, x1);
+	if (secp256r1_modn(x1, x1) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (secp256r1_cmp(x1, sig->r) != 0) {
 		return 0;
@@ -151,8 +186,11 @@ int ecdsa_signature_to_der(const ECDSA_SIGNATURE *sig, uint8_t **out, size_t *ou
 		return 0;
 	}
 
-	secp256r1_to_32bytes(sig->r, r);
-	secp256r1_to_32bytes(sig->s, s);
+	if (secp256r1_to_32bytes(sig->r, r) != 1
+		|| secp256r1_to_32bytes(sig->s, s) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (asn1_integer_to_der(r, 32, NULL, &len) != 1
 		|| asn1_integer_to_der(s, 32, NULL, &len) != 1
@@ -186,8 +224,11 @@ int ecdsa_signature_from_der(ECDSA_SIGNATURE *sig, const uint8_t **in, size_t *i
 		return -1;
 	}
 
-	secp256r1_from_32bytes(sig->r, r);
-	secp256r1_from_32bytes(sig->s, s);
+	if (secp256r1_from_32bytes(sig->r, r) != 1
+		|| secp256r1_from_32bytes(sig->s, s) != 1) {
+		error_print();
+		return -1;
+	}
 
 	return 1;
 }

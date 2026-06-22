@@ -1049,7 +1049,10 @@ int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pub
 			}
 			pubkey = pubkey_buf;
 		}
-		secp256r1_to_32bytes(key->u.secp256r1_key.private_key, prikey);
+		if (secp256r1_to_32bytes(key->u.secp256r1_key.private_key, prikey) != 1) {
+			error_print();
+			return -1;
+		}
 		break;
 #endif
 	default:
@@ -1159,7 +1162,10 @@ int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, si
 		secp256r1_t p256_private;
 		SECP256R1_KEY p256_pub;
 
-		secp256r1_from_32bytes(p256_private, prikey);
+		if (secp256r1_from_32bytes(p256_private, prikey) != 1) {
+			error_print();
+			return -1;
+		}
 		if (secp256r1_key_set_private_key(&key->u.secp256r1_key, p256_private) != 1) {
 			gmssl_secure_clear(p256_private, sizeof(secp256r1_t));
 			error_print();

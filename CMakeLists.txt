@@ -533,12 +533,6 @@ if (ENABLE_XMSS)
 	list(APPEND tools tools/xmsskeygen.c tools/xmsssign.c tools/xmssverify.c)
 	list(APPEND tools tools/xmssmtkeygen.c tools/xmssmtsign.c tools/xmssmtverify.c)
 	list(APPEND tests xmss)
-
-	option(ENABLE_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" ON)
-	if (ENABLE_XMSS_CROSSCHECK)
-		message(STATUS "ENABLE_XMSS_CROSSCHECK is ON")
-		add_definitions(-DENABLE_XMSS_CROSSCHECK)
-	endif()
 endif()
 
 
@@ -548,12 +542,6 @@ if (ENABLE_SPHINCS)
 	list(APPEND src src/sphincs.c)
 	list(APPEND tools tools/sphincskeygen.c tools/sphincssign.c tools/sphincsverify.c)
 	list(APPEND tests sphincs)
-
-	option(ENABLE_SPHINCS_CROSSCHECK "Enable SPHINCS SHA-256 cross-check" ON)
-	if (ENABLE_SPHINCS_CROSSCHECK)
-		message(STATUS "ENABLE_SPHINCS_CROSSCHECK is ON")
-		add_definitions(-DENABLE_SPHINCS_CROSSCHECK)
-	endif()
 endif()
 
 
@@ -931,7 +919,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1158")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1159")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

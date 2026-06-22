@@ -165,6 +165,36 @@ static int test_secp256r1_modp(void)
 	return 1;
 }
 
+static int test_secp256r1_mod_zero(void)
+{
+	secp256r1_t zero;
+	secp256r1_t r;
+
+	if (secp256r1_set_zero(zero) != 1) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_modp_neg(r, zero) != 1 || !secp256r1_is_zero(r)) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_modn_neg(r, zero) != 1 || !secp256r1_is_zero(r)) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_modp_inv(r, zero) != -1) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_modn_inv(r, zero) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 
 static int test_secp256r1_modn(void)
 {
@@ -278,7 +308,10 @@ static int test_secp256r1_modn(void)
 static int test_secp256r1_point_at_infinity(void)
 {
 	SECP256R1_POINT P;
-	secp256r1_point_set_infinity(&P);
+	if (secp256r1_point_set_infinity(&P) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (!secp256r1_point_is_at_infinity(&P)) {
 		error_print();
@@ -316,7 +349,10 @@ static int test_secp256r1_point_set_xy(void)
 		return -1;
 	}
 
-	secp256r1_point_get_xy(&P, x1, y1);
+	if (secp256r1_point_get_xy(&P, x1, y1) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (secp256r1_cmp(x, x1) != 0
 		|| secp256r1_cmp(y, y1) != 0) {
@@ -353,8 +389,11 @@ static int test_secp256r1_point_dbl_add(void)
 	size_t len;
 
 	// test 2*G
-	secp256r1_point_dbl(&P, &SECP256R1_POINT_G);
-	secp256r1_point_get_xy(&P, x, y);
+	if (secp256r1_point_dbl(&P, &SECP256R1_POINT_G) != 1
+		|| secp256r1_point_get_xy(&P, x, y) != 1) {
+		error_print();
+		return -1;
+	}
 
 	secp256r1_point_print(stderr, 0, 4, "2*G", &P);
 
@@ -369,8 +408,11 @@ static int test_secp256r1_point_dbl_add(void)
 	}
 
 	// test 2*G + G
-	secp256r1_point_add(&Q, &P, &SECP256R1_POINT_G);
-	secp256r1_point_get_xy(&Q, x, y);
+	if (secp256r1_point_add(&Q, &P, &SECP256R1_POINT_G) != 1
+		|| secp256r1_point_get_xy(&Q, x, y) != 1) {
+		error_print();
+		return -1;
+	}
 
 	hex_to_bytes("5ecbe4d1a6330a44c8f7ef951d4bf165e6c6b721efada985fb41661bc6e7fd6c", 64, bytes, &len);
 	secp256r1_from_32bytes(x1, bytes);
@@ -407,8 +449,11 @@ static int test_secp256r1_point_mul(void)
 	bytes[31] = 3;
 	secp256r1_from_32bytes(k, bytes);
 
-	secp256r1_point_mul_generator(&P, k);
-	secp256r1_point_get_xy(&P, x, y); // 这个必须返回错误啊，否则没办法判断是否为无穷远点呢！
+	if (secp256r1_point_mul_generator(&P, k) != 1
+		|| secp256r1_point_get_xy(&P, x, y) != 1) {
+		error_print();
+		return -1;
+	}
 
 	hex_to_bytes(secp256r1_x_3G, 64, bytes, &len);
 	secp256r1_from_32bytes(x1, bytes);
@@ -424,7 +469,10 @@ static int test_secp256r1_point_mul(void)
 	hex_to_bytes(secp256r1_n, 64, bytes, &len);
 	secp256r1_from_32bytes(k, bytes);
 
-	secp256r1_point_mul_generator(&P, k);
+	if (secp256r1_point_mul_generator(&P, k) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (secp256r1_point_is_at_infinity(&P) != 1) {
 		error_print();
@@ -442,7 +490,10 @@ static int test_secp256r1_point_to_uncompressed_octets(void)
 	uint8_t octets[65];
 
 
-	secp256r1_point_copy(&P, &SECP256R1_POINT_G);
+	if (secp256r1_point_copy(&P, &SECP256R1_POINT_G) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (secp256r1_point_to_uncompressed_octets(&P, octets) != 1) {
 		error_print();
@@ -458,18 +509,58 @@ static int test_secp256r1_point_to_uncompressed_octets(void)
 	return 1;
 }
 
+static int test_secp256r1_point_infinity_edges(void)
+{
+	SECP256R1_POINT P;
+	SECP256R1_POINT Q;
+	SECP256R1_POINT R;
+	secp256r1_t x;
+	secp256r1_t y;
+	uint8_t octets[65];
+
+	if (secp256r1_point_neg(&Q, &SECP256R1_POINT_G) != 1
+		|| secp256r1_point_add(&R, &SECP256R1_POINT_G, &Q) != 1) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_point_is_at_infinity(&R) != 1) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_point_get_xy(&R, x, y) != -1) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_point_to_uncompressed_octets(&R, octets) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (secp256r1_point_set_infinity(&P) != 1
+		|| secp256r1_point_equ(&P, &R) != 1
+		|| secp256r1_point_equ(&P, &SECP256R1_POINT_G) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 
 int main(void)
 {
 	if (test_secp256r1() != 1) goto err;
 	if (test_secp256r1_modp() != 1) goto err;
 	if (test_secp256r1_modn() != 1) goto err;
+	if (test_secp256r1_mod_zero() != 1) goto err;
 	if (test_secp256r1_point_at_infinity() != 1) goto err;
 	if (test_secp256r1_point_is_on_curve() != 1) goto err;
 	if (test_secp256r1_point_set_xy() != 1) goto err;
 	if (test_secp256r1_point_dbl_add() != 1) goto err;
 	if (test_secp256r1_point_mul() != 1) goto err;
 	if (test_secp256r1_point_to_uncompressed_octets() != 1) goto err;
+	if (test_secp256r1_point_infinity_edges() != 1) goto err;
 
 
 	printf("%s all tests passed\n", __FILE__);

@@ -512,9 +512,9 @@ static int test_sphincs_sign(void)
 	uint8_t msg[100] = {1, 2, 3, 0};
 	SPHINCS_SIGNATURE _sig;
 	SPHINCS_SIGNATURE *sig = &_sig;
-	SPHINCS_HASH256_CTX hash_ctx;
-	SPHINCS_HMAC256_CTX hmac_ctx;
-	sphincs_hash256_t dgst;
+	SM3_CTX hash_ctx;
+	SM3_HMAC_CTX hmac_ctx;
+	sphincs_sm3_digest_t dgst;
 
 
 	sphincs_hash128_t opt_rand;
@@ -553,30 +553,30 @@ static int test_sphincs_sign(void)
 	// 如果R是用M生成的，这意味着M要读取2遍，这就没办法用init/update范式了
 
 	// R = PRF_msg(sk_prf, optrand, M) = HMAC(sk_prf, opt_rand|M)
-	sphincs_hmac256_init(&hmac_ctx, key->sk_prf, sizeof(sphincs_hash128_t));
-	sphincs_hmac256_update(&hmac_ctx, opt_rand, sizeof(sphincs_hash128_t));
-	sphincs_hmac256_update(&hmac_ctx, msg, sizeof(msg));
-	sphincs_hmac256_finish(&hmac_ctx, dgst);
+	sm3_hmac_init(&hmac_ctx, key->sk_prf, sizeof(sphincs_hash128_t));
+	sm3_hmac_update(&hmac_ctx, opt_rand, sizeof(sphincs_hash128_t));
+	sm3_hmac_update(&hmac_ctx, msg, sizeof(msg));
+	sm3_hmac_finish(&hmac_ctx, dgst);
 	memcpy(sig->random, dgst, sizeof(sphincs_hash128_t));
 
-	// dgst = HASH256(R|seed|root|M)
-	sphincs_hash256_init(&hash_ctx);
-	sphincs_hash256_update(&hash_ctx, sig->random, sizeof(sphincs_hash128_t));
-	sphincs_hash256_update(&hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
-	sphincs_hash256_update(&hash_ctx, key->public_key.root, sizeof(sphincs_hash128_t));
-	sphincs_hash256_update(&hash_ctx, msg, sizeof(msg));
-	sphincs_hash256_finish(&hash_ctx, dgst);
+	// dgst = SM3(R|seed|root|M)
+	sm3_init(&hash_ctx);
+	sm3_update(&hash_ctx, sig->random, sizeof(sphincs_hash128_t));
+	sm3_update(&hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
+	sm3_update(&hash_ctx, key->public_key.root, sizeof(sphincs_hash128_t));
+	sm3_update(&hash_ctx, msg, sizeof(msg));
+	sm3_finish(&hash_ctx, dgst);
 
 	// tbs = H_msg(R, seed, root, M) = MGF1(R|seed|dgst, tbs_len)
 	for (i = 0; i < (SPHINCS_TBS_SIZE + 31)/32; i++) {
 		uint8_t count[4];
 		PUTU32(count, i);
-		sphincs_hash256_init(&hash_ctx);
-		sphincs_hash256_update(&hash_ctx, sig->random, sizeof(sphincs_hash128_t));
-		sphincs_hash256_update(&hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
-		sphincs_hash256_update(&hash_ctx, dgst, sizeof(dgst));
-		sphincs_hash256_update(&hash_ctx, count, sizeof(count));
-		sphincs_hash256_finish(&hash_ctx, tbs + sizeof(dgst) * i);
+		sm3_init(&hash_ctx);
+		sm3_update(&hash_ctx, sig->random, sizeof(sphincs_hash128_t));
+		sm3_update(&hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
+		sm3_update(&hash_ctx, dgst, sizeof(dgst));
+		sm3_update(&hash_ctx, count, sizeof(count));
+		sm3_finish(&hash_ctx, tbs + sizeof(dgst) * i);
 	}
 
 

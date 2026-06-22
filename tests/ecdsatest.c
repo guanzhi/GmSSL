@@ -80,9 +80,42 @@ static int test_ecdsa(void)
 	return 1;
 }
 
+static int test_ecdsa_verify_infinity(void)
+{
+	SECP256R1_KEY key;
+	ECDSA_SIGNATURE sig;
+	secp256r1_t d;
+	uint8_t dgst[32];
+	size_t dgstlen;
+
+	if (secp256r1_set_one(d) != 1
+		|| secp256r1_key_set_private_key(&key, d) != 1
+		|| secp256r1_set_one(sig.r) != 1
+		|| secp256r1_set_one(sig.s) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// e = n - 1, so u1 * G + u2 * Q = (n - 1)G + G = O for Q = G
+	if (hex_to_bytes("FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632550",
+			64, dgst, &dgstlen) != 1
+		|| dgstlen != sizeof(dgst)) {
+		error_print();
+		return -1;
+	}
+	if (ecdsa_do_verify(&key, dgst, &sig) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_ecdsa() != 1) goto err;
+	if (test_ecdsa_verify_infinity() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

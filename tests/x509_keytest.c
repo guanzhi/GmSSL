@@ -21,9 +21,9 @@
 
 #ifdef ENABLE_LMS
 static int lms_types[] = {
-	LMS_HASH256_M32_H5,
-	LMS_HASH256_M32_H5,
-	LMS_HASH256_M32_H5,
+	LMS_SM3_M32_H5,
+	LMS_SM3_M32_H5,
+	LMS_SM3_M32_H5,
 };
 #endif
 
@@ -36,12 +36,12 @@ struct {
 	{ OID_ec_public_key, OID_secp256r1 },
 #endif
 #ifdef ENABLE_LMS
-	{ OID_lms_hashsig, LMS_HASH256_M32_H5 },
+	{ OID_lms_hashsig, LMS_SM3_M32_H5 },
 	{ OID_hss_lms_hashsig, OID_undef }, // use lms_types[]
 #endif
 #ifdef ENABLE_XMSS
-	{ OID_xmss_hashsig, XMSS_HASH256_10_256 },
-	{ OID_xmssmt_hashsig, XMSSMT_HASH256_20_4_256 },
+	{ OID_xmss_hashsig, XMSS_SM3_10_256 },
+	{ OID_xmssmt_hashsig, XMSSMT_SM3_20_4_256 },
 #endif
 #ifdef ENABLE_SPHINCS
 	{ OID_sphincs_hashsig, OID_undef },

@@ -45,237 +45,31 @@ static int test_xmss_adrs(void)
 }
 
 
-#if defined(ENABLE_XMSS_CROSSCHECK) && defined(ENABLE_SHA2)
-static int test_wots_derive_sk(void)
-{
-	xmss_hash256_t secret = {0};
-	xmss_hash256_t seed = {0};
-	xmss_adrs_t adrs = {0};
-	xmss_wots_key_t wots_sk;
-	xmss_wots_key_t test_sk;
-	size_t len;
-
-	// sha256 test 1
-	memset(secret, 0, sizeof(secret));
-	memset(seed, 0, sizeof(seed));
-	memset(adrs, 0, sizeof(adrs));
-	hex_to_bytes("0cb52ea67abd5da0328099db02de310e4ab01ac39d0bbeb71e97eb7e83c467b5", 64, test_sk[0], &len);
-	hex_to_bytes("382c16f94b77905d4a6f78e1f38faf5ef914ac42324e356aeede056d356a5eeb", 64, test_sk[1], &len);
-	hex_to_bytes("ab08e768529903e533c9bf8b3ea8c69d36aedcee5ac78801f92d23ef758cfe03", 64, test_sk[66], &len);
-
-	xmss_wots_derive_sk(secret, seed, adrs, wots_sk);
-
-	if (memcmp(wots_sk[0], test_sk[0], 32)
-		|| memcmp(wots_sk[1], test_sk[1], 32)
-		|| memcmp(wots_sk[66], test_sk[66], 32)) {
-		error_print();
-		return -1;
-	}
-
-	// sha256 test 2
-	memset(secret, 0x12, sizeof(secret));
-	memset(seed, 0xab, sizeof(seed));
-	memset(adrs, 0, sizeof(adrs));
-	hex_to_bytes("1a50a39a53e6ef2480db612cef9456d0f33222f934c58bcba9d04fa91108faf6", 64, test_sk[0], &len);
-	hex_to_bytes("e45dad76c1b23975e898a365b8c73d13695a887ba2ba2377f840d3a3b7bf806c", 64, test_sk[1], &len);
-	hex_to_bytes("aaad735aa51662b8a48258561fb857b3f2b12a5802593522145b3b68355abf3b", 64, test_sk[66], &len);
-
-	xmss_wots_derive_sk(secret, seed, adrs, wots_sk);
-
-	if (memcmp(wots_sk[0], test_sk[0], 32)
-		|| memcmp(wots_sk[1], test_sk[1], 32)
-		|| memcmp(wots_sk[66], test_sk[66], 32)) {
-		error_print();
-		return -1;
-	}
-
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-
-static int test_wots_sk_to_pk(void)
-{
-	xmss_hash256_t secret = {0};
-	xmss_hash256_t seed = {0};
-	xmss_adrs_t adrs = {0};
-	xmss_wots_key_t wots_sk;
-	xmss_wots_key_t wots_pk;
-	xmss_wots_key_t test_pk;
-	size_t len;
-
-	// sha256 test 2
-	memset(secret, 0x12, sizeof(secret));
-	memset(seed, 0xab, sizeof(seed));
-	memset(adrs, 0, sizeof(adrs));
-	hex_to_bytes("0c74a626695831994961641c487b70da83cd2aba2ba5c63c38ce72479b8a0ab9", 64, test_pk[0], &len);
-	hex_to_bytes("acf6be724d4b074d67330559ec24b3d42c9b9d87fa103e7f6be402ec3a2d41c1", 64, test_pk[1], &len);
-	hex_to_bytes("98691d83a657840d4b6f410e25fcd9a6480670ac9c090d3b79bc904ba7e131aa", 64, test_pk[66], &len);
-
-	xmss_wots_derive_sk(secret, seed, adrs, wots_sk);
-
-	xmss_wots_sk_to_pk(wots_sk, seed, adrs, wots_pk);
-
-	if (memcmp(wots_pk[0], test_pk[0], 32)
-		|| memcmp(wots_pk[1], test_pk[1], 32)
-		|| memcmp(wots_pk[66], test_pk[66], 32)) {
-		error_print();
-		return -1;
-	}
-
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-
-static int test_wots_sign(void)
-{
-	xmss_hash256_t secret = {0};
-	xmss_hash256_t seed = {0};
-	xmss_adrs_t adrs = {0};
-	xmss_hash256_t dgst = {0};
-	xmss_wots_key_t wots_sk;
-	xmss_wots_key_t wots_pk;
-	xmss_wots_sig_t wots_sig;
-	xmss_wots_sig_t test_sig;
-	xmss_wots_key_t sig_pk;
-	size_t len;
-	int i;
-	clock_t start = clock();
-
-	memset(secret, 0x12, sizeof(secret));
-	memset(seed, 0xab, sizeof(seed));
-	memset(adrs, 0, sizeof(adrs));
-	for (i = 0; i < 32; i++) {
-		dgst[i] = i; // try different dgst, check base_w and checksum
-	}
-	hex_to_bytes("1a50a39a53e6ef2480db612cef9456d0f33222f934c58bcba9d04fa91108faf6", 64, test_sig[0], &len);
-	hex_to_bytes("e45dad76c1b23975e898a365b8c73d13695a887ba2ba2377f840d3a3b7bf806c", 64, test_sig[1], &len);
-	hex_to_bytes("75d2cfddd6ca9773fb9d0d17efe5c731c1a44f4b31352e26767623abf52911f9", 64, test_sig[15], &len);
-	hex_to_bytes("aaad735aa51662b8a48258561fb857b3f2b12a5802593522145b3b68355abf3b", 64, test_sig[66], &len);
-
-	xmss_wots_derive_sk(secret, seed, adrs, wots_sk);
-
-	xmss_wots_sk_to_pk(wots_sk, seed, adrs, wots_pk);
-
-	xmss_wots_sign(wots_sk, seed, adrs, dgst, wots_sig);
-
-	if (memcmp(wots_sig[0], test_sig[0], sizeof(xmss_hash256_t))
-		|| memcmp(wots_sig[1], test_sig[1], sizeof(xmss_hash256_t))
-		|| memcmp(wots_sig[15], test_sig[15], sizeof(xmss_hash256_t))
-		|| memcmp(wots_sig[66], test_sig[66], sizeof(xmss_hash256_t))) {
-		error_print();
-		return -1;
-	}
-
-	xmss_wots_sig_to_pk(wots_sig, seed, adrs, dgst, sig_pk);
-
-	if (memcmp(sig_pk ,wots_pk, sizeof(xmss_wots_key_t))) {
-		error_print();
-		return -1;
-	}
-
-	test_print_elapsed(__FUNCTION__, start);
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-
-static int test_wots_derive_root(void)
-{
-	xmss_hash256_t secret;
-	xmss_hash256_t seed;
-	xmss_adrs_t adrs;
-	xmss_hash256_t root;
-	xmss_hash256_t wots_0_root;
-	xmss_hash256_t wots_1023_root;
-	size_t len;
-
-	memset(secret, 0x12, sizeof(xmss_hash256_t));
-	memset(seed, 0xab, sizeof(xmss_hash256_t));
-	hex_to_bytes("7A968C5F9AE4D2B781872B4E6EE851D55CC02F0AB9196701580D6F503D35DB68", 64, wots_0_root, &len);
-	hex_to_bytes("939E10CD44769D4D9853F7CF5612D6D83B3AA140A8867CCF34A1DBCC66FC4333", 64, wots_1023_root, &len);
-
-	// wots index is 0
-	xmss_adrs_set_layer_address(adrs, 0);
-	xmss_adrs_set_tree_address(adrs, 0);
-	xmss_adrs_set_ots_address(adrs, 0);
-
-	xmss_wots_derive_root(secret, seed, adrs, root);
-
-	if (memcmp(root, wots_0_root, sizeof(xmss_hash256_t)) != 0) {
-		error_print();
-		return -1;
-	}
-
-	// wots index is 1023
-	xmss_adrs_set_layer_address(adrs, 0);
-	xmss_adrs_set_tree_address(adrs, 0);
-	xmss_adrs_set_ots_address(adrs, 1023);
-
-	xmss_wots_derive_root(secret, seed, adrs, root);
-
-	if (memcmp(root, wots_1023_root, sizeof(xmss_hash256_t)) != 0) {
-		error_print();
-		return -1;
-	}
-
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-
-static int test_wots_verify(void)
-{
-	uint32_t index = 0;
-	xmss_hash256_t secret;
-	xmss_hash256_t seed;
-	xmss_adrs_t adrs;
-	xmss_wots_key_t sk;
-	xmss_hash256_t dgst;
-	xmss_wots_sig_t sig;
-	xmss_hash256_t root;
-
-
-	xmss_adrs_set_layer_address(adrs, 0);
-	xmss_adrs_set_tree_address(adrs, 0);
-	xmss_adrs_set_type(adrs, XMSS_ADRS_TYPE_OTS);
-	xmss_adrs_set_ots_address(adrs, index);
-
-	xmss_wots_derive_sk(secret, seed, adrs, sk);
-	xmss_wots_sign(sk, seed, adrs, dgst, sig);
-	xmss_wots_derive_root(secret, seed, adrs, root);
-
-	if (xmss_wots_verify(root, seed, adrs, dgst, sig) != 1) {
-		error_print();
-		return -1;
-	}
-
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-#endif
 
 
 
 static int test_xmss_build_tree(void)
 {
-	xmss_hash256_t xmss_secret;
-	xmss_hash256_t seed;
+	xmss_sm3_digest_t xmss_secret;
+	xmss_sm3_digest_t seed;
 	xmss_adrs_t adrs;
 	int height = 10;
-	xmss_hash256_t *tree = malloc(32 * (1<<height) * 2);
-	xmss_hash256_t xmss_root;
-	xmss_hash256_t test_root;
+	xmss_sm3_digest_t *tree = malloc(32 * (1<<height) * 2);
+	xmss_sm3_digest_t xmss_root;
+	xmss_sm3_digest_t test_root;
 	size_t len;
 
-	memset(xmss_secret, 0x12, sizeof(xmss_hash256_t));
-	memset(seed, 0xab, sizeof(xmss_hash256_t));
+	memset(xmss_secret, 0x12, sizeof(xmss_sm3_digest_t));
+	memset(seed, 0xab, sizeof(xmss_sm3_digest_t));
 	hex_to_bytes("f0415ed807c8f8c2ee8ca3a00178bff37e1ccb2836e02607d06131c9341e52ca", 64, test_root, &len);
 
 	xmss_adrs_set_layer_address(adrs, 0);
 	xmss_adrs_set_tree_address(adrs, 0);
 	xmss_build_tree(xmss_secret, seed, adrs, height, tree);
 
-	memcpy(xmss_root, tree[(1 << (height + 1)) - 2], sizeof(xmss_hash256_t));
+	memcpy(xmss_root, tree[(1 << (height + 1)) - 2], sizeof(xmss_sm3_digest_t));
 	/*
-	if (memcmp(xmss_root, test_root, sizeof(xmss_hash256_t))) {
+	if (memcmp(xmss_root, test_root, sizeof(xmss_sm3_digest_t))) {
 		error_print();
 		return -1;
 	}
@@ -287,13 +81,13 @@ static int test_xmss_build_tree(void)
 
 static int test_xmss_build_root(void)
 {
-	xmss_hash256_t secret;
-	xmss_hash256_t seed;
+	xmss_sm3_digest_t secret;
+	xmss_sm3_digest_t seed;
 	xmss_adrs_t adrs;
 	size_t height = 4;
-	xmss_hash256_t tree[(1 << (4+1)) - 1];
-	xmss_hash256_t auth_path[4];
-	xmss_hash256_t root;
+	xmss_sm3_digest_t tree[(1 << (4+1)) - 1];
+	xmss_sm3_digest_t auth_path[4];
+	xmss_sm3_digest_t root;
 	uint32_t index;
 
 	rand_bytes(secret, sizeof(secret));
@@ -305,7 +99,7 @@ static int test_xmss_build_root(void)
 	for (index = 0; index < (1 << height); index++) {
 		xmss_build_auth_path(tree, height, index, auth_path);
 		xmss_build_root(tree[index], index, seed, adrs, auth_path, height, root);
-		if (memcmp(root, tree[sizeof(tree)/sizeof(tree[0]) - 1], sizeof(xmss_hash256_t)) != 0) {
+		if (memcmp(root, tree[sizeof(tree)/sizeof(tree[0]) - 1], sizeof(xmss_sm3_digest_t)) != 0) {
 			error_print();
 			return -1;
 		}
@@ -321,9 +115,9 @@ static int test_xmss_private_key_size(void)
 		uint32_t xmss_type;
 		size_t keylen;
 	} tests[] = {
-		{ XMSS_HASH256_10_256, 65640 },
-		{ XMSS_HASH256_16_256, 4194408 },
-		{ XMSS_HASH256_20_256, 67108968 },
+		{ XMSS_SM3_10_256, 65640 },
+		{ XMSS_SM3_16_256, 4194408 },
+		{ XMSS_SM3_20_256, 67108968 },
 	};
 	size_t keylen;
 	size_t i;
@@ -347,7 +141,7 @@ static int test_xmss_private_key_size(void)
 
 static int test_xmss_key_generate(void)
 {
-	uint32_t xmss_type = XMSS_HASH256_10_256;
+	uint32_t xmss_type = XMSS_SM3_10_256;
 	XMSS_KEY key;
 	size_t count;
 	size_t i;
@@ -385,7 +179,7 @@ static int test_xmss_key_generate(void)
 
 static int test_xmss_public_key_to_bytes(void)
 {
-	uint32_t xmss_type = XMSS_HASH256_10_256;
+	uint32_t xmss_type = XMSS_SM3_10_256;
 	XMSS_KEY key;
 	XMSS_KEY pub;
 	uint8_t buf[XMSS_PUBLIC_KEY_SIZE];
@@ -431,9 +225,9 @@ struct {
 	uint32_t xmss_type;
 	size_t siglen;
 } xmss_siglens[] = {
-	{ XMSS_HASH256_10_256, 2500 },
-	{ XMSS_HASH256_16_256, 2692 },
-	{ XMSS_HASH256_20_256, 2820 },
+	{ XMSS_SM3_10_256, 2500 },
+	{ XMSS_SM3_16_256, 2692 },
+	{ XMSS_SM3_20_256, 2820 },
 };
 
 static int test_xmss_signature_size(void)
@@ -457,23 +251,23 @@ static int test_xmss_signature_size(void)
 
 static int test_xmss_sign(void)
 {
-	static const uint8_t xmss_hash256_two[] = {
+	static const uint8_t xmss_sm3_digest_two[] = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
 	};
 	uint8_t msg[100] = {0};
-	uint32_t xmss_type = XMSS_HASH256_10_256;
+	uint32_t xmss_type = XMSS_SM3_10_256;
 	size_t height = 10;
 	uint32_t index = 1011;
-	xmss_hash256_t hash256_index = {0};
+	xmss_sm3_digest_t sm3_digest_index = {0};
 	XMSS_KEY key;
 	XMSS_SIGNATURE sig;
 	xmss_adrs_t adrs;
-	xmss_hash256_t root;
-	XMSS_HASH256_CTX ctx;
-	xmss_hash256_t dgst;
+	xmss_sm3_digest_t root;
+	SM3_CTX ctx;
+	xmss_sm3_digest_t dgst;
 	size_t h;
 	clock_t start = clock();
 
@@ -501,7 +295,7 @@ static int test_xmss_sign(void)
 
 	// check wots_root
 	xmss_wots_derive_root(key.secret, key.public_key.seed, adrs, root);
-	if (memcmp(root, key.tree[index], sizeof(xmss_hash256_t)) != 0) {
+	if (memcmp(root, key.tree[index], sizeof(xmss_sm3_digest_t)) != 0) {
 		xmss_key_cleanup(&key);
 		error_print();
 		return -1;
@@ -511,14 +305,14 @@ static int test_xmss_sign(void)
 
 
 
-	PUTU32(hash256_index + 28, index);
-	xmss_hash256_init(&ctx);
-	xmss_hash256_update(&ctx, xmss_hash256_two, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx, sig.random, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx, key.public_key.root, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx, hash256_index, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx, msg, sizeof(msg));
-	xmss_hash256_finish(&ctx, dgst);
+	PUTU32(sm3_digest_index + 28, index);
+	sm3_init(&ctx);
+	sm3_update(&ctx, xmss_sm3_digest_two, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx, sig.random, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx, key.public_key.root, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx, sm3_digest_index, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx, msg, sizeof(msg));
+	sm3_finish(&ctx, dgst);
 
 	xmss_wots_sign(sig.wots_sig, key.public_key.seed, adrs, dgst, sig.wots_sig);
 
@@ -551,7 +345,7 @@ static int test_xmss_sign(void)
 
 	xmss_build_root(root, index, key.public_key.seed, adrs, sig.auth_path, height, root);
 
-	if (memcmp(root, key.public_key.root, sizeof(xmss_hash256_t)) != 0) {
+	if (memcmp(root, key.public_key.root, sizeof(xmss_sm3_digest_t)) != 0) {
 		error_print();
 		return -1;
 	}
@@ -564,7 +358,7 @@ static int test_xmss_sign(void)
 
 static int test_xmss_sign_update(void)
 {
-	uint32_t xmss_type = XMSS_HASH256_10_256;
+	uint32_t xmss_type = XMSS_SM3_10_256;
 	XMSS_KEY key;
 	XMSS_SIGN_CTX sign_ctx;
 	XMSS_SIGNATURE signature;
@@ -620,14 +414,14 @@ struct {
 	size_t indexlen;
 	size_t siglen;
 } xmssmt_consts[] = {
-	{ XMSSMT_HASH256_20_2_256, 3, 4963 },
-	{ XMSSMT_HASH256_20_4_256, 3, 9251 },
-	{ XMSSMT_HASH256_40_2_256, 5, 5605 },
-	{ XMSSMT_HASH256_40_4_256, 5, 9893 },
-	{ XMSSMT_HASH256_40_8_256, 5, 18469 },
-	{ XMSSMT_HASH256_60_3_256, 8, 8392 },
-	{ XMSSMT_HASH256_60_6_256, 8, 14824 },
-	{ XMSSMT_HASH256_60_12_256, 8, 27688 },
+	{ XMSSMT_SM3_20_2_256, 3, 4963 },
+	{ XMSSMT_SM3_20_4_256, 3, 9251 },
+	{ XMSSMT_SM3_40_2_256, 5, 5605 },
+	{ XMSSMT_SM3_40_4_256, 5, 9893 },
+	{ XMSSMT_SM3_40_8_256, 5, 18469 },
+	{ XMSSMT_SM3_60_3_256, 8, 8392 },
+	{ XMSSMT_SM3_60_6_256, 8, 14824 },
+	{ XMSSMT_SM3_60_12_256, 8, 27688 },
 };
 
 static int test_xmssmt_index_to_bytes(void)
@@ -654,7 +448,7 @@ static int test_xmssmt_index_to_bytes(void)
 
 static int test_xmssmt_key_generate(void)
 {
-	uint32_t xmssmt_index = XMSSMT_HASH256_20_4_256;
+	uint32_t xmssmt_index = XMSSMT_SM3_20_4_256;
 	XMSSMT_KEY key;
 	clock_t start = clock();
 
@@ -726,7 +520,7 @@ static int test_xmssmt_signature_print(void)
 
 static int test_xmssmt_signature_to_bytes(void)
 {
-	uint32_t xmssmt_type = XMSSMT_HASH256_20_2_256;
+	uint32_t xmssmt_type = XMSSMT_SM3_20_2_256;
 	XMSSMT_SIGNATURE xmssmt_sig;
 	uint8_t buf[XMSSMT_SIGNATURE_MAX_SIZE];
 	uint8_t *p = buf;
@@ -756,26 +550,26 @@ static int test_xmssmt_signature_to_bytes(void)
 }
 
 /*
-XMSSMT_SHA2_20_2_256: 133287		133KB
-XMSSMT_SHA2_20_4_256: 14631		 14KB
-XMSSMT_SHA2_40_2_256: 134219945		134MB
-XMSSMT_SHA2_40_4_256: 268585		268KB
-XMSSMT_SHA2_40_8_256: 31273		 31KB
-XMSSMT_SHA2_60_3_256: 201330924		201MB
-XMSSMT_SHA2_60_6_256: 403884		403KB
-XMSSMT_SHA2_60_12_256: 47916		 47KB
+XMSSMT_SM3_20_2_256: 133287		133KB
+XMSSMT_SM3_20_4_256: 14631		 14KB
+XMSSMT_SM3_40_2_256: 134219945		134MB
+XMSSMT_SM3_40_4_256: 268585		268KB
+XMSSMT_SM3_40_8_256: 31273		 31KB
+XMSSMT_SM3_60_3_256: 201330924		201MB
+XMSSMT_SM3_60_6_256: 403884		403KB
+XMSSMT_SM3_60_12_256: 47916		 47KB
 */
 static int test_xmssmt_private_key_size(void)
 {
 	uint32_t xmssmt_types[] = {
-		XMSSMT_HASH256_20_2_256,
-		XMSSMT_HASH256_20_4_256,
-		XMSSMT_HASH256_40_2_256,
-		XMSSMT_HASH256_40_4_256,
-		XMSSMT_HASH256_40_8_256,
-		XMSSMT_HASH256_60_3_256,
-		XMSSMT_HASH256_60_6_256,
-		XMSSMT_HASH256_60_12_256,
+		XMSSMT_SM3_20_2_256,
+		XMSSMT_SM3_20_4_256,
+		XMSSMT_SM3_40_2_256,
+		XMSSMT_SM3_40_4_256,
+		XMSSMT_SM3_40_8_256,
+		XMSSMT_SM3_60_3_256,
+		XMSSMT_SM3_60_6_256,
+		XMSSMT_SM3_60_12_256,
 	};
 	size_t len;
 	size_t i;
@@ -796,14 +590,14 @@ static int test_xmssmt_private_key_size(void)
 static int test_xmssmt_public_key_to_bytes(void)
 {
 	uint32_t xmssmt_types[] = {
-		XMSSMT_HASH256_20_2_256,
-		XMSSMT_HASH256_20_4_256,
-		XMSSMT_HASH256_40_2_256,
-		XMSSMT_HASH256_40_4_256,
-		XMSSMT_HASH256_40_8_256,
-		XMSSMT_HASH256_60_3_256,
-		XMSSMT_HASH256_60_6_256,
-		XMSSMT_HASH256_60_12_256,
+		XMSSMT_SM3_20_2_256,
+		XMSSMT_SM3_20_4_256,
+		XMSSMT_SM3_40_2_256,
+		XMSSMT_SM3_40_4_256,
+		XMSSMT_SM3_40_8_256,
+		XMSSMT_SM3_60_3_256,
+		XMSSMT_SM3_60_6_256,
+		XMSSMT_SM3_60_12_256,
 	};
 	XMSSMT_KEY key;
 	uint8_t buf[XMSSMT_PUBLIC_KEY_SIZE];
@@ -816,7 +610,7 @@ static int test_xmssmt_public_key_to_bytes(void)
 
 	memset(&key, 0, sizeof(key));
 
-	key.public_key.xmssmt_type = XMSSMT_HASH256_20_2_256;
+	key.public_key.xmssmt_type = XMSSMT_SM3_20_2_256;
 
 
 
@@ -845,7 +639,7 @@ static int test_xmssmt_public_key_to_bytes(void)
 
 static int test_xmssmt_private_key_to_bytes(void)
 {
-	uint32_t xmssmt_type = XMSSMT_HASH256_20_4_256;
+	uint32_t xmssmt_type = XMSSMT_SM3_20_4_256;
 	XMSSMT_KEY key;
 	size_t buflen;
 	uint8_t *buf = NULL;
@@ -912,20 +706,20 @@ static uint64_t xmssmt_tree_index(uint64_t index, size_t height, size_t layers, 
 // reference implementation of xmss^mt sign/verify
 static int test_xmssmt_sign(void)
 {
-	static const uint8_t xmss_hash256_two[] = {
+	static const uint8_t xmss_sm3_digest_two[] = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
 	};
-	static const uint8_t xmss_hash256_three[] = {
+	static const uint8_t xmss_sm3_digest_three[] = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
 	};
 
-	uint32_t xmssmt_type = XMSSMT_HASH256_20_4_256;
+	uint32_t xmssmt_type = XMSSMT_SM3_20_4_256;
 	size_t height = 0;
 	size_t layers = 0;
 
@@ -936,9 +730,9 @@ static int test_xmssmt_sign(void)
 	XMSSMT_KEY *key = &xmssmt_key;
 	XMSSMT_SIGN_CTX xmssmt_ctx;
 	XMSSMT_SIGN_CTX *ctx = &xmssmt_ctx;
-	xmss_hash256_t dgst;
+	xmss_sm3_digest_t dgst;
 
-	xmss_hash256_t hash256_index;
+	xmss_sm3_digest_t sm3_digest_index;
 	xmss_adrs_t adrs;
 
 	uint64_t tree_address;
@@ -971,9 +765,9 @@ static int test_xmssmt_sign(void)
 
 	// XMSSMT_SIGNATURE:
 	//	uint64_t	index
-	//	xmss_hash256_t	random
+	//	xmss_sm3_digest_t	random
 	//	wots_sig_t	wots_sigs[layers];
-	//	xmss_hash256_t	auth_path[height/layers]
+	//	xmss_sm3_digest_t	auth_path[height/layers]
 
 	// copy index
 	ctx->xmssmt_sig.index = key->index;
@@ -986,19 +780,19 @@ static int test_xmssmt_sign(void)
 	// build auth_path
 	for (layer = 0; layer < layers; layer++) {
 		uint32_t tree_index = xmssmt_tree_index(ctx->xmssmt_sig.index, height, layers, layer);
-		xmss_hash256_t *tree = key->trees + xmss_num_tree_nodes(height/layers) * layer;
-		xmss_hash256_t *auth_path = ctx->xmssmt_sig.auth_path + (height/layers) * layer;
+		xmss_sm3_digest_t *tree = key->trees + xmss_num_tree_nodes(height/layers) * layer;
+		xmss_sm3_digest_t *auth_path = ctx->xmssmt_sig.auth_path + (height/layers) * layer;
 		xmss_build_auth_path(tree, height/layers, tree_index, auth_path);
 	}
 
 	// derive ctx->xmssmt_sig.random
-	memset(hash256_index, 0, 24);
-	PUTU64(hash256_index + 24, ctx->xmssmt_sig.index);
-	xmss_hash256_init(&ctx->hash256_ctx);
-	xmss_hash256_update(&ctx->hash256_ctx, xmss_hash256_three, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx->hash256_ctx, key->sk_prf, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx->hash256_ctx, hash256_index, sizeof(xmss_hash256_t));
-	xmss_hash256_finish(&ctx->hash256_ctx, ctx->xmssmt_sig.random);
+	memset(sm3_digest_index, 0, 24);
+	PUTU64(sm3_digest_index + 24, ctx->xmssmt_sig.index);
+	sm3_init(&ctx->sm3_ctx);
+	sm3_update(&ctx->sm3_ctx, xmss_sm3_digest_three, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx->sm3_ctx, key->sk_prf, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx->sm3_ctx, sm3_digest_index, sizeof(xmss_sm3_digest_t));
+	sm3_finish(&ctx->sm3_ctx, ctx->xmssmt_sig.random);
 
 	// derive wots_sk and save to wots_sigs[0]
 	layer = 0;
@@ -1010,14 +804,14 @@ static int test_xmssmt_sign(void)
 	xmss_adrs_set_ots_address(adrs, tree_index);
 	xmss_wots_derive_sk(key->secret, key->public_key.seed, adrs, ctx->xmssmt_sig.wots_sigs[0]);
 
-	// H_msg(M) := HASH256(toByte(2, 32) || r || XMSS_ROOT || toByte(idx_sig, 32) || M)
-	xmss_hash256_init(&ctx->hash256_ctx);
-	xmss_hash256_update(&ctx->hash256_ctx, xmss_hash256_two, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx->hash256_ctx, ctx->xmssmt_sig.random, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx->hash256_ctx, key->public_key.root, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx->hash256_ctx, hash256_index, sizeof(xmss_hash256_t));
-	xmss_hash256_update(&ctx->hash256_ctx, msg, sizeof(msg));
-	xmss_hash256_finish(&ctx->hash256_ctx, dgst);
+	// H_msg(M) := SM3(toByte(2, 32) || r || XMSS_ROOT || toByte(idx_sig, 32) || M)
+	sm3_init(&ctx->sm3_ctx);
+	sm3_update(&ctx->sm3_ctx, xmss_sm3_digest_two, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx->sm3_ctx, ctx->xmssmt_sig.random, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx->sm3_ctx, key->public_key.root, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx->sm3_ctx, sm3_digest_index, sizeof(xmss_sm3_digest_t));
+	sm3_update(&ctx->sm3_ctx, msg, sizeof(msg));
+	sm3_finish(&ctx->sm3_ctx, dgst);
 
 	// generate message wots_sig as wots_sigs[0]
 	layer = 0;
@@ -1061,7 +855,7 @@ static int test_xmssmt_sign(void)
 	}
 
 	// verify xmssmt_root (save in dgst)
-	if (memcmp(dgst, ctx->xmssmt_public_key.root, sizeof(xmss_hash256_t)) != 0) {
+	if (memcmp(dgst, ctx->xmssmt_public_key.root, sizeof(xmss_sm3_digest_t)) != 0) {
 		error_print();
 		return -1;
 	}
@@ -1073,7 +867,7 @@ static int test_xmssmt_sign(void)
 
 static int test_xmssmt_sign_update(void)
 {
-	uint32_t xmssmt_type = XMSSMT_HASH256_20_4_256;
+	uint32_t xmssmt_type = XMSSMT_SM3_20_4_256;
 	XMSSMT_KEY key;
 	XMSSMT_SIGN_CTX ctx;
 	XMSSMT_SIGNATURE sig;
@@ -1160,13 +954,6 @@ static int test_xmssmt_sign_update(void)
 
 int main(void)
 {
-#if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
-	if (test_wots_derive_sk() != 1) goto err;
-	if (test_wots_sk_to_pk() != 1) goto err;
-	if (test_wots_sign() != 1) goto err;
-	if (test_wots_derive_root() != 1) goto err;
-	if (test_wots_verify() != 1) goto err;
-#endif
 	if (test_xmss_adrs() != 1) goto err;
 	if (test_xmss_build_tree() != 1) goto err;
 	if (test_xmss_build_root() != 1) goto err;

@@ -22,9 +22,9 @@ static const char *usage = "-xmss_type type -out file [-pubout file] [-verbose]\
 static const char *options =
 "Options\n"
 "    -xmss_type type             XMSS Algorithm Type\n"
-"                                 "XMSS_HASH256_10_256_NAME"\n"
-"                                 "XMSS_HASH256_16_256_NAME"\n"
-"                                 "XMSS_HASH256_20_256_NAME"\n"
+"                                 "XMSS_SM3_10_256_NAME"\n"
+"                                 "XMSS_SM3_16_256_NAME"\n"
+"                                 "XMSS_SM3_20_256_NAME"\n"
 "    -out file                   Output private key\n"
 "    -pubout file                Output public key\n"
 "    -verbose                    Print public key\n"

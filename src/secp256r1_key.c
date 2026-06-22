@@ -34,7 +34,10 @@ int secp256r1_key_generate(SECP256R1_KEY *key)
 		}
 	} while (secp256r1_is_zero(key->private_key) || secp256r1_cmp(key->private_key, SECP256R1_N) >= 0);
 
-	secp256r1_point_mul_generator(&key->public_key, key->private_key);
+	if (secp256r1_point_mul_generator(&key->public_key, key->private_key) != 1) {
+		error_print();
+		return -1;
+	}
 
 	return 1;
 }
@@ -51,8 +54,11 @@ int secp256r1_key_set_private_key(SECP256R1_KEY *key, const secp256r1_t private_
 	}
 	memset(key, 0, sizeof(SECP256R1_KEY));
 
-	secp256r1_copy(key->private_key, private_key);
-	secp256r1_point_mul_generator(&key->public_key, key->private_key);
+	if (secp256r1_copy(key->private_key, private_key) != 1
+		|| secp256r1_point_mul_generator(&key->public_key, key->private_key) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -114,13 +120,19 @@ int secp256r1_public_key_print(FILE *fp, int fmt, int ind, const char *label, co
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	secp256r1_print(fp, fmt, ind, "X", key->public_key.X);
-	secp256r1_print(fp, fmt, ind, "Y", key->public_key.Y);
-	secp256r1_print(fp, fmt, ind, "Z", key->public_key.Z);
+	if (secp256r1_print(fp, fmt, ind, "X", key->public_key.X) != 1
+		|| secp256r1_print(fp, fmt, ind, "Y", key->public_key.Y) != 1
+		|| secp256r1_print(fp, fmt, ind, "Z", key->public_key.Z) != 1) {
+		error_print();
+		return -1;
+	}
 
-	secp256r1_point_get_xy(&key->public_key, x, y);
-	secp256r1_print(fp, fmt, ind, "x", x);
-	secp256r1_print(fp, fmt, ind, "y", y);
+	if (secp256r1_point_get_xy(&key->public_key, x, y) != 1
+		|| secp256r1_print(fp, fmt, ind, "x", x) != 1
+		|| secp256r1_print(fp, fmt, ind, "y", y) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -128,7 +140,10 @@ int secp256r1_private_key_print(FILE *fp, int fmt, int ind, const char *label, c
 {
 	uint8_t buf[32];
 
-	secp256r1_to_32bytes(key->private_key, buf);
+	if (secp256r1_to_32bytes(key->private_key, buf) != 1) {
+		error_print();
+		return -1;
+	}
 
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
@@ -229,7 +244,10 @@ int secp256r1_private_key_to_der(const SECP256R1_KEY *key, uint8_t **out, size_t
 	}
 	// fprintf(stderr, "%s %d: params_len = %zu\n", params_len);
 	// fprintf(stderr, "%s %d: pubkey_len = %zu\n", pubkey_len);
-	secp256r1_to_32bytes(key->private_key, prikey);
+	if (secp256r1_to_32bytes(key->private_key, prikey) != 1) {
+		error_print();
+		return -1;
+	}
 	if (asn1_int_to_der(EC_private_key_version, NULL, &len) != 1
 		|| asn1_octet_string_to_der(prikey, 32, NULL, &len) != 1
 		|| asn1_explicit_to_der(0, params, params_len, NULL, &len) != 1
@@ -297,7 +315,10 @@ int secp256r1_private_key_from_der(SECP256R1_KEY *key, const uint8_t **in, size_
 		error_print();
 		return -1;
 	}
-	secp256r1_from_32bytes(private_key, prikey);
+	if (secp256r1_from_32bytes(private_key, prikey) != 1) {
+		error_print();
+		return -1;
+	}
 	if (secp256r1_key_set_private_key(key, private_key) != 1) {
 		gmssl_secure_clear(private_key, 32);
 		error_print();

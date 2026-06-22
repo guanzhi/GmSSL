@@ -267,11 +267,11 @@ void sphincs_wots_derive_sk(const sphincs_hash128_t secret,
 	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
 	sphincs_wots_key_t sk)
 {
-	uint8_t block[SPHINCS_HASH256_BLOCK_SIZE] = {0};
+	uint8_t block[SM3_BLOCK_SIZE] = {0};
 	sphincs_adrs_t adrs;
 	sphincs_adrsc_t adrsc;
-	SPHINCS_HASH256_CTX ctx;
-	sphincs_hash256_t dgst;
+	SM3_CTX ctx;
+	sphincs_sm3_digest_t dgst;
 	int i;
 
 	memcpy(block, seed, sizeof(sphincs_hash128_t));
@@ -287,11 +287,11 @@ void sphincs_wots_derive_sk(const sphincs_hash128_t secret,
 		sphincs_adrs_compress(adrs, adrsc);
 
 		// sk[i] = prf(secret, adrs)
-		sphincs_hash256_init(&ctx);
-		sphincs_hash256_update(&ctx, block, sizeof(block));
-		sphincs_hash256_update(&ctx, adrsc, sizeof(adrsc));
-		sphincs_hash256_update(&ctx, secret, sizeof(sphincs_hash128_t));
-		sphincs_hash256_finish(&ctx, dgst);
+		sm3_init(&ctx);
+		sm3_update(&ctx, block, sizeof(block));
+		sm3_update(&ctx, adrsc, sizeof(adrsc));
+		sm3_update(&ctx, secret, sizeof(sphincs_hash128_t));
+		sm3_finish(&ctx, dgst);
 
 		memcpy(sk[i], dgst, sizeof(sphincs_hash128_t));
 	}
@@ -303,11 +303,11 @@ void sphincs_wots_chain(const sphincs_hash128_t x,
 	int start, int steps, sphincs_hash128_t y)
 {
 	const uint8_t uint32_zero[4] = {0};
-	uint8_t block[SPHINCS_HASH256_BLOCK_SIZE] = {0};
+	uint8_t block[SM3_BLOCK_SIZE] = {0};
 	sphincs_adrs_t adrs;
 	sphincs_adrsc_t adrsc;
-	SPHINCS_HASH256_CTX ctx;
-	sphincs_hash256_t dgst;
+	SM3_CTX ctx;
+	sphincs_sm3_digest_t dgst;
 	int i;
 
 	memcpy(block, seed, sizeof(sphincs_hash128_t));
@@ -324,12 +324,12 @@ void sphincs_wots_chain(const sphincs_hash128_t x,
 		sphincs_adrs_set_hash_address(adrs, start + i);
 		sphincs_adrs_compress(adrs, adrsc);
 
-		// y = hash256(blockpad(seed) || adrsc || y)
-		sphincs_hash256_init(&ctx);
-		sphincs_hash256_update(&ctx, block, sizeof(block));
-		sphincs_hash256_update(&ctx, adrsc, sizeof(sphincs_adrsc_t));
-		sphincs_hash256_update(&ctx, y, sizeof(sphincs_hash128_t));
-		sphincs_hash256_finish(&ctx, dgst);
+		// y = block_hash(blockpad(seed) || adrsc || y)
+		sm3_init(&ctx);
+		sm3_update(&ctx, block, sizeof(block));
+		sm3_update(&ctx, adrsc, sizeof(sphincs_adrsc_t));
+		sm3_update(&ctx, y, sizeof(sphincs_hash128_t));
+		sm3_finish(&ctx, dgst);
 
 		memcpy(y, dgst, sizeof(sphincs_hash128_t));
 	}
@@ -438,11 +438,11 @@ void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
 	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
 	sphincs_hash128_t root)
 {
-	uint8_t block[SPHINCS_HASH256_BLOCK_SIZE] = {0};
+	uint8_t block[SM3_BLOCK_SIZE] = {0};
 	sphincs_adrs_t adrs = {0};
 	sphincs_adrsc_t adrsc;
-	SPHINCS_HASH256_CTX ctx;
-	sphincs_hash256_t dgst;
+	SM3_CTX ctx;
+	sphincs_sm3_digest_t dgst;
 
 	memcpy(block, seed, sizeof(sphincs_hash128_t));
 
@@ -452,11 +452,11 @@ void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
 	sphincs_adrs_copy_keypair_address(adrs, in_adrs);
 	sphincs_adrs_compress(adrs, adrsc);
 
-	sphincs_hash256_init(&ctx);
-	sphincs_hash256_update(&ctx, block, sizeof(block));
-	sphincs_hash256_update(&ctx, adrsc, sizeof(adrsc));
-	sphincs_hash256_update(&ctx, pk[0], sizeof(sphincs_wots_key_t));
-	sphincs_hash256_finish(&ctx, dgst);
+	sm3_init(&ctx);
+	sm3_update(&ctx, block, sizeof(block));
+	sm3_update(&ctx, adrsc, sizeof(adrsc));
+	sm3_update(&ctx, pk[0], sizeof(sphincs_wots_key_t));
+	sm3_finish(&ctx, dgst);
 
 	memcpy(root, dgst, sizeof(sphincs_hash128_t));
 }
@@ -465,15 +465,15 @@ void sphincs_tree_hash(const sphincs_hash128_t left_child, const sphincs_hash128
 	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
 	sphincs_hash128_t parent)
 {
-	SPHINCS_HASH256_CTX ctx;
-	sphincs_hash256_t dgst;
+	SM3_CTX ctx;
+	sphincs_sm3_digest_t dgst;
 
-	sphincs_hash256_init(&ctx);
-	sphincs_hash256_update(&ctx, seed, sizeof(sphincs_hash128_t));
-	sphincs_hash256_update(&ctx, adrs, sizeof(sphincs_adrs_t));
-	sphincs_hash256_update(&ctx, left_child, sizeof(sphincs_hash128_t));
-	sphincs_hash256_update(&ctx, right_child, sizeof(sphincs_hash128_t));
-	sphincs_hash256_finish(&ctx, dgst);
+	sm3_init(&ctx);
+	sm3_update(&ctx, seed, sizeof(sphincs_hash128_t));
+	sm3_update(&ctx, adrs, sizeof(sphincs_adrs_t));
+	sm3_update(&ctx, left_child, sizeof(sphincs_hash128_t));
+	sm3_update(&ctx, right_child, sizeof(sphincs_hash128_t));
+	sm3_finish(&ctx, dgst);
 
 	memcpy(parent, dgst, sizeof(sphincs_hash128_t));
 }
@@ -801,11 +801,11 @@ void sphincs_fors_derive_sk(const sphincs_hash128_t secret,
 	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
 	uint32_t fors_index, sphincs_hash128_t sk)
 {
-	uint8_t block[SPHINCS_HASH256_BLOCK_SIZE] = {0};
+	uint8_t block[SM3_BLOCK_SIZE] = {0};
 	sphincs_adrs_t adrs;
 	sphincs_adrsc_t adrsc;
-	SPHINCS_HASH256_CTX ctx;
-	sphincs_hash256_t dgst;
+	SM3_CTX ctx;
+	sphincs_sm3_digest_t dgst;
 
 	// blockpad(seed)
 	memcpy(block, seed, sizeof(sphincs_hash128_t));
@@ -820,12 +820,12 @@ void sphincs_fors_derive_sk(const sphincs_hash128_t secret,
 	// compress adrs
 	sphincs_adrs_compress(adrs, adrsc);
 
-	// sk = prf(seed, secret, adrs) = hash256(blockpad(seed)||adrsc||secret)
-	sphincs_hash256_init(&ctx);
-	sphincs_hash256_update(&ctx, block, sizeof(block));
-	sphincs_hash256_update(&ctx, adrsc, sizeof(adrsc));
-	sphincs_hash256_update(&ctx, secret, sizeof(sphincs_hash128_t));
-	sphincs_hash256_finish(&ctx, dgst);
+	// sk = prf(seed, secret, adrs) = block_hash(blockpad(seed)||adrsc||secret)
+	sm3_init(&ctx);
+	sm3_update(&ctx, block, sizeof(block));
+	sm3_update(&ctx, adrsc, sizeof(adrsc));
+	sm3_update(&ctx, secret, sizeof(sphincs_hash128_t));
+	sm3_finish(&ctx, dgst);
 
 	memcpy(sk, dgst, sizeof(sphincs_hash128_t));
 	gmssl_secure_clear(dgst, sizeof(dgst));
@@ -840,8 +840,8 @@ void sphincs_fors_build_tree(const sphincs_hash128_t secret,
 	sphincs_adrsc_t adrsc;
 	uint32_t n = 1 << SPHINCS_FORS_TREE_HEIGHT;
 	uint32_t tree_index;
-	SPHINCS_HASH256_CTX ctx;
-	sphincs_hash256_t dgst;
+	SM3_CTX ctx;
+	sphincs_sm3_digest_t dgst;
 	sphincs_hash128_t *children;
 	sphincs_hash128_t *parents;
 	uint32_t h;
@@ -864,11 +864,11 @@ void sphincs_fors_build_tree(const sphincs_hash128_t secret,
 		sphincs_adrs_compress(adrs, adrsc);
 
 
-		sphincs_hash256_init(&ctx);
-		sphincs_hash256_update(&ctx, block, sizeof(block));
-		sphincs_hash256_update(&ctx, adrsc, sizeof(adrsc));
-		sphincs_hash256_update(&ctx, tree[i], sizeof(sphincs_hash128_t));
-		sphincs_hash256_finish(&ctx, dgst);
+		sm3_init(&ctx);
+		sm3_update(&ctx, block, sizeof(block));
+		sm3_update(&ctx, adrsc, sizeof(adrsc));
+		sm3_update(&ctx, tree[i], sizeof(sphincs_hash128_t));
+		sm3_finish(&ctx, dgst);
 
 		memcpy(tree[i], dgst, sizeof(sphincs_hash128_t));
 	}
@@ -898,8 +898,8 @@ void sphincs_fors_derive_root(const sphincs_hash128_t secret,
 	sphincs_adrsc_t adrsc;
 	sphincs_hash128_t tree[SPHINCS_FORS_TREE_NUM_NODES];
 	sphincs_hash128_t roots[SPHINCS_FORS_NUM_TREES];
-	SPHINCS_HASH256_CTX ctx;
-	sphincs_hash256_t dgst;
+	SM3_CTX ctx;
+	sphincs_sm3_digest_t dgst;
 	int i;
 
 	memcpy(block, seed, sizeof(sphincs_hash128_t));
@@ -917,11 +917,11 @@ void sphincs_fors_derive_root(const sphincs_hash128_t secret,
 		memcpy(roots[i], tree[SPHINCS_FORS_TREE_NUM_NODES - 1], sizeof(sphincs_hash128_t));
 	}
 
-	sphincs_hash256_init(&ctx);
-	sphincs_hash256_update(&ctx, block, sizeof(block));
-	sphincs_hash256_update(&ctx, adrsc, sizeof(adrsc));
-	sphincs_hash256_update(&ctx, roots[0], sizeof(roots));
-	sphincs_hash256_finish(&ctx, dgst);
+	sm3_init(&ctx);
+	sm3_update(&ctx, block, sizeof(block));
+	sm3_update(&ctx, adrsc, sizeof(adrsc));
+	sm3_update(&ctx, roots[0], sizeof(roots));
+	sm3_finish(&ctx, dgst);
 
 	memcpy(root, dgst, sizeof(sphincs_hash128_t));
 }
@@ -1013,8 +1013,8 @@ void sphincs_fors_sign(const sphincs_hash128_t secret,
 		uint8_t block[64] = {0};
 		sphincs_adrs_t adrs;
 		sphincs_adrsc_t adrsc;
-		SPHINCS_HASH256_CTX ctx;
-		sphincs_hash256_t root;
+		SM3_CTX ctx;
+		sphincs_sm3_digest_t root;
 
 		tree_index = index[0];
 
@@ -1027,11 +1027,11 @@ void sphincs_fors_sign(const sphincs_hash128_t secret,
 
 		sphincs_adrs_compress(adrs, adrsc);
 
-		sphincs_hash256_init(&ctx);
-		sphincs_hash256_update(&ctx, block, sizeof(block));
-		sphincs_hash256_update(&ctx, adrsc, sizeof(adrsc));
-		sphincs_hash256_update(&ctx, sig->fors_sk[0], sizeof(sphincs_hash128_t));
-		sphincs_hash256_finish(&ctx, root);
+		sm3_init(&ctx);
+		sm3_update(&ctx, block, sizeof(block));
+		sm3_update(&ctx, adrsc, sizeof(adrsc));
+		sm3_update(&ctx, sig->fors_sk[0], sizeof(sphincs_hash128_t));
+		sm3_finish(&ctx, root);
 
 		format_bytes(stderr, 0, 4, "fors_tree[0]", root, 16);
 
@@ -1072,8 +1072,8 @@ void sphincs_fors_sig_to_root(const SPHINCS_FORS_SIGNATURE *sig,
 	uint8_t block[64] = {0};
 	sphincs_adrs_t adrs;
 	sphincs_adrsc_t adrsc;
-	SPHINCS_HASH256_CTX ctx;
-	sphincs_hash256_t dgst;
+	SM3_CTX ctx;
+	sphincs_sm3_digest_t dgst;
 
 	uint32_t index[14];
 	uint32_t tree_index;
@@ -1103,11 +1103,11 @@ void sphincs_fors_sig_to_root(const SPHINCS_FORS_SIGNATURE *sig,
 		sphincs_adrs_compress(adrs, adrsc);
 
 
-		sphincs_hash256_init(&ctx);
-		sphincs_hash256_update(&ctx, block, sizeof(block));
-		sphincs_hash256_update(&ctx, adrsc, sizeof(adrsc));
-		sphincs_hash256_update(&ctx, sig->fors_sk[i], sizeof(sphincs_hash128_t));
-		sphincs_hash256_finish(&ctx, dgst);
+		sm3_init(&ctx);
+		sm3_update(&ctx, block, sizeof(block));
+		sm3_update(&ctx, adrsc, sizeof(adrsc));
+		sm3_update(&ctx, sig->fors_sk[i], sizeof(sphincs_hash128_t));
+		sm3_finish(&ctx, dgst);
 
 		memcpy(root, dgst, 16);
 
@@ -1148,11 +1148,11 @@ void sphincs_fors_sig_to_root(const SPHINCS_FORS_SIGNATURE *sig,
 	sphincs_adrs_compress(adrs, adrsc);
 
 
-	sphincs_hash256_init(&ctx);
-	sphincs_hash256_update(&ctx, block, sizeof(block));
-	sphincs_hash256_update(&ctx, adrsc, sizeof(adrsc));
-	sphincs_hash256_update(&ctx, fors_tree_roots[0], sizeof(fors_tree_roots));
-	sphincs_hash256_finish(&ctx, dgst);
+	sm3_init(&ctx);
+	sm3_update(&ctx, block, sizeof(block));
+	sm3_update(&ctx, adrsc, sizeof(adrsc));
+	sm3_update(&ctx, fors_tree_roots[0], sizeof(fors_tree_roots));
+	sm3_finish(&ctx, dgst);
 
 	memcpy(root, dgst, 16);
 
@@ -1419,10 +1419,10 @@ int sphincs_sign_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, const sp
 	ctx->key = *key;
 
 	// R = PRF_msg(sk_prf, optrand, M) = HMAC(sk_prf, opt_rand|M)
-	sphincs_hmac256_init(&ctx->hmac_ctx, key->sk_prf, sizeof(sphincs_hash128_t));
+	sm3_hmac_init(&ctx->hmac_ctx, key->sk_prf, sizeof(sphincs_hash128_t));
 	if (opt_rand)
-		sphincs_hmac256_update(&ctx->hmac_ctx, opt_rand, sizeof(sphincs_hash128_t));
-	else	sphincs_hmac256_update(&ctx->hmac_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
+		sm3_hmac_update(&ctx->hmac_ctx, opt_rand, sizeof(sphincs_hash128_t));
+	else	sm3_hmac_update(&ctx->hmac_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
 
 	// state
 	ctx->state = 1;
@@ -1463,7 +1463,7 @@ int sphincs_sign_prepare(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t data
 
 	if (data && datalen) {
 		// R = PRF_msg(sk_prf, optrand, M) = HMAC(sk_prf, opt_rand|M...)
-		sphincs_hmac256_update(&ctx->hmac_ctx, data, datalen);
+		sm3_hmac_update(&ctx->hmac_ctx, data, datalen);
 		// sum datalen
 		ctx->round1_msglen += datalen;
 	}
@@ -1480,17 +1480,17 @@ int sphincs_sign_update(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t datal
 
 	// state
 	if (ctx->state == 2) {
-		sphincs_hash256_t dgst;
+		sphincs_sm3_digest_t dgst;
 
 		// R = PRF_msg(sk_prf, optrand, M) = HMAC(sk_prf, opt_rand|M)
-		sphincs_hmac256_finish(&ctx->hmac_ctx, dgst);
+		sm3_hmac_finish(&ctx->hmac_ctx, dgst);
 		memcpy(ctx->sig.random, dgst, sizeof(sphincs_hash128_t));
 
-		// dgst = HASH256(R|seed|root|M...)
-		sphincs_hash256_init(&ctx->hash_ctx);
-		sphincs_hash256_update(&ctx->hash_ctx, ctx->sig.random, sizeof(sphincs_hash128_t));
-		sphincs_hash256_update(&ctx->hash_ctx, ctx->key.public_key.seed, sizeof(sphincs_hash128_t));
-		sphincs_hash256_update(&ctx->hash_ctx, ctx->key.public_key.root, sizeof(sphincs_hash128_t));
+		// dgst = SM3(R|seed|root|M...)
+		sm3_init(&ctx->hash_ctx);
+		sm3_update(&ctx->hash_ctx, ctx->sig.random, sizeof(sphincs_hash128_t));
+		sm3_update(&ctx->hash_ctx, ctx->key.public_key.seed, sizeof(sphincs_hash128_t));
+		sm3_update(&ctx->hash_ctx, ctx->key.public_key.root, sizeof(sphincs_hash128_t));
 
 		ctx->state = 3;
 	}
@@ -1500,8 +1500,8 @@ int sphincs_sign_update(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t datal
 	}
 
 	if (data && datalen) {
-		// dgst = HASH256(R|seed|root|M...)
-		sphincs_hash256_update(&ctx->hash_ctx, data, datalen);
+		// dgst = SM3(R|seed|root|M...)
+		sm3_update(&ctx->hash_ctx, data, datalen);
 		// sum datalen
 		ctx->round2_msglen += datalen;
 	}
@@ -1511,7 +1511,7 @@ int sphincs_sign_update(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t datal
 
 int sphincs_sign_finish_ex(SPHINCS_SIGN_CTX *ctx, SPHINCS_SIGNATURE *sig)
 {
-	sphincs_hash256_t dgst;
+	sphincs_sm3_digest_t dgst;
 	uint8_t tbs[SPHINCS_TBS_SIZE];
 	uint32_t i;
 	uint8_t tree_address_buf[8] = {0};
@@ -1534,22 +1534,22 @@ int sphincs_sign_finish_ex(SPHINCS_SIGN_CTX *ctx, SPHINCS_SIGNATURE *sig)
 		return -1;
 	}
 
-	// dgst = HASH256(R|seed|root|M)
-	sphincs_hash256_finish(&ctx->hash_ctx, dgst);
+	// dgst = SM3(R|seed|root|M)
+	sm3_finish(&ctx->hash_ctx, dgst);
 
 	// tbs = H_msg(R, seed, root, M) = MGF1(R|seed|dgst, tbs_len)
 	for (i = 0; i < (SPHINCS_TBS_SIZE + 31)/32; i++) {
 		uint8_t count[4];
-		sphincs_hash256_t h_msg;
+		sphincs_sm3_digest_t h_msg;
 		size_t left;
 
 		PUTU32(count, i);
-		sphincs_hash256_init(&ctx->hash_ctx);
-		sphincs_hash256_update(&ctx->hash_ctx, ctx->sig.random, sizeof(sphincs_hash128_t));
-		sphincs_hash256_update(&ctx->hash_ctx, ctx->key.public_key.seed, sizeof(sphincs_hash128_t));
-		sphincs_hash256_update(&ctx->hash_ctx, dgst, sizeof(dgst));
-		sphincs_hash256_update(&ctx->hash_ctx, count, sizeof(count));
-		sphincs_hash256_finish(&ctx->hash_ctx, h_msg);
+		sm3_init(&ctx->hash_ctx);
+		sm3_update(&ctx->hash_ctx, ctx->sig.random, sizeof(sphincs_hash128_t));
+		sm3_update(&ctx->hash_ctx, ctx->key.public_key.seed, sizeof(sphincs_hash128_t));
+		sm3_update(&ctx->hash_ctx, dgst, sizeof(dgst));
+		sm3_update(&ctx->hash_ctx, count, sizeof(count));
+		sm3_finish(&ctx->hash_ctx, h_msg);
 
 		left = SPHINCS_TBS_SIZE - sizeof(dgst) * i;
 		left = left < sizeof(dgst) ? left : sizeof(dgst);
@@ -1626,11 +1626,11 @@ int sphincs_verify_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, const 
 		ctx->sig = *sig;
 	}
 
-	// dgst = HASH256(R|seed|root|M)
-	sphincs_hash256_init(&ctx->hash_ctx);
-	sphincs_hash256_update(&ctx->hash_ctx, sig->random, sizeof(sphincs_hash128_t));
-	sphincs_hash256_update(&ctx->hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
-	sphincs_hash256_update(&ctx->hash_ctx, key->public_key.root, sizeof(sphincs_hash128_t));
+	// dgst = SM3(R|seed|root|M)
+	sm3_init(&ctx->hash_ctx);
+	sm3_update(&ctx->hash_ctx, sig->random, sizeof(sphincs_hash128_t));
+	sm3_update(&ctx->hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
+	sm3_update(&ctx->hash_ctx, key->public_key.root, sizeof(sphincs_hash128_t));
 
 	return 1;
 }
@@ -1661,8 +1661,8 @@ int sphincs_verify_update(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t dat
 	}
 
 	if (data && datalen) {
-		// dgst = HASH256(R|seed|root|M)
-		sphincs_hash256_update(&ctx->hash_ctx, data, datalen);
+		// dgst = SM3(R|seed|root|M)
+		sm3_update(&ctx->hash_ctx, data, datalen);
 		ctx->round1_msglen += datalen;
 	}
 
@@ -1671,7 +1671,7 @@ int sphincs_verify_update(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t dat
 
 int sphincs_verify_finish(SPHINCS_SIGN_CTX *ctx)
 {
-	sphincs_hash256_t dgst;
+	sphincs_sm3_digest_t dgst;
 	uint8_t tbs[SPHINCS_TBS_SIZE];
 	uint8_t tree_address_buf[8] = {0};
 	uint8_t keypair_address_buf[4] = {0};
@@ -1686,22 +1686,22 @@ int sphincs_verify_finish(SPHINCS_SIGN_CTX *ctx)
 		return -1;
 	}
 
-	// dgst = HASH256(R|seed|root|M)
-	sphincs_hash256_finish(&ctx->hash_ctx, dgst);
+	// dgst = SM3(R|seed|root|M)
+	sm3_finish(&ctx->hash_ctx, dgst);
 
 	// tbs = H_msg(R, seed, root, M) = MGF1(R|seed|dgst, tbs_len)
 	for (i = 0; i < (SPHINCS_TBS_SIZE + 31)/32; i++) {
 		uint8_t count[4];
-		sphincs_hash256_t h_msg;
+		sphincs_sm3_digest_t h_msg;
 		size_t left;
 
 		PUTU32(count, i);
-		sphincs_hash256_init(&ctx->hash_ctx);
-		sphincs_hash256_update(&ctx->hash_ctx, ctx->sig.random, sizeof(sphincs_hash128_t));
-		sphincs_hash256_update(&ctx->hash_ctx, ctx->key.public_key.seed, sizeof(sphincs_hash128_t));
-		sphincs_hash256_update(&ctx->hash_ctx, dgst, sizeof(dgst));
-		sphincs_hash256_update(&ctx->hash_ctx, count, sizeof(count));
-		sphincs_hash256_finish(&ctx->hash_ctx, h_msg);
+		sm3_init(&ctx->hash_ctx);
+		sm3_update(&ctx->hash_ctx, ctx->sig.random, sizeof(sphincs_hash128_t));
+		sm3_update(&ctx->hash_ctx, ctx->key.public_key.seed, sizeof(sphincs_hash128_t));
+		sm3_update(&ctx->hash_ctx, dgst, sizeof(dgst));
+		sm3_update(&ctx->hash_ctx, count, sizeof(count));
+		sm3_finish(&ctx->hash_ctx, h_msg);
 
 		left = SPHINCS_TBS_SIZE - sizeof(dgst) * i;
 		left = left < sizeof(dgst) ? left : sizeof(dgst);

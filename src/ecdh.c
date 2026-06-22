@@ -26,9 +26,13 @@ int secp256r1_do_ecdh(const SECP256R1_KEY *key, const SECP256R1_KEY *peer_key, u
 		error_print();
 		return -1;
 	}
-	secp256r1_point_mul(&point, key->private_key, &peer_key->public_key);
-	secp256r1_point_get_xy(&point, x, y);
-	secp256r1_to_32bytes(x, out);
+	if (secp256r1_point_mul(&point, key->private_key, &peer_key->public_key) != 1
+		|| secp256r1_point_get_xy(&point, x, y) != 1
+		|| secp256r1_to_32bytes(x, out) != 1) {
+		error_print();
+		gmssl_secure_clear(&point, sizeof(SECP256R1_POINT));
+		return -1;
+	}
 
 	gmssl_secure_clear(&point, sizeof(SECP256R1_POINT));
 	gmssl_secure_clear(x, sizeof(secp256r1_t));
@@ -50,9 +54,13 @@ int secp256r1_ecdh(const SECP256R1_KEY *key, const uint8_t uncompressed_point[65
 		error_print();
 		return -1;
 	}
-	secp256r1_point_mul(&point, key->private_key, &point);
-	secp256r1_point_get_xy(&point, x,y);
-	secp256r1_to_32bytes(x, out);
+	if (secp256r1_point_mul(&point, key->private_key, &point) != 1
+		|| secp256r1_point_get_xy(&point, x,y) != 1
+		|| secp256r1_to_32bytes(x, out) != 1) {
+		error_print();
+		gmssl_secure_clear(&point, sizeof(SECP256R1_POINT));
+		return -1;
+	}
 
 	gmssl_secure_clear(&point, sizeof(SECP256R1_POINT));
 	gmssl_secure_clear(x, sizeof(secp256r1_t));

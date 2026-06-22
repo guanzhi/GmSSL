@@ -15,9 +15,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <gmssl/sm3.h>
-#ifdef ENABLE_SHA2
-#include <gmssl/sha2.h>
-#endif
 
 
 #ifdef __cplusplus
@@ -47,7 +44,7 @@ extern "C" {
 #define SPHINCS_TBS_SIZE  (SPHINCS_TBS_FORS_SIZE + SPHINCS_TBS_TREE_ADDRESS_SIZE + SPHINCS_TBS_KEYPAIR_ADDRESS_SIZE) // = 30
 
 
-// sizeof(sphincs_hash128_t) == n, when sm3/sha256, n == 16
+// sizeof(sphincs_hash128_t) == n, when sm3, n == 16
 #define SPHINCS_DIGEST_SIZE  16
 
 // only support w = 16, w_bits = 4
@@ -60,29 +57,7 @@ extern "C" {
 
 typedef uint8_t sphincs_hash128_t[16];
 
-typedef uint8_t sphincs_hash256_t[32];
-
-#if defined(ENABLE_SPHINCS_CROSSCHECK) && defined(ENABLE_SHA2) && !defined(SPHINCS_HASH256_CTX)
-# define SPHINCS_HASH256_CTX		SHA256_CTX
-# define sphincs_hash256_init		sha256_init
-# define sphincs_hash256_update		sha256_update
-# define sphincs_hash256_finish		sha256_finish
-# define SPHINCS_HASH256_BLOCK_SIZE	SHA256_BLOCK_SIZE
-# define SPHINCS_HMAC256_CTX	SHA256_HMAC_CTX
-# define sphincs_hmac256_init	sha256_hmac_init
-# define sphincs_hmac256_update	sha256_hmac_update
-# define sphincs_hmac256_finish	sha256_hmac_finish
-#else
-# define SPHINCS_HASH256_CTX		SM3_CTX
-# define sphincs_hash256_init		sm3_init
-# define sphincs_hash256_update		sm3_update
-# define sphincs_hash256_finish		sm3_finish
-# define SPHINCS_HASH256_BLOCK_SIZE	SM3_BLOCK_SIZE
-# define SPHINCS_HMAC256_CTX	SM3_HMAC_CTX
-# define sphincs_hmac256_init	sm3_hmac_init
-# define sphincs_hmac256_update	sm3_hmac_update
-# define sphincs_hmac256_finish	sm3_hmac_finish
-#endif
+typedef uint8_t sphincs_sm3_digest_t[32];
 
 
 // ADRS scheme
@@ -351,8 +326,8 @@ int sphincs_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, co
 int sphincs_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
 
 typedef struct {
-	SPHINCS_HMAC256_CTX hmac_ctx;
-	SPHINCS_HASH256_CTX hash_ctx;
+	SM3_HMAC_CTX hmac_ctx;
+	SM3_CTX hash_ctx;
 	SPHINCS_SIGNATURE sig;
 	int state; // after init 0, after prepare 1, after update 2
 	size_t round1_msglen;
