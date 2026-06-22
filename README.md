@@ -51,7 +51,7 @@ nmake
 ### 密码算法
 
 * 分组密码：SM4 (CBC/CTR/GCM/ECB/CFB/OFB/CCM/XTS), AES (CBC/CTR/GCM)
-* 序列密码：ZUC/ZUC-256, ChaCha20
+* 序列密码：ZUC/ZUC-256
 * 哈希函数: SM3, SHA-1, SHA-224/256/384/512
 * 公钥密码：SM2加密/签名, SM9加密/签名
 * 后量子密码：LMS/HSS签名
