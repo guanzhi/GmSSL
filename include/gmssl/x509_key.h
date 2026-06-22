@@ -252,8 +252,8 @@ typedef struct {
 	OID_xmssmt_hashsig
 	OID_sphincs_hashsig
 */
-int x509_key_get_sign_algor(const X509_KEY *key, int *algor);
-int x509_key_get_signature_size(const X509_KEY *key, size_t *siglen);
+int x509_key_supports_sign_algor(const X509_KEY *key, int sign_algor);
+int x509_key_get_signature_size(const X509_KEY *key, int sign_algor, size_t *siglen);
 
 /*
   x509_sign_init
@@ -272,12 +272,12 @@ int x509_key_get_signature_size(const X509_KEY *key, size_t *siglen);
     OID_sphincs_hashsig:OID_undef   OID_sphincs_hashsig   u8 rand[16]  16   randomized signature
                                                           NULL         0    deterministic signature
 */
-int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t argslen);
+int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, int sign_algor, const void *args, size_t argslen);
 int x509_sign_set_signature_size(X509_SIGN_CTX *ctx, size_t siglen);
 int x509_sign_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int x509_sign_finish(X509_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
 int x509_sign(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen, uint8_t *sig, size_t *siglen);
-int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, size_t argslen,
+int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, int sign_algor, const void *args, size_t argslen,
 	const uint8_t *sig, size_t siglen);
 int x509_verify_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int x509_verify_finish(X509_SIGN_CTX *ctx);

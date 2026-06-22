@@ -268,6 +268,7 @@ typedef struct {
 	size_t issuer_cert_len;
 
 	int responder_id_type;
+	int signature_algor;
 	time_t produced_at;
 	time_t next_update;
 	int revocation_reason;
@@ -289,6 +290,7 @@ int ocsp_sign_init(OCSP_SIGN_CTX *ctx,
 	const uint8_t *issuer_cert, size_t issuer_cert_len);
 
 int ocsp_sign_set_responder_id_type(OCSP_SIGN_CTX *ctx, int responder_id_type);
+int ocsp_sign_set_signature_algor(OCSP_SIGN_CTX *ctx, int signature_algor);
 int ocsp_sign_set_produced_at(OCSP_SIGN_CTX *ctx, time_t produced_at);
 int ocsp_sign_set_next_update(OCSP_SIGN_CTX *ctx, time_t next_update);
 int ocsp_sign_set_revocation_reason(OCSP_SIGN_CTX *ctx, int revocation_reason);

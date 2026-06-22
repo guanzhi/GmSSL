@@ -1004,7 +1004,8 @@ int tls13_sign_certificate_verify(int tls_mode, int sig_alg,
 		return -1;
 	}
 
-	if (x509_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) !=  1
+	if (x509_sign_init(&sign_ctx, sign_key, tls_signature_scheme_algorithm_oid(sig_alg),
+		signer_id, signer_id_len) !=  1
 		|| x509_sign_update(&sign_ctx, prefix, 64) != 1
 		|| x509_sign_update(&sign_ctx, context_str_and_zero, context_str_and_zero_len) != 1
 		|| x509_sign_update(&sign_ctx, dgst, dgstlen) != 1
@@ -1104,7 +1105,8 @@ int tls13_verify_certificate_verify(int tls_mode, int sig_alg,
 	format_bytes(stderr, 0, 4, "signature", sig, siglen);
 	*/
 
-	if (x509_verify_init(&sign_ctx, public_key, signer_id, signer_id_len, sig, siglen) != 1
+	if (x509_verify_init(&sign_ctx, public_key, tls_signature_scheme_algorithm_oid(sig_alg),
+		signer_id, signer_id_len, sig, siglen) != 1
 		|| x509_verify_update(&sign_ctx, prefix, 64) != 1
 		|| x509_verify_update(&sign_ctx, context_str_and_zero, context_str_and_zero_len) != 1
 		|| x509_verify_update(&sign_ctx, dgst, dgstlen) != 1) {

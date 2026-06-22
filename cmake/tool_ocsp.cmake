@@ -17,6 +17,7 @@ gmssl_run(ocspsign
 	-signer sm2_ocsp_responder_cert.pem
 	-key sm2_ocsp_responder_key.pem
 	-pass P@ssw0rd
+	-sig_alg sm2sign-with-sm3
 	-status good
 	-certs sm2_ocsp_responder_cert.pem
 	-out tool_ocsp_resp.der

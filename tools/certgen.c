@@ -27,6 +27,7 @@ static const char *options =
 	" -serial_len num"
 	" -days num"
 	" -key pem [-algor str] [-pass pass]"
+	" [-sig_alg str]"
 	" [-sm2_id str | -sm2_id_hex hex]"
 	" [-gen_authority_key_id]"
 	" [-gen_subject_key_id]"
@@ -48,6 +49,7 @@ static char *usage =
 "    -key file                    Private key file in PEM format\n"
 "    -algor str                   Public key algorithm\n"
 "    -pass pass                   Password for decrypting private key file\n"
+"    -sig_alg str                 Signature algorithm OID name, default sm2sign-with-sm3\n"
 "    -sm2_id str                  Signer's ID in SM2 signature algorithm\n"
 "    -sm2_id_hex hex              Signer's ID in hex format\n"
 "                                 When `-sm2_id` or `-sm2_id_hex` is specified,\n"
@@ -274,6 +276,13 @@ int certgen_main(int argc, char **argv)
 				fprintf(stderr, "%s: invalid algor '%s'\n", prog, str);
 				goto end;
 			}
+		} else if (!strcmp(*argv, "-sig_alg")) {
+			if (--argc < 1) goto bad;
+			str = *(++argv);
+			if ((sign_algor = x509_signature_algor_from_name(str)) == OID_undef) {
+				fprintf(stderr, "%s: invalid sig_alg '%s'\n", prog, str);
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
@@ -407,10 +416,6 @@ bad:
 	}
 	if (x509_private_key_from_file(&x509_key, algor, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: load private key failed\n", prog);
-		goto end;
-	}
-	if (x509_key_get_sign_algor(&x509_key, &sign_algor) != 1) {
-		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
 	}
 	if (!signer_id_len) {

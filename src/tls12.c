@@ -680,12 +680,24 @@ static int tls12_key_exchange_group_match_cipher_suite(int group, int cipher_sui
 	}
 }
 
-
-
-
-
-
-
+static int tls12_select_tlcp_signature_scheme(int cipher_suite, int *sig_alg)
+{
+	if (!sig_alg) {
+		error_print();
+		return -1;
+	}
+	switch (cipher_suite) {
+	case TLS_cipher_ecc_sm4_cbc_sm3:
+	case TLS_cipher_ecc_sm4_gcm_sm3:
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+		*sig_alg = TLS_sig_sm2sig_sm3;
+		return 1;
+	default:
+		error_print();
+		return -1;
+	}
+}
 
 static int tls12_select_common_cipher_suites(const uint8_t *client_ciphers, size_t client_ciphers_len,
 	const int *server_ciphers, size_t server_ciphers_cnt,
@@ -1125,6 +1137,12 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 		return -1;
 	}
 	conn->cipher_suite = cipher_suite;
+	if (conn->protocol == TLS_protocol_tlcp
+		&& tls12_select_tlcp_signature_scheme(conn->cipher_suite, &conn->sig_alg) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_handshake_failure);
+		return -1;
+	}
 
 	if (tls_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest) != 1) {
 		error_print();
@@ -1452,7 +1470,8 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 		sign_argslen = SM2_DEFAULT_ID_LENGTH;
 	}
 
-	if (x509_verify_init(&sign_ctx, &server_sign_key, sign_args, sign_argslen, sig, siglen) != 1
+	if (x509_verify_init(&sign_ctx, &server_sign_key, tls_signature_scheme_algorithm_oid(sig_alg),
+		sign_args, sign_argslen, sig, siglen) != 1
 		|| x509_verify_update(&sign_ctx, conn->client_random, 32) != 1
 		|| x509_verify_update(&sign_ctx, conn->server_random, 32) != 1
 		|| x509_verify_update(&sign_ctx, server_ecdh_params, server_ecdh_params_len) != 1
@@ -1784,15 +1803,21 @@ int tls_send_certificate_verify(TLS_CONNECT *conn)
 	if (conn->recordlen == 0) {
 		X509_KEY *sign_key = &conn->ctx->x509_keys[conn->cert_chain_idx - 1];
 		X509_SIGN_CTX sign_ctx;
+		int sign_algor = OID_undef;
 		const uint8_t *signer_id = NULL;
 		size_t signer_idlen = 0;
 
+		sign_algor = tls_signature_scheme_algorithm_oid(conn->sig_alg);
+		if (sign_algor == OID_undef) {
+			error_print();
+			return -1;
+		}
 		if (sign_key->algor == OID_ec_public_key && sign_key->algor_param == OID_sm2) {
 			signer_id = (uint8_t *)SM2_DEFAULT_ID;
 			signer_idlen = SM2_DEFAULT_ID_LENGTH;
 		}
 
-		if (x509_sign_init(&sign_ctx, sign_key, signer_id, signer_idlen) != 1
+		if (x509_sign_init(&sign_ctx, sign_key, sign_algor, signer_id, signer_idlen) != 1
 			|| x509_sign_update(&sign_ctx, conn->transcript, conn->transcript_len) != 1
 			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
@@ -2322,6 +2347,12 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_handshake_failure);
 		return -1;
 	}
+	if (conn->protocol == TLS_protocol_tlcp
+		&& tls12_select_tlcp_signature_scheme(conn->cipher_suite, &conn->sig_alg) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_handshake_failure);
+		return -1;
+	}
 
 	if (tls_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest) != 1) {
 		error_print();
@@ -2492,6 +2523,7 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 		X509_SIGN_CTX sign_ctx;
 		const void *sign_args = NULL;
 		size_t sign_argslen = 0;
+		int sign_algor = tls_signature_scheme_algorithm_oid(conn->sig_alg);
 		uint8_t sig[X509_SIGNATURE_MAX_SIZE];
 		size_t siglen;
 
@@ -2516,7 +2548,11 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 			sign_args = SM2_DEFAULT_ID;
 			sign_argslen = SM2_DEFAULT_ID_LENGTH;
 		}
-		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1
+		if (sign_algor == OID_undef) {
+			error_print();
+			return -1;
+		}
+		if (x509_sign_init(&sign_ctx, sign_key, sign_algor, sign_args, sign_argslen) != 1
 			|| x509_sign_update(&sign_ctx, conn->client_random, 32) != 1
 			|| x509_sign_update(&sign_ctx, conn->server_random, 32) != 1
 			|| x509_sign_update(&sign_ctx, server_ecdh_params, server_ecdh_params_len) != 1
@@ -2879,7 +2915,12 @@ int tls_recv_certificate_verify(TLS_CONNECT *conn)
 		signer_id = (uint8_t *)SM2_DEFAULT_ID;
 		signer_idlen = SM2_DEFAULT_ID_LENGTH;
 	}
-	if (x509_verify_init(&sign_ctx, &client_sign_key, signer_id, signer_idlen, sig, siglen) != 1
+	sig_alg = tls_signature_scheme_algorithm_oid(conn->protocol == TLS_protocol_tls12 ? sig_alg : conn->sig_alg);
+	if (sig_alg == OID_undef) {
+		error_print();
+		return -1;
+	}
+	if (x509_verify_init(&sign_ctx, &client_sign_key, sig_alg, signer_id, signer_idlen, sig, siglen) != 1
 		|| x509_verify_update(&sign_ctx, conn->transcript, conn->transcript_len) != 1
 		|| x509_verify_finish(&sign_ctx) != 1) {
 		error_print();

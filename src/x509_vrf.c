@@ -109,7 +109,6 @@ static int x509_signed_is_verified_by_key(const uint8_t *a, size_t alen,
 	int sig_alg;
 	const uint8_t *sig;
 	size_t siglen;
-	int key_sig_alg;
 	void *sign_args = NULL;
 	size_t sign_argslen = 0;
 	X509_SIGN_CTX verify_ctx;
@@ -123,13 +122,7 @@ static int x509_signed_is_verified_by_key(const uint8_t *a, size_t alen,
 		error_print();
 		return -1;
 	}
-
-	// FIXME: 改为 x509_key_support_algor
-	if (x509_key_get_sign_algor(key, &key_sig_alg) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sig_alg != key_sig_alg) {
+	if (x509_key_supports_sign_algor(key, sig_alg) != 1) {
 		return 0;
 	}
 
@@ -139,7 +132,7 @@ static int x509_signed_is_verified_by_key(const uint8_t *a, size_t alen,
 		sign_args = (uint8_t *)signer_id;
 		sign_argslen = signer_id_len;
 	}
-	if (x509_verify_init(&verify_ctx, key, sign_args, sign_argslen, sig, siglen) != 1
+	if (x509_verify_init(&verify_ctx, key, sig_alg, sign_args, sign_argslen, sig, siglen) != 1
 		|| x509_verify_update(&verify_ctx, tbs, tbslen) != 1
 		|| x509_verify_finish(&verify_ctx) != 1) {
 		return 0;

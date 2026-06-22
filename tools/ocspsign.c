@@ -15,6 +15,7 @@
 #include <gmssl/hex.h>
 #include <gmssl/asn1.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_alg.h>
 #include <gmssl/x509_crl.h>
 #include <gmssl/x509_key.h>
 #include <gmssl/ocsp.h>
@@ -26,6 +27,7 @@
 static const char *options =
 	"-reqin der -cacert pem -signer pem -key pem [-pass pass]"
 	" [-status good|revoked|unknown]"
+	" [-sig_alg str]"
 	" [-revocation_time time] [-revocation_reason reason]"
 	" [-this_update time] [-next_update time] [-produced_at time]"
 	" [-resp_key_id]"
@@ -42,6 +44,7 @@ static const char *help =
 "    -key pem                OCSPResponse signer private key\n"
 "    -pass pass              Password for decrypting private key file\n"
 "    -status status          Certificate status: good, revoked or unknown, default good\n"
+"    -sig_alg str            Signature algorithm OID name, default sm2sign-with-sm3\n"
 "    -revocation_time time   Revocation time, required when status is revoked\n"
 "    -revocation_reason str  Revocation reason, optional when status is revoked\n"
 "    -this_update time       SingleResponse thisUpdate, default current time\n"
@@ -190,6 +193,7 @@ int ocspsign_main(int argc, char **argv)
 	size_t signer_id_len = 0;
 
 	int cert_status = OCSP_cert_status_good;
+	int sign_algor = OID_sm2sign_with_sm3;
 	time_t revocation_time = (time_t)-1;
 	time_t this_update = time(NULL);
 	time_t next_update = (time_t)-1;
@@ -232,6 +236,13 @@ int ocspsign_main(int argc, char **argv)
 			if (--argc < 1) goto bad;
 			if ((cert_status = ocsp_status_from_name(*(++argv))) < 0) {
 				fprintf(stderr, "%s: invalid `-status` value\n", prog);
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-sig_alg")) {
+			if (--argc < 1) goto bad;
+			str = *(++argv);
+			if ((sign_algor = x509_signature_algor_from_name(str)) == OID_undef) {
+				fprintf(stderr, "%s: invalid `-sig_alg` value '%s'\n", prog, str);
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-revocation_time")) {
@@ -412,6 +423,10 @@ bad:
 	if (resp_key_id
 		&& ocsp_sign_set_responder_id_type(&ocsp_ctx, OCSP_responder_id_by_key) != 1) {
 		fprintf(stderr, "%s: set OCSP responderID failure\n", prog);
+		goto end;
+	}
+	if (ocsp_sign_set_signature_algor(&ocsp_ctx, sign_algor) != 1) {
+		fprintf(stderr, "%s: set signature algorithm failure\n", prog);
 		goto end;
 	}
 	if (produced_at != (time_t)-1

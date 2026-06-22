@@ -1426,21 +1426,16 @@ int x509_crl_sign_to_der(
 	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen)
 {
-	int key_sig_alg;
 	size_t len = 0;
 	uint8_t *tbs = NULL;
 	uint8_t sig[X509_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 
-	if (x509_key_get_sign_algor(sign_key, &key_sig_alg) != 1) {
+	if (x509_key_supports_sign_algor(sign_key, sig_alg) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sig_alg != key_sig_alg) {
-		error_print();
-		return -1;
-	}
-	if (x509_key_get_signature_size(sign_key, &siglen) != 1) {
+	if (x509_key_get_signature_size(sign_key, sig_alg, &siglen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1475,7 +1470,7 @@ int x509_crl_sign_to_der(
 			sign_args = SM2_DEFAULT_ID;
 			sign_argslen = SM2_DEFAULT_ID_LENGTH;
 		}
-		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1) {
+		if (x509_sign_init(&sign_ctx, sign_key, sig_alg, sign_args, sign_argslen) != 1) {
 			error_print();
 			return -1;
 		}

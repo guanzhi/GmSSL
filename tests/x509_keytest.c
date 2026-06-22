@@ -54,6 +54,40 @@ struct {
 X509_KEY x509_keys[sizeof(tests)/sizeof(tests[0])];
 
 
+static int test_sign_algor(const X509_KEY *key)
+{
+	switch (key->algor) {
+	case OID_ec_public_key:
+		switch (key->algor_param) {
+		case OID_sm2:
+			return OID_sm2sign_with_sm3;
+#ifdef ENABLE_SECP256R1
+		case OID_secp256r1:
+			return OID_ecdsa_with_sha256;
+#endif
+		default:
+			return OID_undef;
+		}
+#ifdef ENABLE_LMS
+	case OID_lms_hashsig:
+	case OID_hss_lms_hashsig:
+		return key->algor;
+#endif
+#ifdef ENABLE_XMSS
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
+		return key->algor;
+#endif
+#ifdef ENABLE_SPHINCS
+	case OID_sphincs_hashsig:
+		return key->algor;
+#endif
+	default:
+		return OID_undef;
+	}
+}
+
+
 static int test_x509_key_generate(void)
 {
 	size_t i;
@@ -425,7 +459,7 @@ static int test_x509_sign(void)
 			continue;
 		}
 		//format_print(stderr, 0, 4, "%s\n", x509_public_key_algor_name(tests[i].algor));
-		if (x509_sign_init(&sign_ctx, &x509_keys[i], args, argslen) != 1) {
+		if (x509_sign_init(&sign_ctx, &x509_keys[i], test_sign_algor(&x509_keys[i]), args, argslen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -434,7 +468,7 @@ static int test_x509_sign(void)
 			return -1;
 		}
 		format_print(stderr, 0, 4, "%s: %zu\n", x509_public_key_algor_name(tests[i].algor), siglen);
-		if (x509_verify_init(&sign_ctx, &x509_keys[i], args, argslen, sig, siglen) != 1) {
+		if (x509_verify_init(&sign_ctx, &x509_keys[i], test_sign_algor(&x509_keys[i]), args, argslen, sig, siglen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -474,7 +508,7 @@ static int test_x509_sign_sm9(void)
 		error_print();
 		return -1;
 	}
-	if (x509_sign_init(&sign_ctx, &x509_key, NULL, 0) != 1) {
+	if (x509_sign_init(&sign_ctx, &x509_key, OID_sm9sign, NULL, 0) != 1) {
 		error_print();
 		return -1;
 	}
@@ -491,7 +525,7 @@ static int test_x509_sign_sm9(void)
 		error_print();
 		return -1;
 	}
-	if (x509_verify_init(&sign_ctx, &x509_key, id, idlen, sig, siglen) != 1) {
+	if (x509_verify_init(&sign_ctx, &x509_key, OID_sm9sign, id, idlen, sig, siglen) != 1) {
 		error_print();
 		return -1;
 	}

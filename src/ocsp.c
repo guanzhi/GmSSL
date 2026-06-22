@@ -1901,6 +1901,7 @@ int ocsp_sign_init(OCSP_SIGN_CTX *ctx,
 	ctx->issuer_cert = issuer_cert;
 	ctx->issuer_cert_len = issuer_cert_len;
 	ctx->responder_id_type = OCSP_responder_id_by_name;
+	ctx->signature_algor = OID_sm2sign_with_sm3;
 	ctx->produced_at = time(NULL);
 	ctx->next_update = (time_t)-1;
 	ctx->revocation_reason = -1;
@@ -1923,6 +1924,16 @@ int ocsp_sign_set_responder_id_type(OCSP_SIGN_CTX *ctx, int responder_id_type)
 		return -1;
 	}
 	ctx->responder_id_type = responder_id_type;
+	return 1;
+}
+
+int ocsp_sign_set_signature_algor(OCSP_SIGN_CTX *ctx, int signature_algor)
+{
+	if (!ctx || !x509_signature_algor_name(signature_algor)) {
+		error_print();
+		return -1;
+	}
+	ctx->signature_algor = signature_algor;
 	return 1;
 }
 
@@ -2107,8 +2118,9 @@ int ocsp_sign(OCSP_SIGN_CTX *ctx,
 		return -1;
 	}
 
-	if (x509_key_get_sign_algor(sign_key, &sign_algor) != 1
-		|| x509_key_get_signature_size(sign_key, &signature_len) != 1) {
+	sign_algor = ctx->signature_algor;
+	if (x509_key_supports_sign_algor(sign_key, sign_algor) != 1
+		|| x509_key_get_signature_size(sign_key, sign_algor, &signature_len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2116,7 +2128,7 @@ int ocsp_sign(OCSP_SIGN_CTX *ctx,
 		signature_len = SM2_signature_typical_size;
 	}
 
-	if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_args_len) != 1) {
+	if (x509_sign_init(&sign_ctx, sign_key, sign_algor, sign_args, sign_args_len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2200,7 +2212,6 @@ static int ocsp_verify_signature(const uint8_t *response_data, size_t response_d
 {
 	X509_KEY public_key;
 	X509_SIGN_CTX verify_ctx;
-	int sign_algor;
 	const void *sign_args = signer_id;
 	size_t sign_args_len = signer_id_len;
 
@@ -2212,12 +2223,11 @@ static int ocsp_verify_signature(const uint8_t *response_data, size_t response_d
 		error_print();
 		return -1;
 	}
-	if (x509_cert_get_subject_public_key(signer_cert, signer_cert_len, &public_key) != 1
-		|| x509_key_get_sign_algor(&public_key, &sign_algor) != 1) {
+	if (x509_cert_get_subject_public_key(signer_cert, signer_cert_len, &public_key) != 1) {
 		error_print();
 		return -1;
 	}
-	if (signature_algor != sign_algor) {
+	if (x509_key_supports_sign_algor(&public_key, signature_algor) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2225,7 +2235,7 @@ static int ocsp_verify_signature(const uint8_t *response_data, size_t response_d
 		sign_args = SM2_DEFAULT_ID;
 		sign_args_len = SM2_DEFAULT_ID_LENGTH;
 	}
-	if (x509_verify_init(&verify_ctx, &public_key, sign_args, sign_args_len,
+	if (x509_verify_init(&verify_ctx, &public_key, signature_algor, sign_args, sign_args_len,
 		signature, signature_len) != 1
 		|| x509_verify_update(&verify_ctx, response_data, response_data_len) != 1
 		|| x509_verify_finish(&verify_ctx) != 1) {

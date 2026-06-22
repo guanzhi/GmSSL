@@ -296,8 +296,7 @@ int signed_certificate_timestamp_verify(const uint8_t *sct, size_t sct_len,
 		error_print();
 		return -1;
 	}
-	if (x509_verify_init(&verify_ctx, key, NULL, 0, sig, siglen) != 1
-		|| verify_ctx.sign_algor != sig_alg_oid
+	if (x509_verify_init(&verify_ctx, key, sig_alg_oid, NULL, 0, sig, siglen) != 1
 		|| x509_verify_update(&verify_ctx, signed_data, signed_data_len) != 1
 		|| x509_verify_finish(&verify_ctx) != 1) {
 		error_print();
@@ -389,8 +388,7 @@ int sct_list_verify(const uint8_t *sct_list, size_t sct_list_len,
 			}
 
 			if (x509_verify_init(&verify_ctx, &ct_logs[i].log_key,
-				NULL, 0, sig, siglen) == 1
-				&& verify_ctx.sign_algor == sig_alg_oid
+				sig_alg_oid, NULL, 0, sig, siglen) == 1
 				&& x509_verify_update(&verify_ctx,
 					signed_data, signed_data_len) == 1
 				&& x509_verify_finish(&verify_ctx) == 1) {

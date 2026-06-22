@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <gmssl/sha2.h>
+#include <gmssl/digest.h>
 #include <gmssl/secp256r1_key.h>
 
 
@@ -47,16 +47,17 @@ int ecdsa_verify(const SECP256R1_KEY *key, const uint8_t dgst[32], const uint8_t
 
 
 typedef struct {
-	SHA256_CTX sha256_ctx;
+	DIGEST_CTX digest_ctx;
 	SECP256R1_KEY key;
 	ECDSA_SIGNATURE sig;
 } ECDSA_SIGN_CTX;
 
-int ecdsa_sign_init(ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key);
+int ecdsa_sign_init(ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key, const DIGEST *digest);
 int ecdsa_sign_update(ECDSA_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int ecdsa_sign_finish(ECDSA_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
 int ecdsa_sign_finish_fixlen(ECDSA_SIGN_CTX *ctx, size_t siglen, uint8_t *sig);
-int ecdsa_verify_init(ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key, const uint8_t *sig, size_t siglen);
+int ecdsa_verify_init(ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key, const DIGEST *digest,
+	const uint8_t *sig, size_t siglen);
 int ecdsa_verify_update(ECDSA_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int ecdsa_verify_finish(ECDSA_SIGN_CTX *ctx);
 

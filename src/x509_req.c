@@ -168,15 +168,14 @@ int x509_req_sign_to_der(
 {
 	size_t len = 0;
 	uint8_t *tbs = NULL;
-	int sig_alg;
 	uint8_t sig[X509_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 
-	if (x509_key_get_sign_algor(sign_key, &sig_alg) != 1) {
+	if (x509_key_supports_sign_algor(sign_key, signature_algor) != 1) {
 		error_print();
 		return -1;
 	}
-	if (x509_key_get_signature_size(sign_key, &siglen) != 1) {
+	if (x509_key_get_signature_size(sign_key, signature_algor, &siglen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -186,7 +185,7 @@ int x509_req_sign_to_der(
 
 	if (x509_request_info_to_der(version, subject, subject_len, subject_public_key,
 			attrs, attrs_len, NULL, &len) != 1
-		|| x509_signature_algor_to_der(sig_alg, NULL, &len) != 1
+		|| x509_signature_algor_to_der(signature_algor, NULL, &len) != 1
 		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1) {
 		error_print();
@@ -209,7 +208,7 @@ int x509_req_sign_to_der(
 			sign_args = SM2_DEFAULT_ID;
 			sign_argslen = SM2_DEFAULT_ID_LENGTH;
 		}
-		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1) {
+		if (x509_sign_init(&sign_ctx, sign_key, signature_algor, sign_args, sign_argslen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -227,7 +226,7 @@ int x509_req_sign_to_der(
 		}
 		gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 	}
-	if (x509_signature_algor_to_der(sig_alg, out, outlen) != 1
+	if (x509_signature_algor_to_der(signature_algor, out, outlen) != 1
 		|| asn1_bit_octets_to_der(sig, siglen, out, outlen) != 1) {
 		error_print();
 		return -1;

@@ -29,6 +29,7 @@ static const char *options =
 	" [-serial_len num]"
 	" -days num"
 	" -cacert pem -key file [-pass pass]"
+	" [-sig_alg str]"
 	" [-sm2_id str | -sm2_id_hex hex]"
 	" [-gen_authority_key_id]"
 	" [-gen_subject_key_id]"
@@ -56,6 +57,7 @@ static char *usage =
 "    -days num                    Validity peroid in days\n"
 "    -cacert pem                  Issuer CA certificate\n"
 "    -key pem                     Issuer private key file in PEM format\n"
+"    -sig_alg str                 Signature algorithm OID name, default sm2sign-with-sm3\n"
 "    -sm2_id str                  Authority's ID in SM2 signature algorithm\n"
 "    -sm2_id_hex hex              Authority's ID in hex format\n"
 "                                 When `-sm2_id` or `-sm2_id_hex` is specified,\n"
@@ -180,7 +182,7 @@ int reqsign_main(int argc, char **argv)
 	size_t signer_id_len = 0;
 
 	// Algor
-	int sign_algor = OID_undef;
+	int sign_algor = OID_sm2sign_with_sm3;
 
 	// Issuer from CA certificate
 	const uint8_t *issuer;
@@ -317,6 +319,13 @@ int reqsign_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+		} else if (!strcmp(*argv, "-sig_alg")) {
+			if (--argc < 1) goto bad;
+			str = *(++argv);
+			if ((sign_algor = x509_signature_algor_from_name(str)) == OID_undef) {
+				fprintf(stderr, "%s: invalid `-sig_alg` value '%s'\n", prog, str);
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-sm2_id")) {
 			if (--argc < 1) goto bad;
 			str = *(++argv);
@@ -471,10 +480,6 @@ bad:
 	}
 	if (x509_public_key_equ(&x509_key, &issuer_public_key) != 1) {
 		fprintf(stderr, "%s: private key and CA certificate not match\n", prog);
-		goto end;
-	}
-	if (x509_key_get_sign_algor(&x509_key, &sign_algor) != 1) {
-		error_print();
 		goto end;
 	}
 	if (!signer_id_len) {

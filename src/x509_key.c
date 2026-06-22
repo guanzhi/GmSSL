@@ -1636,9 +1636,9 @@ int x509_private_keys_from_file(X509_KEY *keys, size_t *keys_cnt, size_t max_cnt
 	return 1;
 }
 
-int x509_key_get_sign_algor(const X509_KEY *key, int *algor)
+int x509_key_supports_sign_algor(const X509_KEY *key, int sign_algor)
 {
-	if (!key || !algor) {
+	if (!key) {
 		error_print();
 		return -1;
 	}
@@ -1647,29 +1647,35 @@ int x509_key_get_sign_algor(const X509_KEY *key, int *algor)
 	case OID_ec_public_key:
 		switch (key->algor_param) {
 		case OID_sm2:
-			*algor = OID_sm2sign_with_sm3;
-			break;
+			return sign_algor == OID_sm2sign_with_sm3 ? 1 : 0;
 #ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
-			*algor = OID_ecdsa_with_sha256;
-			break;
+			switch (sign_algor) {
+			case OID_ecdsa_with_sha256:
+			case OID_ecdsa_with_sha384:
+			case OID_ecdsa_with_sha512:
+				return 1;
+			default:
+				return 0;
+			}
 #endif
 		default:
 			error_print();
 			return -1;
 		}
-		break;
 #ifdef ENABLE_SM9
 	case OID_sm9:
-		switch (key->algor_param) {
-		case OID_sm9sign:
-			*algor = OID_sm9sign;
-			break;
-		default:
+		if (key->algor_param != OID_sm9sign) {
 			error_print();
 			return -1;
 		}
-		break;
+		return sign_algor == OID_sm9sign ? 1 : 0;
+	case OID_sm9sign:
+		if (key->algor_param != OID_undef) {
+			error_print();
+			return -1;
+		}
+		return sign_algor == OID_sm9sign ? 1 : 0;
 #endif
 #ifdef ENABLE_LMS
 	case OID_lms_hashsig:
@@ -1682,8 +1688,7 @@ int x509_key_get_sign_algor(const X509_KEY *key, int *algor)
 #ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 #endif
-		*algor = key->algor;
-		break;
+		return sign_algor == key->algor ? 1 : 0;
 #ifdef ENABLE_KYBER
 	case OID_kyber_kem:
 #endif
@@ -1691,17 +1696,28 @@ int x509_key_get_sign_algor(const X509_KEY *key, int *algor)
 		error_print();
 		return -1;
 	}
-	return 1;
 }
 
-int x509_key_get_signature_size(const X509_KEY *key, size_t *siglen)
+int x509_key_get_signature_size(const X509_KEY *key, int sign_algor, size_t *siglen)
 {
+	int ret;
+
+	if (!key || !siglen) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_key_supports_sign_algor(key, sign_algor)) != 1) {
+		if (ret < 0) error_print();
+		return -1;
+	}
+
 	switch (key->algor) {
 	case OID_ec_public_key:
 		*siglen = SM2_signature_max_size;
 		break;
 #ifdef ENABLE_SM9
 	case OID_sm9:
+	case OID_sm9sign:
 		*siglen = SM9_SIGNATURE_SIZE;
 		break;
 #endif
@@ -1750,9 +1766,27 @@ int x509_key_get_signature_size(const X509_KEY *key, size_t *siglen)
 	return 1;
 }
 
-int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t argslen)
+static const DIGEST *x509_ecdsa_sign_algor_digest(int sign_algor)
+{
+	switch (sign_algor) {
+	case OID_ecdsa_with_sha256:
+		return DIGEST_sha256();
+	case OID_ecdsa_with_sha384:
+		return DIGEST_sha384();
+	case OID_ecdsa_with_sha512:
+		return DIGEST_sha512();
+	default:
+		return NULL;
+	}
+}
+
+int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, int sign_algor, const void *args, size_t argslen)
 {
 	if (!ctx || !key) {
+		error_print();
+		return -1;
+	}
+	if (x509_key_supports_sign_algor(key, sign_algor) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1797,11 +1831,12 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t a
 			break;
 #ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
-			if (ecdsa_sign_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key) != 1) {
+			if (ecdsa_sign_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key,
+				x509_ecdsa_sign_algor_digest(sign_algor)) != 1) {
 				error_print();
 				return -1;
 			}
-			ctx->sign_algor = OID_ecdsa_with_sha256;
+			ctx->sign_algor = sign_algor;
 			break;
 #endif
 		default:
@@ -1890,6 +1925,8 @@ int x509_sign_set_signature_size(X509_SIGN_CTX *ctx, size_t siglen)
 	case OID_sm2sign_with_sm3:
 #ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+	case OID_ecdsa_with_sha384:
+	case OID_ecdsa_with_sha512:
 #endif
 		switch (siglen) {
 		case SM2_signature_compact_size:
@@ -1925,6 +1962,8 @@ int x509_sign_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 		break;
 #ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+	case OID_ecdsa_with_sha384:
+	case OID_ecdsa_with_sha512:
 		if (ecdsa_sign_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
@@ -2002,6 +2041,8 @@ int x509_sign_finish(X509_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 		break;
 #ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+	case OID_ecdsa_with_sha384:
+	case OID_ecdsa_with_sha512:
 		if (ctx->fixed_siglen) {
 			if (ecdsa_sign_finish_fixlen(&ctx->u.ecdsa_sign_ctx, ctx->fixed_siglen, sig) != 1) {
 				error_print();
@@ -2079,6 +2120,8 @@ int x509_sign(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen, uint8_t *
 	case OID_sm2sign_with_sm3:
 #ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+	case OID_ecdsa_with_sha384:
+	case OID_ecdsa_with_sha512:
 #endif
 #ifdef ENABLE_SM9
 	case OID_sm9sign:
@@ -2123,10 +2166,14 @@ int x509_sign(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen, uint8_t *
 	return 1;
 }
 
-int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, size_t argslen,
+int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, int sign_algor, const void *args, size_t argslen,
 	const uint8_t *sig, size_t siglen)
 {
 	if (!ctx || !key || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	if (x509_key_supports_sign_algor(key, sign_algor) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2172,11 +2219,12 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, 
 			break;
 #ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
-			if (ecdsa_verify_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key, sig, siglen) != 1) {
+			if (ecdsa_verify_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key,
+				x509_ecdsa_sign_algor_digest(sign_algor), sig, siglen) != 1) {
 				error_print();
 				return -1;
 			}
-			ctx->sign_algor = OID_ecdsa_with_sha256;
+			ctx->sign_algor = sign_algor;
 			break;
 #endif
 		default:
@@ -2261,6 +2309,8 @@ int x509_verify_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 		break;
 #ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+	case OID_ecdsa_with_sha384:
+	case OID_ecdsa_with_sha512:
 		if (ecdsa_verify_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
@@ -2331,6 +2381,8 @@ int x509_verify_finish(X509_SIGN_CTX *ctx)
 		break;
 #ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+	case OID_ecdsa_with_sha384:
+	case OID_ecdsa_with_sha512:
 		if ((ret = ecdsa_verify_finish(&ctx->u.ecdsa_sign_ctx)) < 0) {
 			error_print();
 			return -1;
@@ -2404,6 +2456,8 @@ int x509_verify(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 	case OID_sm2sign_with_sm3:
 #ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+	case OID_ecdsa_with_sha384:
+	case OID_ecdsa_with_sha512:
 #endif
 #ifdef ENABLE_LMS
 	case OID_lms_hashsig:
@@ -2453,6 +2507,8 @@ void x509_sign_ctx_cleanup(X509_SIGN_CTX *ctx)
 			break;
 #ifdef ENABLE_SECP256R1
 		case OID_ecdsa_with_sha256:
+		case OID_ecdsa_with_sha384:
+		case OID_ecdsa_with_sha512:
 			gmssl_secure_clear(&ctx->u.ecdsa_sign_ctx, sizeof(ECDSA_SIGN_CTX));
 			break;
 #endif

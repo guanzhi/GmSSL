@@ -51,14 +51,26 @@ function(gmssl_generate_key alg key_file export_file)
 	endif()
 endfunction()
 
+function(gmssl_x509_sig_alg alg out_var)
+	if(alg STREQUAL SM2)
+		set(${out_var} sm2sign-with-sm3 PARENT_SCOPE)
+	elseif(alg STREQUAL P256)
+		set(${out_var} ecdsa-with-sha256 PARENT_SCOPE)
+	else()
+		message(FATAL_ERROR "unknown key algorithm: ${alg}")
+	endif()
+endfunction()
+
 function(gmssl_generate_root_ca alg prefix common_name)
 	gmssl_generate_key(${alg} "${prefix}_key.pem" "${prefix}_key.exp")
+	gmssl_x509_sig_alg(${alg} sig_alg)
 	gmssl_run(bin/gmssl certgen
 		${GMSSL_TEST_SUBJECT}
 		-CN "${common_name}"
 		-days 3650
 		-key "${prefix}_key.pem"
 		-pass ${GMSSL_TEST_PASS}
+		-sig_alg ${sig_alg}
 		-out "${prefix}_cert.pem"
 		-key_usage keyCertSign
 		-key_usage cRLSign
@@ -68,11 +80,13 @@ endfunction()
 
 function(gmssl_generate_ca alg prefix common_name issuer_cert issuer_key path_len)
 	gmssl_generate_key(${alg} "${prefix}_key.pem" "${prefix}_key.exp")
+	gmssl_x509_sig_alg(${alg} sig_alg)
 	gmssl_run(bin/gmssl reqgen
 		${GMSSL_TEST_SUBJECT}
 		-CN "${common_name}"
 		-key "${prefix}_key.pem"
 		-pass ${GMSSL_TEST_PASS}
+		-sig_alg ${sig_alg}
 		-out "${prefix}_req.pem")
 	gmssl_read_generated_pem("${prefix}_req.pem" "-----BEGIN CERTIFICATE REQUEST-----")
 	gmssl_run(bin/gmssl reqsign
@@ -84,6 +98,7 @@ function(gmssl_generate_ca alg prefix common_name issuer_cert issuer_key path_le
 		-cacert "${issuer_cert}"
 		-key "${issuer_key}"
 		-pass ${GMSSL_TEST_PASS}
+		-sig_alg ${sig_alg}
 		-out "${prefix}_cert.pem"
 		-ca)
 	gmssl_read_generated_pem("${prefix}_cert.pem" "-----BEGIN CERTIFICATE-----")
@@ -96,11 +111,13 @@ function(gmssl_generate_end_entity alg prefix common_name issuer_cert issuer_key
 		set(export_file "")
 	endif()
 	gmssl_generate_key(${alg} "${prefix}_key.pem" "${export_file}")
+	gmssl_x509_sig_alg(${alg} sig_alg)
 	gmssl_run(bin/gmssl reqgen
 		${GMSSL_TEST_SUBJECT}
 		-CN "${common_name}"
 		-key "${prefix}_key.pem"
 		-pass ${GMSSL_TEST_PASS}
+		-sig_alg ${sig_alg}
 		-out "${prefix}_req.pem")
 	gmssl_read_generated_pem("${prefix}_req.pem" "-----BEGIN CERTIFICATE REQUEST-----")
 
@@ -111,6 +128,7 @@ function(gmssl_generate_end_entity alg prefix common_name issuer_cert issuer_key
 		-cacert "${issuer_cert}"
 		-key "${issuer_key}"
 		-pass ${GMSSL_TEST_PASS}
+		-sig_alg ${sig_alg}
 		-out "${prefix}_cert.pem")
 	if(ext_key_usage)
 		list(APPEND sign_args -ext_key_usage ${ext_key_usage})

@@ -1196,6 +1196,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 	switch (conn->cipher_suite) {
 	case TLS_cipher_ecc_sm4_cbc_sm3:
 	case TLS_cipher_ecc_sm4_gcm_sm3:
+		conn->sig_alg = TLS_sig_sm2sig_sm3;
 		conn->signature_algorithms[0] = TLS_sig_sm2sig_sm3;
 		break;
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:

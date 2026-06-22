@@ -12,6 +12,7 @@ gmssl_run(crlgen
 	-cacert sm2_tls_server_ca2_cert.pem
 	-key sm2_tls_server_ca2_key.pem
 	-pass P@ssw0rd
+	-sig_alg sm2sign-with-sm3
 	-next_update 20270101000000Z
 	-gen_authority_key_id
 	-crl_num 1

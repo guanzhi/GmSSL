@@ -24,6 +24,7 @@
 static const char *options =
 	"[-C str] [-ST str] [-L str] [-O str] [-OU str] -CN str"
 	" -key file [-algor str] [-pass pass]"
+	" [-sig_alg str]"
 	" [-sm2_id str | -sm2_id_hex hex]"
 	" [-out pem]";
 
@@ -39,6 +40,7 @@ static char *usage =
 "                                   * xmssmt-hashsig\n"
 "                                   * shpincs-hashsig\n"
 "    -pass pass                   Password for decrypting private key file\n"
+"    -sig_alg str                 Signature algorithm OID name, default sm2sign-with-sm3\n"
 "    -sm2_id str                  Signer's ID in SM2 signature algorithm\n"
 "    -sm2_id_hex hex              Signer's ID in hex format\n"
 "                                 When `-sm2_id` or `-sm2_id_hex` is specified,\n"
@@ -91,6 +93,7 @@ int reqgen_main(int argc, char **argv)
 	char *pass = NULL;
 	X509_KEY x509_key;
 	int algor = OID_ec_public_key;
+	int sign_algor = OID_sm2sign_with_sm3;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
 
@@ -151,6 +154,13 @@ int reqgen_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+		} else if (!strcmp(*argv, "-sig_alg")) {
+			if (--argc < 1) goto bad;
+			str = *(++argv);
+			if ((sign_algor = x509_signature_algor_from_name(str)) == OID_undef) {
+				fprintf(stderr, "%s: invalid `-sig_alg` value '%s'\n", prog, str);
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-sm2_id")) {
 			if (--argc < 1) goto bad;
 			str = *(++argv);
@@ -228,7 +238,7 @@ bad:
 		name, namelen,
 		&x509_key,
 		attrs, attrs_len,
-		OID_sm2sign_with_sm3,
+		sign_algor,
 		&x509_key, signer_id, signer_id_len,
 		&p, &reqlen) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);

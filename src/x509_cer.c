@@ -1110,15 +1110,14 @@ int x509_cert_sign_to_der(
 {
 	size_t len = 0;
 	uint8_t *tbs = NULL;
-	int sig_alg;
 	uint8_t sig[X509_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 
-	if (x509_key_get_sign_algor(sign_key, &sig_alg) != 1) {
+	if (x509_key_supports_sign_algor(sign_key, signature_algor) != 1) {
 		error_print();
 		return -1;
 	}
-	if (x509_key_get_signature_size(sign_key, &siglen) != 1) {
+	if (x509_key_get_signature_size(sign_key, signature_algor, &siglen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1138,7 +1137,7 @@ int x509_cert_sign_to_der(
 		subject_unique_id, subject_unique_id_len,
 		exts, exts_len,
 		NULL, &len) != 1
-		|| x509_signature_algor_to_der(sig_alg, NULL, &len) != 1
+		|| x509_signature_algor_to_der(signature_algor, NULL, &len) != 1
 		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1) {
 		error_print();
@@ -1173,7 +1172,7 @@ int x509_cert_sign_to_der(
 			sign_args = SM2_DEFAULT_ID;
 			sign_argslen = SM2_DEFAULT_ID_LENGTH;
 		}
-		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1) {
+		if (x509_sign_init(&sign_ctx, sign_key, signature_algor, sign_args, sign_argslen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1192,7 +1191,7 @@ int x509_cert_sign_to_der(
 		gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 	}
 
-	if (x509_signature_algor_to_der(sig_alg, out, outlen) != 1
+	if (x509_signature_algor_to_der(signature_algor, out, outlen) != 1
 		|| asn1_bit_octets_to_der(sig, siglen, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -1236,22 +1235,16 @@ int x509_signed_verify(const uint8_t *a, size_t alen,
 	int sig_alg;
 	const uint8_t *sig;
 	size_t siglen;
-	int key_sig_alg;
 	void *sign_args = NULL;
 	size_t sign_argslen = 0;
 	X509_SIGN_CTX verify_ctx;
-
-	if (x509_key_get_sign_algor(key, &key_sig_alg) != 1) {
-		error_print();
-		return -1;
-	}
 
 	if (x509_signed_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
 		|| asn1_length_is_zero(alen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sig_alg != key_sig_alg) {
+	if (x509_key_supports_sign_algor(key, sig_alg) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1261,7 +1254,7 @@ int x509_signed_verify(const uint8_t *a, size_t alen,
 		sign_args = (uint8_t *)signer_id;
 		sign_argslen = signer_id_len;
 	}
-	if (x509_verify_init(&verify_ctx, key, sign_args, sign_argslen, sig, siglen) != 1
+	if (x509_verify_init(&verify_ctx, key, sig_alg, sign_args, sign_argslen, sig, siglen) != 1
 		|| x509_verify_update(&verify_ctx, tbs, tbslen) != 1
 		|| x509_verify_finish(&verify_ctx) != 1) {
 		error_print();

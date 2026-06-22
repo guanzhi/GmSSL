@@ -11,7 +11,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/asn1.h>
-#include <gmssl/sha2.h>
+#include <gmssl/digest.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include <gmssl/ecdsa.h>
@@ -261,17 +261,23 @@ int ecdsa_verify(const SECP256R1_KEY *key, const uint8_t dgst[32], const uint8_t
 	return ret;
 }
 
-int ecdsa_sign_init(ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key)
+int ecdsa_sign_init(ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key, const DIGEST *digest)
 {
 	if (!ctx || !key) {
 		error_print();
 		return -1;
 	}
+	if (!digest) {
+		digest = DIGEST_sha256();
+	}
 	memset(ctx, 0, sizeof(ECDSA_SIGN_CTX));
 
 	ctx->key = *key;
 
-	sha256_init(&ctx->sha256_ctx);
+	if (digest_init(&ctx->digest_ctx, digest) != 1) {
+		error_print();
+		return -1;
+	}
 
 	return 1;
 }
@@ -282,22 +288,28 @@ int ecdsa_sign_update(ECDSA_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 		error_print();
 		return -1;
 	}
-	if (data && datalen) {
-		sha256_update(&ctx->sha256_ctx, data, datalen);
+	if (digest_update(&ctx->digest_ctx, data, datalen) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
 
 int ecdsa_sign_finish(ECDSA_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 {
-	uint8_t dgst[32];
+	uint8_t dgst[DIGEST_MAX_SIZE];
+	size_t dgstlen;
 
 	if (!ctx || !sig || !siglen) {
 		error_print();
 		return -1;
 	}
 
-	sha256_finish(&ctx->sha256_ctx, dgst);
+	if (digest_finish(&ctx->digest_ctx, dgst, &dgstlen) != 1
+		|| dgstlen < 32) {
+		error_print();
+		return -1;
+	}
 
 	if (ecdsa_sign(&ctx->key, dgst, sig, siglen) != 1) {
 		error_print();
@@ -308,14 +320,19 @@ int ecdsa_sign_finish(ECDSA_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 
 int ecdsa_sign_finish_fixlen(ECDSA_SIGN_CTX *ctx, size_t siglen, uint8_t *sig)
 {
-	uint8_t dgst[32];
+	uint8_t dgst[DIGEST_MAX_SIZE];
+	size_t dgstlen;
 
 	if (!ctx || !sig || !siglen) {
 		error_print();
 		return -1;
 	}
 
-	sha256_finish(&ctx->sha256_ctx, dgst);
+	if (digest_finish(&ctx->digest_ctx, dgst, &dgstlen) != 1
+		|| dgstlen < 32) {
+		error_print();
+		return -1;
+	}
 
 	if (ecdsa_sign_fixlen(&ctx->key, dgst, siglen, sig) != 1) {
 		error_print();
@@ -329,7 +346,8 @@ int ecdsa_sign_finish_fixlen(ECDSA_SIGN_CTX *ctx, size_t siglen, uint8_t *sig)
 
 
 
-int ecdsa_verify_init(ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key, const uint8_t *sig, size_t siglen)
+int ecdsa_verify_init(ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key, const DIGEST *digest,
+	const uint8_t *sig, size_t siglen)
 {
 	if (!ctx || !key || !sig || !siglen) {
 		error_print();
@@ -347,7 +365,13 @@ int ecdsa_verify_init(ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key, const uint8
 
 	ctx->key = *key;
 
-	sha256_init(&ctx->sha256_ctx);
+	if (!digest) {
+		digest = DIGEST_sha256();
+	}
+	if (digest_init(&ctx->digest_ctx, digest) != 1) {
+		error_print();
+		return -1;
+	}
 
 	return 1;
 }
@@ -359,8 +383,9 @@ int ecdsa_verify_update(ECDSA_SIGN_CTX *ctx, const uint8_t *data, size_t datalen
 		error_print();
 		return -1;
 	}
-	if (data && datalen) {
-		sha256_update(&ctx->sha256_ctx, data, datalen);
+	if (digest_update(&ctx->digest_ctx, data, datalen) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -368,7 +393,8 @@ int ecdsa_verify_update(ECDSA_SIGN_CTX *ctx, const uint8_t *data, size_t datalen
 
 int ecdsa_verify_finish(ECDSA_SIGN_CTX *ctx)
 {
-	uint8_t dgst[32];
+	uint8_t dgst[DIGEST_MAX_SIZE];
+	size_t dgstlen;
 	int ret;
 
 	if (!ctx) {
@@ -376,7 +402,11 @@ int ecdsa_verify_finish(ECDSA_SIGN_CTX *ctx)
 		return -1;
 	}
 
-	sha256_finish(&ctx->sha256_ctx, dgst);
+	if (digest_finish(&ctx->digest_ctx, dgst, &dgstlen) != 1
+		|| dgstlen < 32) {
+		error_print();
+		return -1;
+	}
 
 	if ((ret = ecdsa_do_verify(&ctx->key, dgst, &ctx->sig)) < 0) {
 		error_print();
@@ -384,4 +414,3 @@ int ecdsa_verify_finish(ECDSA_SIGN_CTX *ctx)
 	}
 	return ret;
 }
-

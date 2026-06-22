@@ -17,6 +17,7 @@
 #include <gmssl/mem.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_ext.h>
+#include <gmssl/x509_alg.h>
 #include <gmssl/x509_crl.h>
 #include <gmssl/file.h>
 #include <gmssl/error.h>
@@ -25,6 +26,7 @@
 static const char *usage =
 	" -in revoked_certs"
 	" -cacert pem -key pem [-pass pass] [-sm2_id str | -sm2_id_hex hex]"
+	" [-sig_alg str]"
 	" [-next_update time] "
 	" [-gen_authority_key_id]"
 	" [-crl_num num]"
@@ -42,6 +44,7 @@ static const char *options =
 "    -cacert pem            The issuer certificate\n"
 "    -key pem               The issuer private key\n"
 "    -pass pass             Password for decrypting private key file\n"
+"    -sig_alg str           Signature algorithm OID name, default sm2sign-with-sm3\n"
 "    -sm2_id str            Authority's ID in SM2 signature algorithm\n"
 "    -sm2_id_hex hex        Authority's ID in hex format\n"
 "                           When `-sm2_id` or `-sm2_id_hex` is specified,\n"
@@ -81,7 +84,7 @@ int crlgen_main(int argc, char **argv)
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
 
-	int sign_algor = OID_undef;
+	int sign_algor = OID_sm2sign_with_sm3;
 
 	const uint8_t *issuer;
 	size_t issuer_len;
@@ -141,6 +144,13 @@ int crlgen_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+		} else if (!strcmp(*argv, "-sig_alg")) {
+			if (--argc < 1) goto bad;
+			str = *(++argv);
+			if ((sign_algor = x509_signature_algor_from_name(str)) == OID_undef) {
+				fprintf(stderr, "%s: invalid `-sig_alg` value '%s'\n", prog, str);
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-sm2_id")) {
 			if (--argc < 1) goto bad;
 			str = *(++argv);
@@ -257,11 +267,6 @@ bad:
 		fprintf(stderr, "%s: certificate and private key not match\n", prog);
 		goto end;
 	}
-	if (x509_key_get_sign_algor(&x509_key, &sign_algor) != 1) {
-		fprintf(stderr, "%s: inner error\n", prog);
-		goto end;
-	}
-
 	if (!signer_id_len) {
 		strcpy(signer_id, SM2_DEFAULT_ID);
 		signer_id_len = strlen(SM2_DEFAULT_ID);
