@@ -24,8 +24,8 @@ static const uint8_t D_INTR[2] = { 0x83, 0x83 };
 char *lmots_type_name(int lmots_type)
 {
 	switch (lmots_type) {
-	case LMOTS_HASH256_N32_W8:
-		return LMOTS_HASH256_N32_W8_NAME;
+	case LMOTS_SM3_N32_W8:
+		return LMOTS_SM3_N32_W8_NAME;
 	}
 	return NULL;
 }
@@ -33,32 +33,32 @@ char *lmots_type_name(int lmots_type)
 char *lms_type_name(int lms_type)
 {
 	switch (lms_type) {
-	case LMS_HASH256_M32_H5:
-		return LMS_HASH256_M32_H5_NAME;
-	case LMS_HASH256_M32_H10:
-		return LMS_HASH256_M32_H10_NAME;
-	case LMS_HASH256_M32_H15:
-		return LMS_HASH256_M32_H15_NAME;
-	case LMS_HASH256_M32_H20:
-		return LMS_HASH256_M32_H20_NAME;
-	case LMS_HASH256_M32_H25:
-		return LMS_HASH256_M32_H25_NAME;
+	case LMS_SM3_M32_H5:
+		return LMS_SM3_M32_H5_NAME;
+	case LMS_SM3_M32_H10:
+		return LMS_SM3_M32_H10_NAME;
+	case LMS_SM3_M32_H15:
+		return LMS_SM3_M32_H15_NAME;
+	case LMS_SM3_M32_H20:
+		return LMS_SM3_M32_H20_NAME;
+	case LMS_SM3_M32_H25:
+		return LMS_SM3_M32_H25_NAME;
 	}
 	return NULL;
 }
 
 int lms_type_from_name(const char *name)
 {
-	if (!strcmp(name, LMS_HASH256_M32_H5_NAME)) {
-		return LMS_HASH256_M32_H5;
-	} else if (!strcmp(name, LMS_HASH256_M32_H10_NAME)) {
-		return LMS_HASH256_M32_H10;
-	} else if (!strcmp(name, LMS_HASH256_M32_H15_NAME)) {
-		return LMS_HASH256_M32_H15;
-	} else if (!strcmp(name, LMS_HASH256_M32_H20_NAME)) {
-		return LMS_HASH256_M32_H20;
-	} else if (!strcmp(name, LMS_HASH256_M32_H25_NAME)) {
-		return LMS_HASH256_M32_H25;
+	if (!strcmp(name, LMS_SM3_M32_H5_NAME)) {
+		return LMS_SM3_M32_H5;
+	} else if (!strcmp(name, LMS_SM3_M32_H10_NAME)) {
+		return LMS_SM3_M32_H10;
+	} else if (!strcmp(name, LMS_SM3_M32_H15_NAME)) {
+		return LMS_SM3_M32_H15;
+	} else if (!strcmp(name, LMS_SM3_M32_H20_NAME)) {
+		return LMS_SM3_M32_H20;
+	} else if (!strcmp(name, LMS_SM3_M32_H25_NAME)) {
+		return LMS_SM3_M32_H25;
 	}
 	return 0;
 }
@@ -66,19 +66,19 @@ int lms_type_from_name(const char *name)
 int lms_type_to_height(int type, size_t *height)
 {
 	switch (type) {
-	case LMS_HASH256_M32_H5:
+	case LMS_SM3_M32_H5:
 		*height = 5;
 		break;
-	case LMS_HASH256_M32_H10:
+	case LMS_SM3_M32_H10:
 		*height = 10;
 		break;
-	case LMS_HASH256_M32_H15:
+	case LMS_SM3_M32_H15:
 		*height = 15;
 		break;
-	case LMS_HASH256_M32_H20:
+	case LMS_SM3_M32_H20:
 		*height = 20;
 		break;
-	case LMS_HASH256_M32_H25:
+	case LMS_SM3_M32_H25:
 		*height = 25;
 		break;
 	default:
@@ -88,9 +88,9 @@ int lms_type_to_height(int type, size_t *height)
 	return 1;
 }
 
-void lmots_derive_secrets(const lms_hash256_t seed, const uint8_t I[16], int q, lms_hash256_t x[34])
+void lmots_derive_secrets(const lms_sm3_digest_t seed, const uint8_t I[16], int q, lms_sm3_digest_t x[34])
 {
-	LMS_HASH256_CTX ctx;
+	SM3_CTX ctx;
 	uint8_t qbytes[4];
 	uint8_t ibytes[2];
 	const uint8_t jbytes[1] = { 0xff };
@@ -102,25 +102,25 @@ void lmots_derive_secrets(const lms_hash256_t seed, const uint8_t I[16], int q, 
 	for (i = 0; i < 34; i++) {
 		PUTU16(ibytes, i);
 
-		lms_hash256_init(&ctx);
-		lms_hash256_update(&ctx, I, 16);
-		lms_hash256_update(&ctx, qbytes, 4);
-		lms_hash256_update(&ctx, ibytes, 2);
-		lms_hash256_update(&ctx, jbytes, 1);
-		lms_hash256_update(&ctx, seed, 32);
-		lms_hash256_finish(&ctx, x[i]);
+		sm3_init(&ctx);
+		sm3_update(&ctx, I, 16);
+		sm3_update(&ctx, qbytes, 4);
+		sm3_update(&ctx, ibytes, 2);
+		sm3_update(&ctx, jbytes, 1);
+		sm3_update(&ctx, seed, 32);
+		sm3_finish(&ctx, x[i]);
 	}
 
 	gmssl_secure_clear(&ctx, sizeof(ctx));
 }
 
-void lmots_secrets_to_public_hash(const uint8_t I[16], int q, const lms_hash256_t x[34], lms_hash256_t pub)
+void lmots_secrets_to_public_hash(const uint8_t I[16], int q, const lms_sm3_digest_t x[34], lms_sm3_digest_t pub)
 {
-	LMS_HASH256_CTX ctx;
+	SM3_CTX ctx;
 	uint8_t qbytes[4];
 	uint8_t ibytes[2];
 	uint8_t jbytes[1];
-	lms_hash256_t z[34];
+	lms_sm3_digest_t z[34];
 	int i, j;
 
 	PUTU32(qbytes, q);
@@ -132,28 +132,28 @@ void lmots_secrets_to_public_hash(const uint8_t I[16], int q, const lms_hash256_
 		for (j = 0; j < 255; j++) {
 			jbytes[0] = (uint8_t)j;
 
-			lms_hash256_init(&ctx);
-			lms_hash256_update(&ctx, I, 16);
-			lms_hash256_update(&ctx, qbytes, 4);
-			lms_hash256_update(&ctx, ibytes, 2);
-			lms_hash256_update(&ctx, jbytes, 1);
-			lms_hash256_update(&ctx, z[i], 32);
-			lms_hash256_finish(&ctx, z[i]);
+			sm3_init(&ctx);
+			sm3_update(&ctx, I, 16);
+			sm3_update(&ctx, qbytes, 4);
+			sm3_update(&ctx, ibytes, 2);
+			sm3_update(&ctx, jbytes, 1);
+			sm3_update(&ctx, z[i], 32);
+			sm3_finish(&ctx, z[i]);
 		}
 	}
 
 	// K = H(I || u32str(q) || u16str(D_PBLC) || y[0] || ... || y[p-1])
-	lms_hash256_init(&ctx);
-	lms_hash256_update(&ctx, I, 16);
-	lms_hash256_update(&ctx, qbytes, 4);
-	lms_hash256_update(&ctx, D_PBLC, 2);
+	sm3_init(&ctx);
+	sm3_update(&ctx, I, 16);
+	sm3_update(&ctx, qbytes, 4);
+	sm3_update(&ctx, D_PBLC, 2);
 	for (i = 0; i < 34; i++) {
-		lms_hash256_update(&ctx, z[i], 32);
+		sm3_update(&ctx, z[i], 32);
 	}
-	lms_hash256_finish(&ctx, pub);
+	sm3_finish(&ctx, pub);
 }
 
-static void winternitz_checksum(const lms_hash256_t dgst, uint8_t checksum[2])
+static void winternitz_checksum(const lms_sm3_digest_t dgst, uint8_t checksum[2])
 {
 	uint16_t sum = 0;
 	int i;
@@ -166,9 +166,9 @@ static void winternitz_checksum(const lms_hash256_t dgst, uint8_t checksum[2])
 }
 
 // signed digest Q = H(I || u32str(q) || u16str(D_MESG) || C || message)
-void lmots_compute_signature(const uint8_t I[16], int q, const lms_hash256_t dgst, const lms_hash256_t x[34], lms_hash256_t y[34])
+void lmots_compute_signature(const uint8_t I[16], int q, const lms_sm3_digest_t dgst, const lms_sm3_digest_t x[34], lms_sm3_digest_t y[34])
 {
-	LMS_HASH256_CTX ctx;
+	SM3_CTX ctx;
 	uint8_t checksum[2];
 	uint8_t qbytes[4];
 	uint8_t ibytes[2];
@@ -188,22 +188,22 @@ void lmots_compute_signature(const uint8_t I[16], int q, const lms_hash256_t dgs
 		for (j = 0; j < a; j++) {
 			jbytes[0] = j;
 
-			lms_hash256_init(&ctx);
-			lms_hash256_update(&ctx, I, 16);
-			lms_hash256_update(&ctx, qbytes, 4);
-			lms_hash256_update(&ctx, ibytes, 2);
-			lms_hash256_update(&ctx, jbytes, 1);
-			lms_hash256_update(&ctx, y[i], 32);
-			lms_hash256_finish(&ctx, y[i]);
+			sm3_init(&ctx);
+			sm3_update(&ctx, I, 16);
+			sm3_update(&ctx, qbytes, 4);
+			sm3_update(&ctx, ibytes, 2);
+			sm3_update(&ctx, jbytes, 1);
+			sm3_update(&ctx, y[i], 32);
+			sm3_finish(&ctx, y[i]);
 		}
 	}
 }
 
-void lmots_signature_to_public_hash(const uint8_t I[16], int q, const lms_hash256_t y[34], const lms_hash256_t dgst, lms_hash256_t pub)
+void lmots_signature_to_public_hash(const uint8_t I[16], int q, const lms_sm3_digest_t y[34], const lms_sm3_digest_t dgst, lms_sm3_digest_t pub)
 {
-	LMS_HASH256_CTX ctx;
+	SM3_CTX ctx;
 	uint8_t checksum[2];
-	lms_hash256_t z[34];
+	lms_sm3_digest_t z[34];
 	uint8_t qbytes[4];
 	uint8_t ibytes[2];
 	uint8_t jbytes[1];
@@ -222,36 +222,36 @@ void lmots_signature_to_public_hash(const uint8_t I[16], int q, const lms_hash25
 		for (j = a; j < 255; j++) {
 			jbytes[0] = (uint8_t)j;
 
-			lms_hash256_init(&ctx);
-			lms_hash256_update(&ctx, I, 16);
-			lms_hash256_update(&ctx, qbytes, 4);
-			lms_hash256_update(&ctx, ibytes, 2);
-			lms_hash256_update(&ctx, jbytes, 1);
-			lms_hash256_update(&ctx, z[i], 32);
-			lms_hash256_finish(&ctx, z[i]);
+			sm3_init(&ctx);
+			sm3_update(&ctx, I, 16);
+			sm3_update(&ctx, qbytes, 4);
+			sm3_update(&ctx, ibytes, 2);
+			sm3_update(&ctx, jbytes, 1);
+			sm3_update(&ctx, z[i], 32);
+			sm3_finish(&ctx, z[i]);
 		}
 	}
 
 	// Kc = H(I || u32str(q) || u16str(D_PBLC) || z[0] || z[1] || ... || z[p-1])
-	lms_hash256_init(&ctx);
-	lms_hash256_update(&ctx, I, 16);
-	lms_hash256_update(&ctx, qbytes, 4);
-	lms_hash256_update(&ctx, D_PBLC, 2);
+	sm3_init(&ctx);
+	sm3_update(&ctx, I, 16);
+	sm3_update(&ctx, qbytes, 4);
+	sm3_update(&ctx, D_PBLC, 2);
 	for (i = 0; i < 34; i++) {
-		lms_hash256_update(&ctx, z[i], 32);
+		sm3_update(&ctx, z[i], 32);
 	}
-	lms_hash256_finish(&ctx, pub);
+	sm3_finish(&ctx, pub);
 }
 
 // derive full merkle tree[2^h * 2 - 1] from seed, tree[0] is the root
-void lms_derive_merkle_tree(const lms_hash256_t seed, const uint8_t I[16], int h, lms_hash256_t *tree)
+void lms_derive_merkle_tree(const lms_sm3_digest_t seed, const uint8_t I[16], int h, lms_sm3_digest_t *tree)
 {
 	int r, n = (1 << h);
 	uint8_t rbytes[4];
-	LMS_HASH256_CTX ctx;
-	lms_hash256_t x[34];
-	lms_hash256_t pub;
-	lms_hash256_t *T = tree - 1;
+	SM3_CTX ctx;
+	lms_sm3_digest_t x[34];
+	lms_sm3_digest_t pub;
+	lms_sm3_digest_t *T = tree - 1;
 
 	for (r = 2*n - 1; r >= 1; r--) {
 
@@ -263,34 +263,34 @@ void lms_derive_merkle_tree(const lms_hash256_t seed, const uint8_t I[16], int h
 			lmots_secrets_to_public_hash(I, q, x, pub);
 
 			// H(I||u32str(r)||u16str(D_LEAF)||OTS_PUB_HASH[r-2^h])
-			lms_hash256_init(&ctx);
-			lms_hash256_update(&ctx, I, 16);
-			lms_hash256_update(&ctx, rbytes, 4);
-			lms_hash256_update(&ctx, D_LEAF, 2);
-			lms_hash256_update(&ctx, pub, 32);
-			lms_hash256_finish(&ctx, T[r]);
+			sm3_init(&ctx);
+			sm3_update(&ctx, I, 16);
+			sm3_update(&ctx, rbytes, 4);
+			sm3_update(&ctx, D_LEAF, 2);
+			sm3_update(&ctx, pub, 32);
+			sm3_finish(&ctx, T[r]);
 
 		} else {
 			// H(I||u32str(r)||u16str(D_INTR)||T[2*r]||T[2*r+1])
-			lms_hash256_init(&ctx);
-			lms_hash256_update(&ctx, I, 16);
-			lms_hash256_update(&ctx, rbytes, 4);
-			lms_hash256_update(&ctx, D_INTR, 2);
-			lms_hash256_update(&ctx, T[2*r], 32);
-			lms_hash256_update(&ctx, T[2*r + 1], 32);
-			lms_hash256_finish(&ctx, T[r]);
+			sm3_init(&ctx);
+			sm3_update(&ctx, I, 16);
+			sm3_update(&ctx, rbytes, 4);
+			sm3_update(&ctx, D_INTR, 2);
+			sm3_update(&ctx, T[2*r], 32);
+			sm3_update(&ctx, T[2*r + 1], 32);
+			sm3_finish(&ctx, T[r]);
 		}
 	}
 }
 
-void lms_derive_merkle_root(const lms_hash256_t seed, const uint8_t I[16], int h, lms_hash256_t root)
+void lms_derive_merkle_root(const lms_sm3_digest_t seed, const uint8_t I[16], int h, lms_sm3_digest_t root)
 {
 	int q, r, n = 1 << h;
 	int qbits;
-	LMS_HASH256_CTX ctx;
-	lms_hash256_t stack[25];
+	SM3_CTX ctx;
+	lms_sm3_digest_t stack[25];
 	int num = 0;
-	lms_hash256_t x[34];
+	lms_sm3_digest_t x[34];
 	uint8_t rbytes[4];
 
 	for (q = 0; q < n; q++) {
@@ -302,12 +302,12 @@ void lms_derive_merkle_root(const lms_hash256_t seed, const uint8_t I[16], int h
 		PUTU32(rbytes, r);
 
 		// H(I||u32str(r)||u16str(D_LEAF)||OTS_PUB_HASH[r-2^h])
-		lms_hash256_init(&ctx);
-		lms_hash256_update(&ctx, I, 16);
-		lms_hash256_update(&ctx, rbytes, 4);
-		lms_hash256_update(&ctx, D_LEAF, 2);
-		lms_hash256_update(&ctx, stack[num], 32);
-		lms_hash256_finish(&ctx, stack[num]);
+		sm3_init(&ctx);
+		sm3_update(&ctx, I, 16);
+		sm3_update(&ctx, rbytes, 4);
+		sm3_update(&ctx, D_LEAF, 2);
+		sm3_update(&ctx, stack[num], 32);
+		sm3_finish(&ctx, stack[num]);
 
 		num++;
 		qbits = q;
@@ -317,13 +317,13 @@ void lms_derive_merkle_root(const lms_hash256_t seed, const uint8_t I[16], int h
 			r = r/2;
 			PUTU32(rbytes, r);
 
-			lms_hash256_init(&ctx);
-			lms_hash256_update(&ctx, I, 16);
-			lms_hash256_update(&ctx, rbytes, 4);
-			lms_hash256_update(&ctx, D_INTR, 2);
-			lms_hash256_update(&ctx, stack[num - 2], 32);
-			lms_hash256_update(&ctx, stack[num - 1], 32);
-			lms_hash256_finish(&ctx, stack[num - 2]);
+			sm3_init(&ctx);
+			sm3_update(&ctx, I, 16);
+			sm3_update(&ctx, rbytes, 4);
+			sm3_update(&ctx, D_INTR, 2);
+			sm3_update(&ctx, stack[num - 2], 32);
+			sm3_update(&ctx, stack[num - 1], 32);
+			sm3_finish(&ctx, stack[num - 2]);
 
 			num--;
 			qbits >>= 1;
@@ -473,7 +473,7 @@ int lms_private_key_from_bytes(LMS_KEY *key, const uint8_t **in, size_t *inlen)
 
 	if (cache_tree) {
 		size_t n = (size_t)1 << height;
-		if (!(key->tree = (lms_hash256_t *)malloc(sizeof(lms_hash256_t) * (2*n - 1)))) {
+		if (!(key->tree = (lms_sm3_digest_t *)malloc(sizeof(lms_sm3_digest_t) * (2*n - 1)))) {
 			error_print();
 			return -1;
 		}
@@ -525,7 +525,7 @@ void lms_key_cleanup(LMS_KEY *key)
 	}
 }
 
-int lms_key_generate_ex(LMS_KEY *key, int lms_type, const lms_hash256_t seed, const uint8_t I[16], int cache_tree)
+int lms_key_generate_ex(LMS_KEY *key, int lms_type, const lms_sm3_digest_t seed, const uint8_t I[16], int cache_tree)
 {
 	size_t h, n;
 
@@ -543,13 +543,13 @@ int lms_key_generate_ex(LMS_KEY *key, int lms_type, const lms_hash256_t seed, co
 	memset(key, 0, sizeof(LMS_KEY));
 
 	key->public_key.lms_type = lms_type;
-	key->public_key.lmots_type = LMOTS_HASH256_N32_W8;
+	key->public_key.lmots_type = LMOTS_SM3_N32_W8;
 
 	memcpy(key->public_key.I, I, 16);
 	memcpy(key->seed, seed, 32);
 
 	if (cache_tree) {
-		if (!(key->tree = (lms_hash256_t *)malloc(sizeof(lms_hash256_t) * (2*n - 1)))) {
+		if (!(key->tree = (lms_sm3_digest_t *)malloc(sizeof(lms_sm3_digest_t) * (2*n - 1)))) {
 			error_print();
 			return -1;
 		}
@@ -566,7 +566,7 @@ int lms_key_generate_ex(LMS_KEY *key, int lms_type, const lms_hash256_t seed, co
 
 int lms_key_generate(LMS_KEY *key, int lms_type)
 {
-	lms_hash256_t seed;
+	lms_sm3_digest_t seed;
 	uint8_t I[16];
 	int cache_tree = 1;
 
@@ -663,10 +663,10 @@ int lms_signature_size(int lms_type, size_t *len)
 	}
 	*len = sizeof(uint32_t) // q
 		+ sizeof(uint32_t) // lmots_type
-		+ sizeof(lms_hash256_t) // C
-		+ sizeof(lms_hash256_t) * 34 // y[34]
+		+ sizeof(lms_sm3_digest_t) // C
+		+ sizeof(lms_sm3_digest_t) * 34 // y[34]
 		+ sizeof(uint32_t) // lms_type
-		+ sizeof(lms_hash256_t) * height; // path[hegith]
+		+ sizeof(lms_sm3_digest_t) * height; // path[hegith]
 	return 1;
 }
 
@@ -876,12 +876,12 @@ int lms_signature_from_bytes(LMS_SIGNATURE *sig, const uint8_t **in, size_t *inl
 }
 
 int lms_signature_to_merkle_root(const uint8_t I[16], size_t h, int q,
-	const lms_hash256_t y[34], const lms_hash256_t *path,
-	const lms_hash256_t dgst, lms_hash256_t root)
+	const lms_sm3_digest_t y[34], const lms_sm3_digest_t *path,
+	const lms_sm3_digest_t dgst, lms_sm3_digest_t root)
 {
 	size_t n, r;
 	uint8_t rbytes[4];
-	LMS_HASH256_CTX ctx;
+	SM3_CTX ctx;
 	size_t i;
 
 	n = (size_t)1 << h;
@@ -895,28 +895,28 @@ int lms_signature_to_merkle_root(const uint8_t I[16], size_t h, int q,
 	lmots_signature_to_public_hash(I, q, y, dgst, root);
 
 	// leaf[q] = H(I||u32str(r)||u16str(D_LEAF)||OTS_PUB_HASH[r-2^h])
-	lms_hash256_init(&ctx);
-	lms_hash256_update(&ctx, I, 16);
-	lms_hash256_update(&ctx, rbytes, 4);
-	lms_hash256_update(&ctx, D_LEAF, 2);
-	lms_hash256_update(&ctx, root, 32);
-	lms_hash256_finish(&ctx, root);
+	sm3_init(&ctx);
+	sm3_update(&ctx, I, 16);
+	sm3_update(&ctx, rbytes, 4);
+	sm3_update(&ctx, D_LEAF, 2);
+	sm3_update(&ctx, root, 32);
+	sm3_finish(&ctx, root);
 
 	for (i = 0; i < h; i++) {
 		PUTU32(rbytes, r/2);
 
-		lms_hash256_init(&ctx);
-		lms_hash256_update(&ctx, I, 16);
-		lms_hash256_update(&ctx, rbytes, 4);
-		lms_hash256_update(&ctx, D_INTR, 2);
+		sm3_init(&ctx);
+		sm3_update(&ctx, I, 16);
+		sm3_update(&ctx, rbytes, 4);
+		sm3_update(&ctx, D_INTR, 2);
 		if (r & 0x01) {
-			lms_hash256_update(&ctx, path[i], 32);
-			lms_hash256_update(&ctx, root, 32);
+			sm3_update(&ctx, path[i], 32);
+			sm3_update(&ctx, root, 32);
 		} else {
-			lms_hash256_update(&ctx, root, 32);
-			lms_hash256_update(&ctx, path[i], 32);
+			sm3_update(&ctx, root, 32);
+			sm3_update(&ctx, path[i], 32);
 		}
-		lms_hash256_finish(&ctx, root);
+		sm3_finish(&ctx, root);
 		r = r/2;
 	}
 
@@ -927,7 +927,7 @@ int lms_sign_init(LMS_SIGN_CTX *ctx, LMS_KEY *key)
 {
 	LMS_SIGNATURE *lms_sig;
 	uint8_t qbytes[4];
-	const lms_hash256_t *T;
+	const lms_sm3_digest_t *T;
 	size_t height, r, i;
 
 	if (!ctx || !key) {
@@ -983,11 +983,11 @@ int lms_sign_init(LMS_SIGN_CTX *ctx, LMS_KEY *key)
 		r /= 2;
 	}
 
-	lms_hash256_init(&ctx->lms_hash256_ctx);
-	lms_hash256_update(&ctx->lms_hash256_ctx, key->public_key.I, 16);
-	lms_hash256_update(&ctx->lms_hash256_ctx, qbytes, 4);
-	lms_hash256_update(&ctx->lms_hash256_ctx, D_MESG, 2);
-	lms_hash256_update(&ctx->lms_hash256_ctx, lms_sig->lmots_sig.C, 32);
+	sm3_init(&ctx->sm3_ctx);
+	sm3_update(&ctx->sm3_ctx, key->public_key.I, 16);
+	sm3_update(&ctx->sm3_ctx, qbytes, 4);
+	sm3_update(&ctx->sm3_ctx, D_MESG, 2);
+	sm3_update(&ctx->sm3_ctx, lms_sig->lmots_sig.C, 32);
 
 	return 1;
 }
@@ -999,7 +999,7 @@ int lms_sign_update(LMS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 		return -1;
 	}
 	if (data && datalen > 0) {
-		lms_hash256_update(&ctx->lms_hash256_ctx, data, datalen);
+		sm3_update(&ctx->sm3_ctx, data, datalen);
 	}
 	return 1;
 }
@@ -1014,7 +1014,7 @@ int lms_sign_finish_ex(LMS_SIGN_CTX *ctx, LMS_SIGNATURE *sig)
 		return -1;
 	}
 
-	lms_hash256_finish(&ctx->lms_hash256_ctx, dgst);
+	sm3_finish(&ctx->sm3_ctx, dgst);
 
 	lms_sig = &ctx->lms_sig;
 	lmots_compute_signature(ctx->lms_public_key.I, lms_sig->q, dgst, lms_sig->lmots_sig.y, lms_sig->lmots_sig.y);
@@ -1033,7 +1033,7 @@ int lms_sign_finish(LMS_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 		return -1;
 	}
 
-	lms_hash256_finish(&ctx->lms_hash256_ctx, dgst);
+	sm3_finish(&ctx->sm3_ctx, dgst);
 
 	lms_sig = &ctx->lms_sig;
 	lmots_compute_signature(ctx->lms_public_key.I, lms_sig->q, dgst, lms_sig->lmots_sig.y, lms_sig->lmots_sig.y);
@@ -1074,11 +1074,11 @@ int lms_verify_init_ex(LMS_SIGN_CTX *ctx, const LMS_KEY *key, const LMS_SIGNATUR
 
 	PUTU32(qbytes, lms_sig->q);
 
-	lms_hash256_init(&ctx->lms_hash256_ctx);
-	lms_hash256_update(&ctx->lms_hash256_ctx, key->public_key.I, 16);
-	lms_hash256_update(&ctx->lms_hash256_ctx, qbytes, 4);
-	lms_hash256_update(&ctx->lms_hash256_ctx, D_MESG, 2);
-	lms_hash256_update(&ctx->lms_hash256_ctx, lms_sig->lmots_sig.C, 32);
+	sm3_init(&ctx->sm3_ctx);
+	sm3_update(&ctx->sm3_ctx, key->public_key.I, 16);
+	sm3_update(&ctx->sm3_ctx, qbytes, 4);
+	sm3_update(&ctx->sm3_ctx, D_MESG, 2);
+	sm3_update(&ctx->sm3_ctx, lms_sig->lmots_sig.C, 32);
 
 	return 1;
 }
@@ -1118,11 +1118,11 @@ int lms_verify_init(LMS_SIGN_CTX *ctx, const LMS_KEY *key, const uint8_t *sig, s
 
 	PUTU32(qbytes, lms_sig->q);
 
-	lms_hash256_init(&ctx->lms_hash256_ctx);
-	lms_hash256_update(&ctx->lms_hash256_ctx, key->public_key.I, 16);
-	lms_hash256_update(&ctx->lms_hash256_ctx, qbytes, 4);
-	lms_hash256_update(&ctx->lms_hash256_ctx, D_MESG, 2);
-	lms_hash256_update(&ctx->lms_hash256_ctx, lms_sig->lmots_sig.C, 32);
+	sm3_init(&ctx->sm3_ctx);
+	sm3_update(&ctx->sm3_ctx, key->public_key.I, 16);
+	sm3_update(&ctx->sm3_ctx, qbytes, 4);
+	sm3_update(&ctx->sm3_ctx, D_MESG, 2);
+	sm3_update(&ctx->sm3_ctx, lms_sig->lmots_sig.C, 32);
 
 	return 1;
 }
@@ -1134,7 +1134,7 @@ int lms_verify_update(LMS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 		return -1;
 	}
 	if (data && datalen > 0) {
-		lms_hash256_update(&ctx->lms_hash256_ctx, data, datalen);
+		sm3_update(&ctx->sm3_ctx, data, datalen);
 	}
 	return 1;
 }
@@ -1142,9 +1142,9 @@ int lms_verify_update(LMS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 int lms_verify_finish(LMS_SIGN_CTX *ctx)
 {
 	LMS_SIGNATURE *lms_sig;
-	lms_hash256_t dgst;
+	lms_sm3_digest_t dgst;
 	size_t height;
-	lms_hash256_t root;
+	lms_sm3_digest_t root;
 
 	if (!ctx) {
 		error_print();
@@ -1157,7 +1157,7 @@ int lms_verify_finish(LMS_SIGN_CTX *ctx)
 		return -1;
 	}
 
-	lms_hash256_finish(&ctx->lms_hash256_ctx, dgst);
+	sm3_finish(&ctx->sm3_ctx, dgst);
 
 	if (lms_signature_to_merkle_root(ctx->lms_public_key.I, height,
 		lms_sig->q, lms_sig->lmots_sig.y, lms_sig->path, dgst, root) != 1) {
@@ -1385,7 +1385,7 @@ void hss_key_cleanup(HSS_KEY *key)
 int hss_key_generate(HSS_KEY *key, const int *lms_types, size_t levels)
 {
 	int ret = -1;
-	lms_hash256_t seed;
+	lms_sm3_digest_t seed;
 	uint8_t I[16];
 	LMS_SIGN_CTX ctx;
 	uint8_t buf[LMS_SIGNATURE_MAX_SIZE]; // LMS_SIGNATURE_MAX_SIZE > SM3_PUBLIC_KEY_SIZE

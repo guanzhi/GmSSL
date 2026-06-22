@@ -57,58 +57,74 @@ int secp256r1_cmp(const secp256r1_t a, const secp256r1_t b) {
 	return bn_cmp(a, b, SECP256R1_K);
 }
 
-void secp256r1_set_zero(secp256r1_t r) {
+int secp256r1_set_zero(secp256r1_t r) {
 	bn_set_word(r, 0, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_set_one(secp256r1_t r) {
+int secp256r1_set_one(secp256r1_t r) {
 	bn_set_word(r, 1, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_copy(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_copy(secp256r1_t r, const secp256r1_t a) {
 	bn_copy(r, a, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_to_32bytes(const secp256r1_t a, uint8_t out[32]) {
+int secp256r1_to_32bytes(const secp256r1_t a, uint8_t out[32]) {
 	bn_to_bytes(a, SECP256R1_K, out);
+	return 1;
 }
 
-void secp256r1_from_32bytes(secp256r1_t r, const uint8_t in[32]) {
+int secp256r1_from_32bytes(secp256r1_t r, const uint8_t in[32]) {
 	bn_from_bytes(r, SECP256R1_K, in);
+	return 1;
 }
 
 int secp256r1_print(FILE *fp, int fmt, int ind, const char *label, const secp256r1_t a) {
 	uint8_t bytes[32];
-	secp256r1_to_32bytes(a, bytes);
+	if (secp256r1_to_32bytes(a, bytes) != 1) {
+		error_print();
+		return -1;
+	}
 	format_bytes(fp, fmt, ind, label, bytes, 32);
 	return 1;
 }
 
-void secp256r1_modp_add(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
+int secp256r1_modp_add(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
 	bn_mod_add(r, a, b, SECP256R1_P, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modp_dbl(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modp_dbl(secp256r1_t r, const secp256r1_t a) {
 	bn_mod_add(r, a, a, SECP256R1_P, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modp_tri(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modp_tri(secp256r1_t r, const secp256r1_t a) {
 	secp256r1_t tmp;
 
-	// 这里就出错了，真是太奇怪了！
 	bn_mod_add(tmp, a, a, SECP256R1_P, SECP256R1_K);
 	bn_mod_add(r, tmp, a, SECP256R1_P, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modp_sub(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
+int secp256r1_modp_sub(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
 	bn_mod_sub(r, a, b, SECP256R1_P, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modp_neg(secp256r1_t r, const secp256r1_t a) {
-	bn_mod_neg(r, a, SECP256R1_P, SECP256R1_K);
+int secp256r1_modp_neg(secp256r1_t r, const secp256r1_t a) {
+	if (secp256r1_is_zero(a)) {
+		secp256r1_set_zero(r);
+	} else {
+		bn_mod_neg(r, a, SECP256R1_P, SECP256R1_K);
+	}
+	return 1;
 }
 
-void secp256r1_modp_haf(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modp_haf(secp256r1_t r, const secp256r1_t a) {
 	int c = 0;
 	if (a[0] & 1) {
 		c = bn_add(r, a, SECP256R1_P, SECP256R1_K);
@@ -124,79 +140,106 @@ void secp256r1_modp_haf(secp256r1_t r, const secp256r1_t a) {
 	r[5] = (r[5] >> 1) | ((r[6] & 1) << 31);
 	r[6] = (r[6] >> 1) | ((r[7] & 1) << 31);
 	r[7] = (r[7] >> 1) | ((c & 1) << 31);
+	return 1;
 }
 
-void secp256r1_modp_mul(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
+int secp256r1_modp_mul(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
 	uint32_t tmp[6*8 + 4];
 	bn_barrett_mod_mul(r, a, b, SECP256R1_P, SECP256R1_U_P, tmp, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modp_sqr(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modp_sqr(secp256r1_t r, const secp256r1_t a) {
 	uint32_t tmp[6*8 + 4];
 	bn_barrett_mod_mul(r, a, a, SECP256R1_P, SECP256R1_U_P, tmp, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modp_exp(secp256r1_t r, const secp256r1_t a, const secp256r1_t e) {
+int secp256r1_modp_exp(secp256r1_t r, const secp256r1_t a, const secp256r1_t e) {
 	uint32_t tmp[7*8 + 4];
 	bn_barrett_mod_exp(r, a, e, SECP256R1_P, SECP256R1_U_P, tmp, SECP256R1_K);
+	return 1;
 }
 
-// FIXME: 如果 a = 0 (mod p) 会发生什么			
-void secp256r1_modp_inv(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modp_inv(secp256r1_t r, const secp256r1_t a) {
 	uint32_t tmp[8*8 + 4];
+
+	if (secp256r1_is_zero(a)) {
+		error_print();
+		return -1;
+	}
 	bn_barrett_mod_inv(r, a, SECP256R1_P, SECP256R1_U_P, tmp, SECP256R1_K);
+	return 1;
 }
 
 
-void secp256r1_modn(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modn(secp256r1_t r, const secp256r1_t a) {
 	if (bn_cmp(a, SECP256R1_N, SECP256R1_K) >= 0) {
 		bn_sub(r, a, SECP256R1_N, SECP256R1_K);
 	} else {
 		bn_copy(r, a, SECP256R1_K);
 	}
+	return 1;
 }
 
-void secp256r1_modn_add(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
+int secp256r1_modn_add(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
 	bn_mod_add(r, a, b, SECP256R1_N, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modn_dbl(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modn_dbl(secp256r1_t r, const secp256r1_t a) {
 	bn_mod_add(r, a, a, SECP256R1_N, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modn_tri(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modn_tri(secp256r1_t r, const secp256r1_t a) {
 	secp256r1_t tmp;
 	bn_mod_add(tmp, a, a, SECP256R1_N, SECP256R1_K);
 	bn_mod_add(r, tmp, a, SECP256R1_N, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modn_sub(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
+int secp256r1_modn_sub(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
 	bn_mod_sub(r, a, b, SECP256R1_N, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modn_neg(secp256r1_t r, const secp256r1_t a) {
-	bn_mod_neg(r, a, SECP256R1_N, SECP256R1_K);
+int secp256r1_modn_neg(secp256r1_t r, const secp256r1_t a) {
+	if (secp256r1_is_zero(a)) {
+		secp256r1_set_zero(r);
+	} else {
+		bn_mod_neg(r, a, SECP256R1_N, SECP256R1_K);
+	}
+	return 1;
 }
 
-void secp256r1_modn_mul(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
+int secp256r1_modn_mul(secp256r1_t r, const secp256r1_t a, const secp256r1_t b) {
 	uint32_t tmp[6*8 + 4];
 	bn_barrett_mod_mul(r, a, b, SECP256R1_N, SECP256R1_U_N, tmp, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modn_sqr(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modn_sqr(secp256r1_t r, const secp256r1_t a) {
 	uint32_t tmp[6*8 + 4];
 	bn_barrett_mod_mul(r, a, a, SECP256R1_N, SECP256R1_U_N, tmp, SECP256R1_K);
+	return 1;
 }
 
-void secp256r1_modn_exp(secp256r1_t r, const secp256r1_t a, const secp256r1_t e) {
+int secp256r1_modn_exp(secp256r1_t r, const secp256r1_t a, const secp256r1_t e) {
 	uint32_t tmp[7*8 + 4];
 	bn_barrett_mod_exp(r, a, e, SECP256R1_N, SECP256R1_U_N, tmp, SECP256R1_K);
+	return 1;
 }
 
-// FIXME: 如果 a = 0 (mod p) 会发生什么			
-void secp256r1_modn_inv(secp256r1_t r, const secp256r1_t a) {
+int secp256r1_modn_inv(secp256r1_t r, const secp256r1_t a) {
 	uint32_t tmp[8*8 + 4];
+
+	if (secp256r1_is_zero(a)) {
+		error_print();
+		return -1;
+	}
 	bn_barrett_mod_inv(r, a, SECP256R1_N, SECP256R1_U_N, tmp, SECP256R1_K);
+	return 1;
 }
 
 

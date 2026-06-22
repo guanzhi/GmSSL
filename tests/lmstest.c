@@ -24,9 +24,9 @@ static void test_print_elapsed(const char *func, clock_t start)
 
 
 static int lms_types[] = {
-	LMS_HASH256_M32_H5,
-	LMS_HASH256_M32_H5,
-	LMS_HASH256_M32_H5,
+	LMS_SM3_M32_H5,
+	LMS_SM3_M32_H5,
+	LMS_SM3_M32_H5,
 };
 
 static int test_print_consts(void)
@@ -46,192 +46,128 @@ static int test_print_consts(void)
 	return 1;
 }
 
-#if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
-static int test_rfc8554_test1(void)
+static int test_sm3_hss_kat(void)
 {
-	size_t i;
-
-	// HSS Public key
-	int levels = 2;
-	int lms_type = LMS_SHA256_M32_H5;
-	int lmots_type = LMOTS_SHA256_N32_W8;
-	char *I = "61a5d57d37f5e46bfb7520806b07a1b8";
-	char *K = "50650e3b31fe4a773ea29a07f09cf2ea30e579f0df58ef8e298da0434cb2b878";
-
-	// Message
-	char *msg =
+	static const char *sm3_hss_public_key =
+		"00000002000000050000000e61a5d57d37f5e46bfb7520806b07a1b83d3bcaed"
+		"9914f6c45640986637c1a14e5f7cc64bcc92b47ac318afd894b17544";
+	static const char *sm3_hss_signature =
+		"00000001000000050000000ed32b56671d7eb98833c49b433c272586bc4a1c8a"
+		"8970528ffa04b966f9426eb9ab7e482480399fa6e357c683e14b55bc03989238"
+		"3a55e93fa79abee02b261705d55980b4e2ccf6fb8042b17777e0474de1b43748"
+		"3ca96302b5a69d2c3a4ab572f7a278014dd095b031a76f2f5fbc25ec30c99881"
+		"e5d536bb0c12996ef228c4a1ac62df352dce08b9b04ebbb74ee7a3266d6dc101"
+		"c524331025ba41dae0d331262afabafd0beff8e668bd5dd916eafd1274484934"
+		"ce506e571cf693eec3fcb34cbbea87ac8b313f93197bf15a0e9bb105d9e37691"
+		"e0c57e4a5f615f8dd4ba35c7df9456e9815a143acf4e984cb023455125b51243"
+		"ecd3485858e5ebd7d2ffb3c889f53b7c59135e9f872932b12a521868301538bf"
+		"4cffecca900735806b929aec2cc5d6da8b9a91e5cf8e2c38189af5b92a8c5648"
+		"ae860a767190c306c460834ca476d129e263d3f62804d88d9d077c5deef80418"
+		"3467e158ad7c5a179dc0088ff80d296c659f3203c77a2e06df15efcda01cf675"
+		"bbaed0b9e3cba4726d758fec71523374c3e6a007fe286706eb46abb9267caeb2"
+		"140ce421714908793563dd8d910880b382941affdd38d3a9add3dac360f72a21"
+		"627f7f0f173e9ad493d1a97ceae63249c4bcb7d871d8b17286ab2c91271096be"
+		"aba1e8798eb61a6ad18f246e0ecb38bebce0927523baa98c72c288645aaaf61c"
+		"19330fe351e7fb4c5e622679acc7f15b92d424682d34555e8afa859ec293b3ac"
+		"788375f0e8a6951bb4b916d14470f908115e66c424f1acbea399aef6fa00f0e3"
+		"ff319e3a8a296681b7630ccc9b0da1617a75e5eb0480e5e06e7f164c42b58394"
+		"f870b658031a3de596101d5e7e71b3a6523c594233bd00b2c170e81ff93e94b0"
+		"bca9f9043aab415cd330b566eaa2535b6e42607b979515db5a99b90064560119"
+		"96fec95a36031c4fd9136cda176fa658d54b96f7a6d80908d65e145217d7009f"
+		"d2f0fb96fb45dbdbf33f49e739ae7bc7f7e0531d179e1b15b0ca1d3c345540fe"
+		"cb3591f60e72e9fa9c3f7d85e2d1856f9baaee3af90f14d105b3be98b7c3900e"
+		"1e4709d7698b031c2b40fc114ab13745eef2dfbc8eec730a21ee3f2e8affad5e"
+		"807f022bd7091a00ca55d6affbb5310c866c4bf16805ecf4a1f910e3334de46f"
+		"45e354d27dccd5310d2db6396bc357e3947a9897440cd849c0bd520c55a6dc05"
+		"8be5f0444d49ab6dbcc3c642d372d21ea51440c5ad3907a854b4129f55c05f21"
+		"da6f33227ceb80d158b334416a34e7d42bf5ecb3ceb06a7260bbd3d1f3603709"
+		"ce7f9df8c8d977085e013fa6f2d48c4ec703d6f25d6614728d20db85aaa2a2a6"
+		"a520b977c35ee862e1679348e16fc474a78006fc5689c91ad18953406f01e0c3"
+		"5ad9aadd7a96695c989620ce16bb8334a808af2ba3a7a23c2f53867044eb09fc"
+		"0c756d837d4cbe3408e2ccce21c8e786fe4fb292b6197e1346669774d3a9eedf"
+		"a8e5ddb2910ecef28521540243dfcae28ee5cd6d0a569a7ad664cbfefb52bfcf"
+		"d09e66db110cc2bdcfa6909f3f5998f7cc2d7a5c11c146cce13f72c698a8b138"
+		"651e9ad1541442f36e51e09a0000000528a7d2e5292ffaa18483fe7f0d6db429"
+		"238d3809ee778f6da4aaf28e77ba6ff939e8b2b0f3fe300beea139543ad25004"
+		"307de7ca1344c8645d8a8ee9629373868df046e1d4df456ad9cf5857d9ad868a"
+		"77633abf7de96279f84e2cf1166863a459638c92bd5617191ff96a912cc314e3"
+		"a430ad746f427ea60c3d1171e2034c67af8b1e5323b82a57dcdbd92ce21d3999"
+		"86d36d10f4ab2725ee808d2a654e1554000000050000000ed2f14ff6346af964"
+		"569f7d6cb880a1b6a3dfee7a6eb6bb4eceb552326e159d57b27f0c98bc513d3b"
+		"8746311d1d57ad6e0000000a0000000e0703c491e7558b35011ece3592eaa5da"
+		"4d918786771233e8353bc4f62323185ca6181777500d72b576c54d3b7c800664"
+		"9fdf6cc3d0251c138bed161ae9866dc12fd4f4c8002b29631dedfe72a08567ac"
+		"b0cb8d4c8189f4c64db40707196d49a0a738ac6575b662156b8d3825a19ab18f"
+		"10f93b6ee46d4f31f4295a68f51d4ae778ab3dd99020c8cb8e187e2f7cec0fb8"
+		"5cb888481d379faa8d1cd0e63e525e394d1256b12ee2cee8a6a4a80999ec7b3e"
+		"35b6d9b660b12e071f105f9fca56909d7bf25dc173fcd5ba6ea3ec138157f524"
+		"dea1ac0a679524f0f3a27129e90b7e09b41c178b8344a59333c963665ea28f9d"
+		"bca379ea6d98c216453810e150edb8c2404cc2c92804eb348f929e0d6ab0c5df"
+		"731ba8f346034d391a1beffc13b257039d1a653a83767e2b2ccb450cbc4c3e76"
+		"1f76a3b94b58b2a846e01344c716a6beada874e34a8a46cdd4ee3b328ba797c8"
+		"d8aef40fd8b27ee57a45d0d25e1d6091504472a261c7de6fb1f3e47d7495edd2"
+		"1760200a7c5c91205116e09d0565437b4813dd7b316ec01625945ebeb81800b0"
+		"7742abfa06998638e9a9e95cf09b0cca5e45234a9dc62f8983ddbd77efd737d5"
+		"b97c72cf7f7f1b33b7473c7dfc249b4001a05b71213eeb2305f0b79f047ab1f9"
+		"349a4fcada42523d0b6c4f994671cea38fdcea663ec725dbff73b2b3f0f4c037"
+		"8878a0d85d6fecf954ca9a4e97d3a1f219f324e7785f83a402af499bd852bac6"
+		"5bef42aa13fd8f564003e96268618b1082611885548344b6bcacb04a23123ea4"
+		"8b3902d5ff10b0d9bd6006257102c78f4cd2d60fbc49e3b173ba13e559ecb2e4"
+		"f10fcb33bb571fdc3440964b8613a2a763c0cf7860c75580c716bbf88a6c3bff"
+		"ff632ab66d3861f7fd3e0255147feb21fcd1a6742788dd56d4b820d4206b9dbc"
+		"b4b045b95cd587f02e317e986f6e86caa709e5aac8da44321fd38e50b4ff1386"
+		"e4e02887b6c961e633a16da4729bf6172e40a865f163e3610e4352aa15b177ac"
+		"35545aa7783c4fde3724a2151312b1901dd37a161f619033914ddb330d7783e0"
+		"e1e3b7c71d2c6da820af348644a3ea479fca0075974eec4b780ceb6dbacb8164"
+		"6f3f8d604d9f56b90e31b174f80ae1e450f3ac29663667c6ebaf090b13d6f60d"
+		"7541f988271efe00241160072b8d6667e5d4546ab40036af88aef5c9553957b3"
+		"3962cbd31b946fbf66dac1a2c477421590d17eea8c4c4900385847c116a4b2f9"
+		"453b3246542951bf377895912d4de8fd6ba7255c1ac065359b629cd58d51c767"
+		"81f6f2e8f2b3c61b4c6adaab90c937823c81fb70046136a457122134f340542e"
+		"92207aa84b1623330a2378bcbeb3ff0b85204acc8d2507ddc0912da70284de24"
+		"2f28aec0f69d6aa43d2d44cb6a8ae837a3936c2181ec26ae9ed18461620d7487"
+		"d76f5bbf4b5e69317d7a5cd016dc7ab00d9ef0a3825350db64ddb9d2610fd273"
+		"1758f7e9fff621e9e0927f1f91b9f2c5e5a3bcaea6e25319cddc6cc7e515826a"
+		"e0c77a214fed5f64d17e02b0408c8a9e4fe8929c8d92d5f837410814cff8a534"
+		"789a1dbee2ecd59afe7cb4924472d001000000055809ff98d4366c45f6903e86"
+		"ba7eefeafdda04ff2ad295313688efefea69839460746b64bd308dbc590fef12"
+		"0d3c02707215b122202ffc9fb8d602e563485f75e78f9e2684cf5fce9e3480db"
+		"8dd35a03dde4186c6eb9c6bfa4bb19c6d6c28e7b2d1fa4164d83caffd498085c"
+		"fa6616cacd7d44c6b700cbb0f6ec377d31fe9096e1b7b9bb773c8271423e4bbb"
+		"09613e7a026511948a67acd77e54031b62df1cbb";
+	static const char *msg =
 		"54686520706f77657273206e6f742064656c65676174656420746f2074686520"
 		"556e69746564205374617465732062792074686520436f6e737469747574696f"
 		"6e2c206e6f722070726f6869626974656420627920697420746f207468652053"
 		"74617465732c2061726520726573657276656420746f20746865205374617465"
 		"7320726573706563746976656c792c206f7220746f207468652070656f706c65"
 		"2e0a"; // MUST NOT use strlen(msg), which will not count the last 0x0a
-
-	// Signature
-	int Nspk = 1;
-
-	int sig0_q = 5;
-	int sig0_lmots_type = LMOTS_SHA256_N32_W8;
-	char *sig0_C =
-		"d32b56671d7eb98833c49b433c272586"
-		"bc4a1c8a8970528ffa04b966f9426eb9";
-	char *sig0_y[34] = {
-		"965a25bfd37f196b9073f3d4a232feb69128ec45146f86292f9dff9610a7bf95",
-		"a64c7f60f6261a62043f86c70324b7707f5b4a8a6e19c114c7be866d488778a0",
-		"e05fd5c6509a6e61d559cf1a77a970de927d60c70d3de31a7fa0100994e162a2",
-		"582e8ff1b10cd99d4e8e413ef469559f7d7ed12c838342f9b9c96b83a4943d16",
-		"81d84b15357ff48ca579f19f5e71f18466f2bbef4bf660c2518eb20de2f66e3b",
-		"14784269d7d876f5d35d3fbfc7039a462c716bb9f6891a7f41ad133e9e1f6d95",
-		"60b960e7777c52f060492f2d7c660e1471e07e72655562035abc9a701b473ecb",
-		"c3943c6b9c4f2405a3cb8bf8a691ca51d3f6ad2f428bab6f3a30f55dd9625563",
-		"f0a75ee390e385e3ae0b906961ecf41ae073a0590c2eb6204f44831c26dd768c",
-		"35b167b28ce8dc988a3748255230cef99ebf14e730632f27414489808afab1d1",
-		"e783ed04516de012498682212b07810579b250365941bcc98142da13609e9768",
-		"aaf65de7620dabec29eb82a17fde35af15ad238c73f81bdb8dec2fc0e7f93270",
-		"1099762b37f43c4a3c20010a3d72e2f606be108d310e639f09ce7286800d9ef8",
-		"a1a40281cc5a7ea98d2adc7c7400c2fe5a101552df4e3cccfd0cbf2ddf5dc677",
-		"9cbbc68fee0c3efe4ec22b83a2caa3e48e0809a0a750b73ccdcf3c79e6580c15",
-		"4f8a58f7f24335eec5c5eb5e0cf01dcf4439424095fceb077f66ded5bec73b27",
-		"c5b9f64a2a9af2f07c05e99e5cf80f00252e39db32f6c19674f190c9fbc506d8",
-		"26857713afd2ca6bb85cd8c107347552f30575a5417816ab4db3f603f2df56fb",
-		"c413e7d0acd8bdd81352b2471fc1bc4f1ef296fea1220403466b1afe78b94f7e",
-		"cf7cc62fb92be14f18c2192384ebceaf8801afdf947f698ce9c6ceb696ed70e9",
-		"e87b0144417e8d7baf25eb5f70f09f016fc925b4db048ab8d8cb2a661ce3b57a",
-		"da67571f5dd546fc22cb1f97e0ebd1a65926b1234fd04f171cf469c76b884cf3",
-		"115cce6f792cc84e36da58960c5f1d760f32c12faef477e94c92eb75625b6a37",
-		"1efc72d60ca5e908b3a7dd69fef0249150e3eebdfed39cbdc3ce9704882a2072",
-		"c75e13527b7a581a556168783dc1e97545e31865ddc46b3c957835da252bb732",
-		"8d3ee2062445dfb85ef8c35f8e1f3371af34023cef626e0af1e0bc017351aae2",
-		"ab8f5c612ead0b729a1d059d02bfe18efa971b7300e882360a93b025ff97e9e0",
-		"eec0f3f3f13039a17f88b0cf808f488431606cb13f9241f40f44e537d302c64a",
-		"4f1f4ab949b9feefadcb71ab50ef27d6d6ca8510f150c85fb525bf25703df720",
-		"9b6066f09c37280d59128d2f0f637c7d7d7fad4ed1c1ea04e628d221e3d8db77",
-		"b7c878c9411cafc5071a34a00f4cf07738912753dfce48f07576f0d4f94f42c6",
-		"d76f7ce973e9367095ba7e9a3649b7f461d9f9ac1332a4d1044c96aefee67676",
-		"401b64457c54d65fef6500c59cdfb69af7b6dddfcb0f086278dd8ad0686078df",
-		"b0f3f79cd893d314168648499898fbc0ced5f95b74e8ff14d735cdea968bee74",
-	};
-	int sig0_lms_type = LMS_SHA256_M32_H5;
-	char *sig0_path[5] = {
-		"d8b8112f9200a5e50c4a262165bd342cd800b8496810bc716277435ac376728d",
-		"129ac6eda839a6f357b5a04387c5ce97382a78f2a4372917eefcbf93f63bb591",
-		"12f5dbe400bd49e4501e859f885bf0736e90a509b30a26bfac8c17b5991c157e",
-		"b5971115aa39efd8d564a6b90282c3168af2d30ef89d51bf14654510a12b8a14",
-		"4cca1848cf7da59cc2b3d9d0692dd2a20ba3863480e25b1b85ee860c62bf5136",
-	};
-
-	int pub0_lms_type = LMS_SHA256_M32_H5;
-	int pub0_lmots_type = LMOTS_SHA256_N32_W8;
-	char *pub0_I = "d2f14ff6346af964569f7d6cb880a1b6";
-	char *pub0_K = "6c5004917da6eafe4d9ef6c6407b3db0e5485b122d9ebe15cda93cfec582d7ab";
-
-	int sig1_q = 0x0a;
-	int sig1_lmots_type = LMOTS_SHA256_N32_W8;
-	char *sig1_C = "0703c491e7558b35011ece3592eaa5da4d918786771233e8353bc4f62323185c";
-	char *sig1_y[34] = {
-		"95cae05b899e35dffd717054706209988ebfdf6e37960bb5c38d7657e8bffeef",
-		"9bc042da4b4525650485c66d0ce19b317587c6ba4bffcc428e25d08931e72dfb",
-		"6a120c5612344258b85efdb7db1db9e1865a73caf96557eb39ed3e3f426933ac",
-		"9eeddb03a1d2374af7bf77185577456237f9de2d60113c23f846df26fa942008",
-		"a698994c0827d90e86d43e0df7f4bfcdb09b86a373b98288b7094ad81a0185ac",
-		"100e4f2c5fc38c003c1ab6fea479eb2f5ebe48f584d7159b8ada03586e65ad9c",
-		"969f6aecbfe44cf356888a7b15a3ff074f771760b26f9c04884ee1faa329fbf4",
-		"e61af23aee7fa5d4d9a5dfcf43c4c26ce8aea2ce8a2990d7ba7b57108b47dabf",
-		"beadb2b25b3cacc1ac0cef346cbb90fb044beee4fac2603a442bdf7e507243b7",
-		"319c9944b1586e899d431c7f91bcccc8690dbf59b28386b2315f3d36ef2eaa3c",
-		"f30b2b51f48b71b003dfb08249484201043f65f5a3ef6bbd61ddfee81aca9ce6",
-		"0081262a00000480dcbc9a3da6fbef5c1c0a55e48a0e729f9184fcb1407c3152",
-		"9db268f6fe50032a363c9801306837fafabdf957fd97eafc80dbd165e435d0e2",
-		"dfd836a28b354023924b6fb7e48bc0b3ed95eea64c2d402f4d734c8dc26f3ac5",
-		"91825daef01eae3c38e3328d00a77dc657034f287ccb0f0e1c9a7cbdc828f627",
-		"205e4737b84b58376551d44c12c3c215c812a0970789c83de51d6ad787271963",
-		"327f0a5fbb6b5907dec02c9a90934af5a1c63b72c82653605d1dcce51596b3c2",
-		"b45696689f2eb382007497557692caac4d57b5de9f5569bc2ad0137fd47fb47e",
-		"664fcb6db4971f5b3e07aceda9ac130e9f38182de994cff192ec0e82fd6d4cb7",
-		"f3fe00812589b7a7ce515440456433016b84a59bec6619a1c6c0b37dd1450ed4",
-		"f2d8b584410ceda8025f5d2d8dd0d2176fc1cf2cc06fa8c82bed4d944e71339e",
-		"ce780fd025bd41ec34ebff9d4270a3224e019fcb444474d482fd2dbe75efb203",
-		"89cc10cd600abb54c47ede93e08c114edb04117d714dc1d525e11bed8756192f",
-		"929d15462b939ff3f52f2252da2ed64d8fae88818b1efa2c7b08c8794fb1b214",
-		"aa233db3162833141ea4383f1a6f120be1db82ce3630b3429114463157a64e91",
-		"234d475e2f79cbf05e4db6a9407d72c6bff7d1198b5c4d6aad2831db61274993",
-		"715a0182c7dc8089e32c8531deed4f7431c07c02195eba2ef91efb5613c37af7",
-		"ae0c066babc69369700e1dd26eddc0d216c781d56e4ce47e3303fa73007ff7b9",
-		"49ef23be2aa4dbf25206fe45c20dd888395b2526391a724996a44156beac8082",
-		"12858792bf8e74cba49dee5e8812e019da87454bff9e847ed83db07af3137430",
-		"82f880a278f682c2bd0ad6887cb59f652e155987d61bbf6a88d36ee93b6072e6",
-		"656d9ccbaae3d655852e38deb3a2dcf8058dc9fb6f2ab3d3b3539eb77b248a66",
-		"1091d05eb6e2f297774fe6053598457cc61908318de4b826f0fc86d4bb117d33",
-		"e865aa805009cc2918d9c2f840c4da43a703ad9f5b5806163d7161696b5a0adc",
-	};
-	int sig1_lms_type = LMS_SHA256_M32_H5;
-	char *sig1_path[5] = {
-		"d5c0d1bebb06048ed6fe2ef2c6cef305b3ed633941ebc8b3bec9738754cddd60",
-		"e1920ada52f43d055b5031cee6192520d6a5115514851ce7fd448d4a39fae2ab",
-		"2335b525f484e9b40d6a4a969394843bdcf6d14c48e8015e08ab92662c05c6e9",
-		"f90b65a7a6201689999f32bfd368e5e3ec9cb70ac7b8399003f175c40885081a",
-		"09ab3034911fe125631051df0408b3946b0bde790911e8978ba07dd56c73e7ee",
-	};
-
 	HSS_KEY key;
 	HSS_SIGNATURE sig;
-	LMS_SIGNATURE *lms_sig;
-	LMS_PUBLIC_KEY *lms_pub;
+	HSS_SIGN_CTX ctx;
+	uint8_t pub[HSS_PUBLIC_KEY_SIZE];
+	uint8_t sigbuf[HSS_SIGNATURE_MAX_SIZE];
+	uint8_t data[162];
+	const uint8_t *cp;
 	size_t len;
 
-	// hss public key
-	memset(&key, 0, sizeof(key));
-	key.levels = levels;
-	lms_pub = &key.lms_key[0].public_key;
-	lms_pub->lms_type = lms_type;
-	lms_pub->lmots_type = lmots_type;
-	hex_to_bytes(I, strlen(I), lms_pub->I, &len);
-	hex_to_bytes(K, strlen(K), lms_pub->root, &len);
-
-	// hss signature
-	memset(&sig, 0, sizeof(sig));
-	sig.num_signed_public_keys = Nspk;
-
-	// sig[0]
-	lms_sig = &sig.signed_public_keys[0].lms_sig;
-	lms_sig->q = sig0_q;
-	lms_sig->lmots_sig.lmots_type = sig0_lmots_type;
-	hex_to_bytes(sig0_C, 64, lms_sig->lmots_sig.C, &len);
-	for (i = 0; i < 34; i++) {
-		hex_to_bytes(sig0_y[i], 64, lms_sig->lmots_sig.y[i], &len);
+	hex_to_bytes(sm3_hss_public_key, strlen(sm3_hss_public_key), pub, &len);
+	if (len != HSS_PUBLIC_KEY_SIZE) {
+		error_print();
+		return -1;
 	}
-	lms_sig->lms_type = sig0_lms_type;
-	for (i = 0; i < 5; i++) {
-		hex_to_bytes(sig0_path[i], 64, lms_sig->path[i], &len);
+	cp = pub;
+	if (hss_public_key_from_bytes(&key, &cp, &len) != 1 || len != 0) {
+		error_print();
+		return -1;
 	}
 
-	// pub[0]
-	lms_pub = &sig.signed_public_keys[0].lms_public_key;
-	lms_pub->lms_type = pub0_lms_type;
-	lms_pub->lmots_type = pub0_lmots_type;
-	hex_to_bytes(pub0_I, 32, lms_pub->I, &len);
-	hex_to_bytes(pub0_K, 64, lms_pub->root, &len);
-
-	// sig[1]
-	lms_sig = &sig.msg_lms_sig;
-	lms_sig->q = sig1_q;
-	lms_sig->lmots_sig.lmots_type = sig1_lmots_type;
-	hex_to_bytes(sig1_C, 64, lms_sig->lmots_sig.C, &len);
-	for (i = 0; i < 34; i++) {
-		hex_to_bytes(sig1_y[i], 64, lms_sig->lmots_sig.y[i], &len);
+	hex_to_bytes(sm3_hss_signature, strlen(sm3_hss_signature), sigbuf, &len);
+	cp = sigbuf;
+	if (hss_signature_from_bytes(&sig, &cp, &len) != 1 || len != 0) {
+		error_print();
+		return -1;
 	}
-	lms_sig->lms_type = sig1_lms_type;
-	for (i = 0; i < 5; i++) {
-		hex_to_bytes(sig1_path[i], 64, lms_sig->path[i], &len);
-	}
-
-	hss_public_key_print(stderr, 0, 0, "hss_public_key", &key);
-
-	hss_signature_print_ex(stderr, 0, 0, "hss_signature", &sig);
-
-
-	HSS_SIGN_CTX ctx;
-	uint8_t data[162];
 
 	hex_to_bytes(msg, strlen(msg), data, &len);
 
@@ -251,19 +187,18 @@ static int test_rfc8554_test1(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
-#endif
 
 
 static int test_sm3_lmots(void)
 {
-	lms_hash256_t seed = {0}; // TODO: change to test vector
+	lms_sm3_digest_t seed = {0}; // TODO: change to test vector
 	uint8_t I[16] = {0};
 	int q = 0;
-	lms_hash256_t dgst = {0};
-	lms_hash256_t x[34];
-	lms_hash256_t y[34];
-	lms_hash256_t pub;
-	lms_hash256_t pub2;
+	lms_sm3_digest_t dgst = {0};
+	lms_sm3_digest_t x[34];
+	lms_sm3_digest_t y[34];
+	lms_sm3_digest_t pub;
+	lms_sm3_digest_t pub2;
 
 	lmots_derive_secrets(seed, I, q, x); // TODO: compare results with test vector
 	lmots_secrets_to_public_hash(I, q, x, pub); // TODO: compare results with test vector
@@ -282,14 +217,14 @@ static int test_sm3_lmots(void)
 
 static int test_lms_derive_merkle_root(void)
 {
-	lms_hash256_t seed = {0}; // TODO: change to test vector
+	lms_sm3_digest_t seed = {0}; // TODO: change to test vector
 	uint8_t I[16] = {0};
 	int h = 5;
 	int n = 1<<h;
-	lms_hash256_t *tree = NULL;
-	lms_hash256_t root;
+	lms_sm3_digest_t *tree = NULL;
+	lms_sm3_digest_t root;
 
-	if (!(tree = (lms_hash256_t *)malloc(sizeof(lms_hash256_t)*(2*n - 1)))) {
+	if (!(tree = (lms_sm3_digest_t *)malloc(sizeof(lms_sm3_digest_t)*(2*n - 1)))) {
 		error_print();
 		return -1;
 	}
@@ -385,11 +320,11 @@ static int test_lms_key_to_bytes(void)
 static int test_lms_signature_size(void)
 {
 	int lms_types[] = {
-		LMS_HASH256_M32_H5,
-		LMS_HASH256_M32_H10,
-		LMS_HASH256_M32_H15,
-		LMS_HASH256_M32_H20,
-		LMS_HASH256_M32_H25,
+		LMS_SM3_M32_H5,
+		LMS_SM3_M32_H10,
+		LMS_SM3_M32_H15,
+		LMS_SM3_M32_H20,
+		LMS_SM3_M32_H25,
 	};
 	size_t siglens[] = {
 		1292,
@@ -419,11 +354,11 @@ static int test_lms_signature_size(void)
 static int test_hss_signature_size(void)
 {
 	int lms_types[] = {
-		LMS_HASH256_M32_H5,
-		LMS_HASH256_M32_H10,
-		LMS_HASH256_M32_H15,
-		LMS_HASH256_M32_H20,
-		LMS_HASH256_M32_H25,
+		LMS_SM3_M32_H5,
+		LMS_SM3_M32_H10,
+		LMS_SM3_M32_H15,
+		LMS_SM3_M32_H20,
+		LMS_SM3_M32_H25,
 	};
 	size_t siglens[] = {
 		4 + 1292,
@@ -534,7 +469,7 @@ static int test_lms_sign(void)
 
 static int test_lms_max_sigs(void)
 {
-	int lms_type = LMS_HASH256_M32_H5;
+	int lms_type = LMS_SM3_M32_H5;
 	int height = 5;
 	LMS_KEY key;
 	LMS_SIGN_CTX ctx;
@@ -583,8 +518,8 @@ static int test_hss_key_update_level1(void)
 	memset(&key, 0, sizeof(HSS_KEY));
 
 	key.levels = 1;
-	key.lms_key[0].public_key.lms_type = LMS_HASH256_M32_H25;
-	key.lms_key[0].public_key.lmots_type = LMOTS_HASH256_N32_W8;
+	key.lms_key[0].public_key.lms_type = LMS_SM3_M32_H25;
+	key.lms_key[0].public_key.lmots_type = LMOTS_SM3_N32_W8;
 	key.lms_key[0].q = (1 << 25);
 
 	// out of keys
@@ -600,8 +535,8 @@ static int test_hss_key_update_level1(void)
 static int test_hss_key_update_level2(void)
 {
 	int lms_types[] = {
-		LMS_HASH256_M32_H5,
-		LMS_HASH256_M32_H5,
+		LMS_SM3_M32_H5,
+		LMS_SM3_M32_H5,
 	};
 	HSS_KEY key;
 	int i;
@@ -667,11 +602,11 @@ static int test_hss_key_update_level2(void)
 static int test_hss_key_update_level5(void)
 {
 	int lms_types[] = {
-		LMS_HASH256_M32_H5,
-		LMS_HASH256_M32_H5,
-		LMS_HASH256_M32_H5,
-		LMS_HASH256_M32_H5,
-		LMS_HASH256_M32_H5,
+		LMS_SM3_M32_H5,
+		LMS_SM3_M32_H5,
+		LMS_SM3_M32_H5,
+		LMS_SM3_M32_H5,
+		LMS_SM3_M32_H5,
 	};
 	HSS_KEY key;
 	int i;
@@ -990,7 +925,7 @@ static int test_hss_sign(void)
 static int test_hss_public_key_algor(void)
 {
 	int lms_types[] = {
-		LMS_HASH256_M32_H5
+		LMS_SM3_M32_H5
 	};
 	HSS_KEY key;
 	uint8_t buf[512];
@@ -1066,9 +1001,7 @@ static int test_hss_public_key_algor(void)
 int main(void)
 {
 	if (test_print_consts() != 1) goto err;
-#if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
-	if (test_rfc8554_test1() != 1) goto err;
-#endif
+	if (test_sm3_hss_kat() != 1) goto err;
 	if (test_sm3_lmots() != 1) goto err;
 	if (test_lms_derive_merkle_root() != 1) goto err;
 	if (test_lms_key_generate() != 1) goto err;

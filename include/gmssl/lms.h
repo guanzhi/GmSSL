@@ -15,9 +15,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <gmssl/sm3.h>
-#ifdef ENABLE_SHA2
-#include <gmssl/sha2.h>
-#endif
 
 
 #ifdef __cplusplus
@@ -29,41 +26,15 @@ extern "C" {
 #define LMS_MAX_HEIGHT 25
 
 
-typedef uint8_t lms_hash256_t[32];
+typedef uint8_t lms_sm3_digest_t[32];
 
-// Crosscheck with data from LMS-reference (SHA-256), except the LMS signature.
-#if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
-#define LMS_HASH256_CTX		SHA256_CTX
-#define lms_hash256_init	sha256_init
-#define lms_hash256_update	sha256_update
-#define lms_hash256_finish	sha256_finish
-#else
-#define LMS_HASH256_CTX	SM3_CTX
-#define lms_hash256_init	sm3_init
-#define lms_hash256_update	sm3_update
-#define lms_hash256_finish	sm3_finish
-#endif
-
-
-#if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
-enum {
-	//LMOTS_SHA256_N32_W1	= 1,
-	//LMOTS_SHA256_N32_W2	= 2,
-	//LMOTS_SHA256_N32_W4	= 3,
-	LMOTS_SHA256_N32_W8	= 4,
-};
-#define LMOTS_HASH256_N32_W8		 LMOTS_SHA256_N32_W8
-#define LMOTS_HASH256_N32_W8_NAME	"LMOTS_SHA256_N32_W8"
-#else
 enum {
 	//LMOTS_SM3_N32_W1	= 11,
 	//LMOTS_SM3_N32_W2	= 12,
 	//LMOTS_SM3_N32_W4	= 13,
 	LMOTS_SM3_N32_W8	= 14,
 };
-#define LMOTS_HASH256_N32_W8		 LMOTS_SM3_N32_W8
-#define LMOTS_HASH256_N32_W8_NAME	"LMOTS_SM3_N32_W8"
-#endif
+#define LMOTS_SM3_N32_W8_NAME	"LMOTS_SM3_N32_W8"
 
 // in LMS, we use Winternitz w = 2^8 = 256
 // represent 256-bit hash as 256/8 = 32 base_w numbers
@@ -71,25 +42,16 @@ enum {
 // so total hash chains is 32 + 2 = 34
 #define LMOTS_NUM_CHAINS  34
 
-typedef lms_hash256_t lmots_key_t[34];
-typedef lms_hash256_t lmots_sig_t[34];
+typedef lms_sm3_digest_t lmots_key_t[34];
+typedef lms_sm3_digest_t lmots_sig_t[34];
 
 char *lmots_type_name(int lmots_type);
-void lmots_derive_secrets(const lms_hash256_t seed, const uint8_t I[16], int q, lms_hash256_t x[34]);
-void lmots_secrets_to_public_hash(const uint8_t I[16], int q, const lms_hash256_t x[34], lms_hash256_t pub);
-void lmots_compute_signature(const uint8_t I[16], int q, const lms_hash256_t dgst, const lms_hash256_t x[34], lms_hash256_t y[34]);
-void lmots_signature_to_public_hash(const uint8_t I[16], int q, const lms_hash256_t y[34], const lms_hash256_t dgst, lms_hash256_t pub);
+void lmots_derive_secrets(const lms_sm3_digest_t seed, const uint8_t I[16], int q, lms_sm3_digest_t x[34]);
+void lmots_secrets_to_public_hash(const uint8_t I[16], int q, const lms_sm3_digest_t x[34], lms_sm3_digest_t pub);
+void lmots_compute_signature(const uint8_t I[16], int q, const lms_sm3_digest_t dgst, const lms_sm3_digest_t x[34], lms_sm3_digest_t y[34]);
+void lmots_signature_to_public_hash(const uint8_t I[16], int q, const lms_sm3_digest_t y[34], const lms_sm3_digest_t dgst, lms_sm3_digest_t pub);
 
 
-#if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
-enum {
-	LMS_SHA256_M32_H5	= 5,
-	LMS_SHA256_M32_H10	= 6,
-	LMS_SHA256_M32_H15	= 7,
-	LMS_SHA256_M32_H20	= 8,
-	LMS_SHA256_M32_H25	= 9,
-};
-#else
 // TODO: submit to IETF
 enum {
 	LMS_SM3_M32_H5		= 5,
@@ -98,43 +60,24 @@ enum {
 	LMS_SM3_M32_H20		= 8,
 	LMS_SM3_M32_H25		= 9,
 };
-#endif
 
-#if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
-# define LMS_HASH256_M32_H5		 LMS_SHA256_M32_H5
-# define LMS_HASH256_M32_H5_NAME	"LMS_SHA256_M32_H5"
-# define LMS_HASH256_M32_H10		 LMS_SHA256_M32_H10
-# define LMS_HASH256_M32_H10_NAME	"LMS_SHA256_M32_H10"
-# define LMS_HASH256_M32_H15		 LMS_SHA256_M32_H15
-# define LMS_HASH256_M32_H15_NAME	"LMS_SHA256_M32_H15"
-# define LMS_HASH256_M32_H20		 LMS_SHA256_M32_H20
-# define LMS_HASH256_M32_H20_NAME	"LMS_SHA256_M32_H20"
-# define LMS_HASH256_M32_H25		 LMS_SHA256_M32_H25
-# define LMS_HASH256_M32_H25_NAME	"LMS_SHA256_M32_H25"
-#else
-# define LMS_HASH256_M32_H5		 LMS_SM3_M32_H5
-# define LMS_HASH256_M32_H5_NAME	"LMS_SM3_M32_H5"
-# define LMS_HASH256_M32_H10		 LMS_SM3_M32_H10
-# define LMS_HASH256_M32_H10_NAME	"LMS_SM3_M32_H10"
-# define LMS_HASH256_M32_H15		 LMS_SM3_M32_H15
-# define LMS_HASH256_M32_H15_NAME	"LMS_SM3_M32_H15"
-# define LMS_HASH256_M32_H20		 LMS_SM3_M32_H20
-# define LMS_HASH256_M32_H20_NAME	"LMS_SM3_M32_H20"
-# define LMS_HASH256_M32_H25		 LMS_SM3_M32_H25
-# define LMS_HASH256_M32_H25_NAME	"LMS_SM3_M32_H25"
-#endif
+#define LMS_SM3_M32_H5_NAME	"LMS_SM3_M32_H5"
+#define LMS_SM3_M32_H10_NAME	"LMS_SM3_M32_H10"
+#define LMS_SM3_M32_H15_NAME	"LMS_SM3_M32_H15"
+#define LMS_SM3_M32_H20_NAME	"LMS_SM3_M32_H20"
+#define LMS_SM3_M32_H25_NAME	"LMS_SM3_M32_H25"
 
 char *lms_type_name(int lms_type);
 int   lms_type_from_name(const char *name);
 int   lms_type_to_height(int type, size_t *height);
-void  lms_derive_merkle_tree(const lms_hash256_t seed, const uint8_t I[16], int height, lms_hash256_t *tree);
-void  lms_derive_merkle_root(const lms_hash256_t seed, const uint8_t I[16], int height, lms_hash256_t root);
+void  lms_derive_merkle_tree(const lms_sm3_digest_t seed, const uint8_t I[16], int height, lms_sm3_digest_t *tree);
+void  lms_derive_merkle_root(const lms_sm3_digest_t seed, const uint8_t I[16], int height, lms_sm3_digest_t root);
 
 typedef struct {
 	int lms_type;
 	int lmots_type;
 	uint8_t I[16]; // lms key identifier
-	lms_hash256_t root; // merkle tree root
+	lms_sm3_digest_t root; // merkle tree root
 } LMS_PUBLIC_KEY;
 
 #define LMS_PUBLIC_KEY_SIZE (4 + 4 + 16 + 32) // = 56 bytes
@@ -145,17 +88,17 @@ typedef int (*lms_key_update_callback)(LMS_KEY *key);
 
 typedef struct LMS_KEY_st {
 	LMS_PUBLIC_KEY public_key;
-	lms_hash256_t seed; // secret seed
+	lms_sm3_digest_t seed; // secret seed
 	uint32_t q; // key index
 
-	lms_hash256_t *tree;
+	lms_sm3_digest_t *tree;
 	lms_key_update_callback update_callback;
 	void *update_param;
 } LMS_KEY;
 
 #define LMS_PRIVATE_KEY_SIZE (LMS_PUBLIC_KEY_SIZE + 32 + 4) // = 92 bytes
 
-int lms_key_generate_ex(LMS_KEY *key, int lms_type, const lms_hash256_t seed, const uint8_t I[16], int cache_tree);
+int lms_key_generate_ex(LMS_KEY *key, int lms_type, const lms_sm3_digest_t seed, const uint8_t I[16], int cache_tree);
 int lms_key_generate(LMS_KEY *key, int lms_type);
 int lms_key_set_update_callback(LMS_KEY *key, lms_key_update_callback update_cb, void *param);
 int lms_key_update(LMS_KEY *key);
@@ -177,24 +120,24 @@ typedef struct {
 	uint32_t q; // key index
 	struct {
 		int lmots_type;
-		lms_hash256_t C; // signature random
-		lms_hash256_t y[34];
+		lms_sm3_digest_t C; // signature random
+		lms_sm3_digest_t y[34];
 	} lmots_sig;
 	int lms_type;
-	lms_hash256_t path[LMS_MAX_HEIGHT];
+	lms_sm3_digest_t path[LMS_MAX_HEIGHT];
 } LMS_SIGNATURE;
 
 int lms_signature_to_merkle_root(const uint8_t I[16], size_t h, int q,
-	const lms_hash256_t y[34], const lms_hash256_t *path,
-	const lms_hash256_t dgst, lms_hash256_t root);
+	const lms_sm3_digest_t y[34], const lms_sm3_digest_t *path,
+	const lms_sm3_digest_t dgst, lms_sm3_digest_t root);
 
-#define LMS_HASH256_M32_H5_SIGNATURE_SIZE 1292
-#define LMS_HASH256_M32_H10_SIGNATURE_SIZE 1452
-#define LMS_HASH256_M32_H15_SIGNATURE_SIZE 1612
-#define LMS_HASH256_M32_H20_SIGNATURE_SIZE 1772
-#define LMS_HASH256_M32_H25_SIGNATURE_SIZE 1932
-#define LMS_SIGNATURE_MIN_SIZE LMS_HASH256_M32_H5_SIGNATURE_SIZE // = 4 + 4 + 32 + 32*34 + 4 + 32*5 = 1292 bytes
-#define LMS_SIGNATURE_MAX_SIZE LMS_HASH256_M32_H25_SIGNATURE_SIZE // = 4 + 4 + 32 + 32*34 + 4 + 32*25 = 1932 bytes
+#define LMS_SM3_M32_H5_SIGNATURE_SIZE 1292
+#define LMS_SM3_M32_H10_SIGNATURE_SIZE 1452
+#define LMS_SM3_M32_H15_SIGNATURE_SIZE 1612
+#define LMS_SM3_M32_H20_SIGNATURE_SIZE 1772
+#define LMS_SM3_M32_H25_SIGNATURE_SIZE 1932
+#define LMS_SIGNATURE_MIN_SIZE LMS_SM3_M32_H5_SIGNATURE_SIZE // = 4 + 4 + 32 + 32*34 + 4 + 32*5 = 1292 bytes
+#define LMS_SIGNATURE_MAX_SIZE LMS_SM3_M32_H25_SIGNATURE_SIZE // = 4 + 4 + 32 + 32*34 + 4 + 32*25 = 1932 bytes
 
 int lms_signature_size(int lms_type, size_t *siglen);
 int lms_signature_to_bytes(const LMS_SIGNATURE *sig, uint8_t **out, size_t *outlen);
@@ -203,7 +146,7 @@ int lms_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const 
 int lms_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
 
 typedef struct {
-	LMS_HASH256_CTX lms_hash256_ctx;
+	SM3_CTX sm3_ctx;
 	LMS_PUBLIC_KEY lms_public_key;
 	LMS_SIGNATURE lms_sig; // cache lmots x[34]
 } LMS_SIGN_CTX;

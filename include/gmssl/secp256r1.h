@@ -46,34 +46,34 @@ extern const uint32_t SECP256R1_U_N[9];
 int  secp256r1_is_zero(const secp256r1_t a);
 int  secp256r1_is_one(const secp256r1_t a);
 int  secp256r1_cmp(const secp256r1_t a, const secp256r1_t b);
-void secp256r1_set_zero(secp256r1_t r);
-void secp256r1_set_one(secp256r1_t r);
-void secp256r1_copy(secp256r1_t r, const secp256r1_t a);
-void secp256r1_to_32bytes(const secp256r1_t a, uint8_t out[32]);
-void secp256r1_from_32bytes(secp256r1_t r, const uint8_t in[32]);
+int  secp256r1_set_zero(secp256r1_t r);
+int  secp256r1_set_one(secp256r1_t r);
+int  secp256r1_copy(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_to_32bytes(const secp256r1_t a, uint8_t out[32]);
+int  secp256r1_from_32bytes(secp256r1_t r, const uint8_t in[32]);
 int  secp256r1_print(FILE *fp, int fmt, int ind, const char *label, const secp256r1_t a);
 
-void secp256r1_modp_add(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
-void secp256r1_modp_dbl(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modp_tri(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modp_sub(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
-void secp256r1_modp_neg(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modp_haf(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modp_mul(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
-void secp256r1_modp_sqr(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modp_exp(secp256r1_t r, const secp256r1_t a, const secp256r1_t e);
-void secp256r1_modp_inv(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modp_add(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
+int  secp256r1_modp_dbl(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modp_tri(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modp_sub(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
+int  secp256r1_modp_neg(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modp_haf(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modp_mul(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
+int  secp256r1_modp_sqr(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modp_exp(secp256r1_t r, const secp256r1_t a, const secp256r1_t e);
+int  secp256r1_modp_inv(secp256r1_t r, const secp256r1_t a);
 
-void secp256r1_modn(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modn_add(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
-void secp256r1_modn_dbl(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modn_tri(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modn_sub(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
-void secp256r1_modn_neg(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modn_mul(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
-void secp256r1_modn_sqr(secp256r1_t r, const secp256r1_t a);
-void secp256r1_modn_exp(secp256r1_t r, const secp256r1_t a, const secp256r1_t e);
-void secp256r1_modn_inv(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modn(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modn_add(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
+int  secp256r1_modn_dbl(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modn_tri(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modn_sub(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
+int  secp256r1_modn_neg(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modn_mul(secp256r1_t r, const secp256r1_t a, const secp256r1_t b);
+int  secp256r1_modn_sqr(secp256r1_t r, const secp256r1_t a);
+int  secp256r1_modn_exp(secp256r1_t r, const secp256r1_t a, const secp256r1_t e);
+int  secp256r1_modn_inv(secp256r1_t r, const secp256r1_t a);
 
 
 typedef struct {
@@ -85,19 +85,19 @@ typedef struct {
 const SECP256R1_POINT *secp256r1_generator(void);
 #define SECP256R1_POINT_G (*secp256r1_generator())
 
-void secp256r1_point_set_infinity(SECP256R1_POINT *R);
+int  secp256r1_point_set_infinity(SECP256R1_POINT *R);
 int  secp256r1_point_is_at_infinity(const SECP256R1_POINT *P);
 int  secp256r1_point_is_on_curve(const SECP256R1_POINT *P);
 int  secp256r1_point_equ(const SECP256R1_POINT *P, const SECP256R1_POINT *Q);
 int  secp256r1_point_set_xy(SECP256R1_POINT *R, const secp256r1_t x, const secp256r1_t y);
 int  secp256r1_point_get_xy(const SECP256R1_POINT *P, secp256r1_t x, secp256r1_t y);
-void secp256r1_point_copy(SECP256R1_POINT *R, const SECP256R1_POINT *P);
-void secp256r1_point_dbl(SECP256R1_POINT *R, const SECP256R1_POINT *P);
-void secp256r1_point_add(SECP256R1_POINT *R, const SECP256R1_POINT *P, const SECP256R1_POINT *Q);
-void secp256r1_point_neg(SECP256R1_POINT *R, const SECP256R1_POINT *P);
-void secp256r1_point_sub(SECP256R1_POINT *R, const SECP256R1_POINT *P, const SECP256R1_POINT *Q);
-void secp256r1_point_mul(SECP256R1_POINT *R, const secp256r1_t k, const SECP256R1_POINT *P);
-void secp256r1_point_mul_generator(SECP256R1_POINT *R, const secp256r1_t k);
+int  secp256r1_point_copy(SECP256R1_POINT *R, const SECP256R1_POINT *P);
+int  secp256r1_point_dbl(SECP256R1_POINT *R, const SECP256R1_POINT *P);
+int  secp256r1_point_add(SECP256R1_POINT *R, const SECP256R1_POINT *P, const SECP256R1_POINT *Q);
+int  secp256r1_point_neg(SECP256R1_POINT *R, const SECP256R1_POINT *P);
+int  secp256r1_point_sub(SECP256R1_POINT *R, const SECP256R1_POINT *P, const SECP256R1_POINT *Q);
+int  secp256r1_point_mul(SECP256R1_POINT *R, const secp256r1_t k, const SECP256R1_POINT *P);
+int  secp256r1_point_mul_generator(SECP256R1_POINT *R, const secp256r1_t k);
 int  secp256r1_point_print(FILE *fp, int fmt, int ind, const char *label, const SECP256R1_POINT *P);
 int  secp256r1_point_to_uncompressed_octets(const SECP256R1_POINT *P, uint8_t octets[65]);
 int  secp256r1_point_from_uncompressed_octets(SECP256R1_POINT *P, const uint8_t octets[65]);

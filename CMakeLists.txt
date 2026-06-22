@@ -523,12 +523,6 @@ if (ENABLE_LMS)
 	list(APPEND tools tools/lmskeygen.c tools/lmssign.c tools/lmsverify.c)
 	list(APPEND tools tools/hsskeygen.c tools/hsssign.c tools/hssverify.c)
 	list(APPEND tests lms)
-
-	option(ENABLE_LMS_CROSSCHECK "Enable LMS SHA-256 cross-check" OFF)
-	if (ENABLE_LMS_CROSSCHECK)
-		message(STATUS "ENABLE_LMS_CROSSCHECK is ON")
-		add_definitions(-DENABLE_LMS_CROSSCHECK)
-	endif()
 endif()
 
 
@@ -937,7 +931,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1157")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1158")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
