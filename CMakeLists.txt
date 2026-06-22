@@ -148,6 +148,7 @@ option(ENABLE_SDF "Enable SDF module" ON)
 option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
 
 option(ENABLE_TLS "Enable TLS and TLCP protocol support" ON)
+option(ENABLE_QUIC "Enable QUIC support" ON)
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 
 option (ENABLE_SM2_ENC_PRE_COMPUTE "Enable SM2 encryption precomputing" ON)
@@ -616,7 +617,6 @@ if (ENABLE_TLS)
 		src/tls_sct.c
 		src/tls_ocsp.c
 		src/tls_cookie.c
-		src/quic.c
 		src/tls_trace.c
 		src/tls_vrf.c
 		src/tlcp.c
@@ -630,7 +630,18 @@ if (ENABLE_TLS)
 		tools/tls13_client.c
 		tools/tls13_server.c
 		tools/sctverify.c)
-	list(APPEND tests tls tls13 tls_ocsp quic)
+	list(APPEND tests tls tls13 tls_ocsp)
+endif()
+
+if (ENABLE_QUIC)
+	if (ENABLE_TLS AND ENABLE_SHA2)
+		message(STATUS "ENABLE_QUIC is ON")
+		add_definitions(-DENABLE_QUIC)
+		list(APPEND src src/quic.c)
+		list(APPEND tests quic)
+	else()
+		message(STATUS "ENABLE_QUIC requires ENABLE_TLS and ENABLE_SHA2; disabled")
+	endif()
 endif()
 
 
@@ -920,7 +931,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1160")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1161")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
