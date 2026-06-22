@@ -18,7 +18,7 @@ GmSSL是由北京大学自主开发的国产商用密码开源库，实现了对
 
 ## 下载
 
-* GmSSL的主分支版本为 [GmSSL-3.2.0](https://github.com/guanzhi/GmSSL/releases/tag/v3.2.0)，主要增加TLS 1.3、TLCP、后量子密码算法和跨平台构建支持，Windows、Android、iOS、OpenHarmony等平台的开发者需要使用该版本。
+* GmSSL的当前稳定发布版本为 [GmSSL-3.2.0](https://github.com/guanzhi/GmSSL/releases/tag/v3.2.0)，主要增加TLS 1.3、TLCP、后量子密码算法和跨平台构建支持，Windows、Android、iOS、OpenHarmony等平台的开发者需要使用该版本。
 
 ## 编译与安装
 

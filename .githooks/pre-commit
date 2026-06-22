@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-version_num="30200"
-version_base="3.2.0-dev"
+version_num="30300"
+version_base="3.3.0-dev"
 version_file="include/gmssl/version.h"
 cmake_file="CMakeLists.txt"
 
