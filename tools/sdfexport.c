@@ -48,6 +48,8 @@ int sdfexport_main(int argc, char **argv)
 	SDF_DEVICE dev;
 	SM2_KEY sm2_key;
 
+	memset(&dev, 0, sizeof(dev));
+
 	argc--;
 	argv++;
 
@@ -141,10 +143,9 @@ bad:
 		goto end;
 	}
 
-	sdf_close_device(&dev);
-
 	ret = 0;
 end:
+	(void)sdf_close_device(&dev);
 	if (lib) sdf_unload_library();
 	return ret;
 }

@@ -3396,7 +3396,16 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 
 void tls_cleanup(TLS_CONNECT *conn)
 {
-	gmssl_secure_clear(conn, sizeof(TLS_CONNECT));
+	if (conn) {
+		size_t i;
+
+		x509_key_cleanup(&conn->server_enc_key);
+		for (i = 0; i < conn->key_exchanges_cnt; i++) {
+			x509_key_cleanup(&conn->key_exchanges[i]);
+		}
+		tls_client_verify_cleanup(&conn->client_verify_ctx);
+		gmssl_secure_clear(conn, sizeof(TLS_CONNECT));
+	}
 }
 
 int tls_set_verbose(TLS_CONNECT *conn, int verbose)

@@ -182,6 +182,9 @@ int skf_sign(SKF_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
 
 int skf_release_key(SKF_KEY *key)
 {
+	if (!key) {
+		return 1;
+	}
 	if (key->app_handle) {
 		if (SKF_ClearSecureState(key->app_handle) != SAR_OK
 			|| SKF_CloseApplication(key->app_handle) != SAR_OK) {
@@ -202,6 +205,9 @@ int skf_release_key(SKF_KEY *key)
 
 int skf_close_device(SKF_DEVICE *dev)
 {
+	if (!dev || !dev->handle) {
+		return 1;
+	}
 	if (SKF_UnlockDev(dev->handle) != SAR_OK
 		|| SKF_DisConnectDev(dev->handle) != SAR_OK) {
 		error_print();
@@ -210,12 +216,6 @@ int skf_close_device(SKF_DEVICE *dev)
 	memset(dev, 0, sizeof(SKF_DEVICE));
 	return 1;
 }
-
-
-
-
-
-
 
 int skf_list_devices(FILE *fp, int fmt, int ind, const char *label)
 {

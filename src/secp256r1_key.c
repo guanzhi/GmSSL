@@ -66,15 +66,6 @@ int secp256r1_public_key_equ(const SECP256R1_KEY *key, const SECP256R1_KEY *pub)
 }
 
 
-void secp256r1_key_cleanup(SECP256R1_KEY *key)
-{
-	if (key) {
-		gmssl_secure_clear(key->private_key, sizeof(secp256r1_t));
-		memset(key, 0, sizeof(SECP256R1_KEY));
-	}
-}
-
-
 // SM2将这个命名为_to_octets，应该更准确一些
 int secp256r1_public_key_to_bytes(const SECP256R1_KEY *key, uint8_t **out, size_t *outlen)
 {
@@ -316,7 +307,7 @@ int secp256r1_private_key_from_der(SECP256R1_KEY *key, const uint8_t **in, size_
 
 	// check
 	if (secp256r1_public_key_equ(key, &tmp_key) != 1) {
-		secp256r1_key_cleanup(key);
+		gmssl_secure_clear(key, sizeof(SECP256R1_KEY));
 		error_print();
 		return -1;
 	}

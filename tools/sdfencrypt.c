@@ -223,11 +223,11 @@ bad:
 	ret = 0;
 
 end:
+	gmssl_secure_clear(&ctx, sizeof(ctx));
 	(void)sdf_destroy_key(&key);
 	(void)sdf_close_device(&dev);
 	(void)sdf_unload_library();
 	gmssl_secure_clear(iv, sizeof(iv));
-	gmssl_secure_clear(&ctx, sizeof(ctx));
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
 	return ret;

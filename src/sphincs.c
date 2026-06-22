@@ -1328,15 +1328,6 @@ int sphincs_private_key_print(FILE *fp, int fmt, int ind, const char *label, con
 	return 1;
 }
 
-void sphincs_key_cleanup(SPHINCS_KEY *key)
-{
-	if (key) {
-		gmssl_secure_clear(key->secret, sizeof(sphincs_hash128_t));
-		gmssl_secure_clear(key->sk_prf, sizeof(sphincs_hash128_t));
-	}
-}
-
-
 int sphincs_key_generate(SPHINCS_KEY *key)
 {
 	if (!key) {
@@ -1745,11 +1736,4 @@ int sphincs_verify_finish(SPHINCS_SIGN_CTX *ctx)
 	}
 
 	return 1;
-}
-
-void sphincs_sign_ctx_cleanup(SPHINCS_SIGN_CTX *ctx)
-{
-	if (ctx) {
-		sphincs_key_cleanup(&ctx->key);
-	}
 }

@@ -57,6 +57,10 @@ int sdfsign_main(int argc, char **argv)
 	SDF_PRIVATE_KEY key;
 	SDF_SIGN_CTX ctx;
 
+	memset(&dev, 0, sizeof(dev));
+	memset(&key, 0, sizeof(key));
+	memset(&ctx, 0, sizeof(ctx));
+
 	argc--;
 	argv++;
 
@@ -136,19 +140,16 @@ bad:
 	}
 
 	if (sdf_load_private_key(&dev, &key, key_index, pass) != 1) {
-		(void)sdf_close_device(&dev);
 		fprintf(stderr,  "gmssl %s: load signing key #%d failure\n", prog, key_index);
 		goto end;
 	}
 
 	if (sdf_sign_init(&ctx, &key, id, strlen(id)) != 1) {
-		(void)sdf_close_device(&dev);
 		fprintf(stderr, "gmssl %s: inner error\n", prog);
 		goto end;
 	}
 	while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
 		if (sdf_sign_update(&ctx, buf, len) != 1) {
-			(void)sdf_close_device(&dev);
 			fprintf(stderr, "gmssl %s: inner error\n", prog);
 			goto end;
 		}
@@ -158,11 +159,9 @@ bad:
 		goto end;
 	}
 	if (sdf_sign_finish(&ctx, sig, &siglen) != 1) {
-		(void)sdf_close_device(&dev);
 		fprintf(stderr, "gmssl %s: inner error\n", prog);
 		goto end;
 	}
-	(void)sdf_close_device(&dev);
 
 	if (fwrite(sig, 1, siglen, outfp) != siglen) {
 		fprintf(stderr, "gmssl %s: output signature failed : %s\n", prog, strerror(errno));
@@ -171,6 +170,9 @@ bad:
 	ret = 0;
 
 end:
+	gmssl_secure_clear(&ctx, sizeof(ctx));
+	(void)sdf_release_private_key(&key);
+	(void)sdf_close_device(&dev);
 	sdf_unload_library();
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);

@@ -658,13 +658,6 @@ int kyber_cpa_key_generate_ex(KYBER_CPA_KEY *key, const uint8_t random[32])
 	return 1;
 }
 
-void kyber_cpa_key_cleanup(KYBER_CPA_KEY *key)
-{
-	if (key) {
-		gmssl_secure_clear(key->s, sizeof(key->s));
-	}
-}
-
 int kyber_cpa_public_key_to_bytes(const KYBER_CPA_KEY *key, uint8_t **out, size_t *outlen)
 {
 	if (!key || !outlen) {
@@ -1014,19 +1007,11 @@ int kyber_key_generate_ex(KYBER_KEY *key, const uint8_t random[32])
 	}
 	kyber_h_hash((uint8_t *)key, sizeof(KYBER_CPA_PUBLIC_KEY), key->pk_hash);
 	if (rand_bytes(key->z, 32) != 1) {
-		kyber_cpa_key_cleanup(&key->cpa_key);
+		gmssl_secure_clear(&key->cpa_key, sizeof(KYBER_CPA_KEY));
 		error_print();
 		return -1;
 	}
 	return 1;
-}
-
-void kyber_key_cleanup(KYBER_KEY *key)
-{
-	if (key) {
-		kyber_cpa_key_cleanup(&key->cpa_key);
-		gmssl_secure_clear(key->z, sizeof(key->z));
-	}
 }
 
 int kyber_public_key_to_bytes(const KYBER_KEY *key, uint8_t **out, size_t *outlen)

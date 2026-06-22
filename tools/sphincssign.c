@@ -169,7 +169,7 @@ bad:
 	ret = 0;
 
 end:
-	sphincs_key_cleanup(&key);
+	gmssl_secure_clear(&key, sizeof(key));
 	gmssl_secure_clear(keybuf, keylen);
 	gmssl_secure_clear(&ctx, sizeof(ctx));
 	if (keyfp) fclose(keyfp);

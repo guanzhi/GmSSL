@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
+#include <gmssl/mem.h>
 #include <gmssl/error.h>
 #include <gmssl/secp256r1_key.h>
 
@@ -28,7 +29,7 @@ static int test_secp256r1_key_generate(void)
 	}
 	secp256r1_public_key_print(stderr, 0, 4, "public_key", &key);
 	secp256r1_private_key_print(stderr, 0, 4, "private_key", &key);
-	secp256r1_key_cleanup(&key);
+	gmssl_secure_clear(&key, sizeof(key));
 	secp256r1_private_key_print(stderr, 0, 4, "private_key", &key);
 
 	printf("%s() ok\n", __FUNCTION__);
@@ -289,4 +290,3 @@ err:
 	error_print();
 	return 1;
 }
-

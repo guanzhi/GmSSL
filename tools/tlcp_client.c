@@ -238,6 +238,8 @@ int tlcp_client_main(int argc, char *argv[])
 	char send_buf[1024] = {0};
 	int read_stdin = 1;
 
+	memset(&conn, 0, sizeof(conn));
+
 	argc--;
 	argv++;
 	if (argc < 1) {

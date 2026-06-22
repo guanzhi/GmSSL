@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/sdf.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm4.h>
 #include <gmssl/error.h>
@@ -918,8 +919,15 @@ int sdf_sign_reset(SDF_SIGN_CTX *ctx)
 	return 1;
 }
 
-int sdf_release_key(SDF_PRIVATE_KEY *key)
+int sdf_release_private_key(SDF_PRIVATE_KEY *key)
 {
+	if (!key) {
+		return 1;
+	}
+	if (!key->session) {
+		gmssl_secure_clear(key, sizeof(*key));
+		return 1;
+	}
 	if (SDF_ReleasePrivateKeyAccessRight(key->session, key->index) != SDR_OK) {
 		error_print();
 	}
@@ -927,7 +935,13 @@ int sdf_release_key(SDF_PRIVATE_KEY *key)
 		error_print();
 		return -1;
 	}
+	gmssl_secure_clear(key, sizeof(*key));
 	return 1;
+}
+
+int sdf_release_key(SDF_PRIVATE_KEY *key)
+{
+	return sdf_release_private_key(key);
 }
 
 int sdf_close_device(SDF_DEVICE *dev)

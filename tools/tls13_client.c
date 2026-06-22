@@ -226,6 +226,8 @@ int tls13_client_main(int argc, char *argv[])
 	size_t sent_len = 0;
 	size_t sent_offset = 0;
 
+	memset(&conn, 0, sizeof(conn));
+
 	char *host = NULL;
 	int port = 443;
 

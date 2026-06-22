@@ -168,7 +168,7 @@ bad:
 	ret = 0;
 
 end:
-	kyber_key_cleanup(&key);
+	gmssl_secure_clear(&key, sizeof(key));
 	gmssl_secure_clear(keybuf, sizeof(keybuf));
 	if (keyfp) fclose(keyfp);
 	if (infp && infp != stdin) fclose(infp);

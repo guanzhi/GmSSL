@@ -2557,11 +2557,11 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 			|| x509_sign_update(&sign_ctx, conn->server_random, 32) != 1
 			|| x509_sign_update(&sign_ctx, server_ecdh_params, server_ecdh_params_len) != 1
 			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
-			x509_sign_ctx_cleanup(&sign_ctx);
+			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 			error_print();
 			return -1;
 		}
-		x509_sign_ctx_cleanup(&sign_ctx);
+		gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 
 		if (tls12_record_set_handshake_server_key_exchange(conn->record, &conn->recordlen,
 			TLS_server_key_exchange_ecdhe, server_ecdh_params, server_ecdh_params_len,

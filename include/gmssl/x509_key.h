@@ -282,7 +282,6 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, int sign_algor, co
 int x509_verify_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int x509_verify_finish(X509_SIGN_CTX *ctx);
 int x509_verify(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
-void x509_sign_ctx_cleanup(X509_SIGN_CTX *ctx);
 
 // ECDH for key->algor == OID_ec_public_key
 int x509_key_do_exchange(const X509_KEY *key, const X509_KEY *peer_pub, uint8_t *out, size_t *outlen);

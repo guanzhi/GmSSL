@@ -163,6 +163,8 @@ int tls12_server_main(int argc , char **argv)
 
 	size_t i;
 
+	memset(&conn, 0, sizeof(conn));
+
 	argc--;
 	argv++;
 

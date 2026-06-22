@@ -123,7 +123,7 @@ bad:
 
 	ret = 0;
 end:
-	kyber_key_cleanup(&key);
+	gmssl_secure_clear(&key, sizeof(key));
 	gmssl_secure_clear(out, outlen);
 	if (outfile && outfp) fclose(outfp);
 	if (puboutfile && puboutfp) fclose(puboutfp);

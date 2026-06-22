@@ -923,13 +923,6 @@ int lms_signature_to_merkle_root(const uint8_t I[16], size_t h, int q,
 	return 1;
 }
 
-void lms_sign_ctx_cleanup(LMS_SIGN_CTX *ctx)
-{
-	if (ctx) {
-		gmssl_secure_clear(ctx->lms_sig.lmots_sig.y, sizeof(lms_hash256_t)*34);
-	}
-}
-
 int lms_sign_init(LMS_SIGN_CTX *ctx, LMS_KEY *key)
 {
 	LMS_SIGNATURE *lms_sig;
@@ -1469,7 +1462,7 @@ int hss_key_generate(HSS_KEY *key, const int *lms_types, size_t levels)
 	ret = 1;
 end:
 	gmssl_secure_clear(seed, sizeof(seed));
-	lms_sign_ctx_cleanup(&ctx);
+	gmssl_secure_clear(&ctx, sizeof(ctx));
 	if (ret != 1) hss_key_cleanup(key);
 	return ret;
 }
@@ -2024,11 +2017,4 @@ int hss_private_key_size(const int *lms_types, size_t levels, size_t *len)
 	}
 
 	return 1;
-}
-
-void hss_sign_ctx_cleanup(HSS_SIGN_CTX *ctx)
-{
-	if (ctx) {
-		lms_sign_ctx_cleanup(&ctx->lms_sign_ctx);
-	}
 }

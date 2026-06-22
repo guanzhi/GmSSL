@@ -170,6 +170,8 @@ int tlcp_server_main(int argc , char **argv)
 	tls_socklen_t client_addrlen;
 	size_t i;
 
+	memset(&conn, 0, sizeof(conn));
+
 	argc--;
 	argv++;
 
@@ -268,7 +270,6 @@ bad:
 	}
 
 	memset(&ctx, 0, sizeof(ctx));
-	memset(&conn, 0, sizeof(conn));
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_server_mode) != 1
 		|| tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {

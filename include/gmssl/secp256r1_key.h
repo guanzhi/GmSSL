@@ -29,7 +29,6 @@ typedef struct {
 int secp256r1_key_generate(SECP256R1_KEY *key);
 int secp256r1_key_set_private_key(SECP256R1_KEY *key, const secp256r1_t private_key);
 int secp256r1_public_key_equ(const SECP256R1_KEY *key, const SECP256R1_KEY *pub);
-void secp256r1_key_cleanup(SECP256R1_KEY *key);
 
 int secp256r1_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SECP256R1_KEY *key);
 int secp256r1_private_key_print(FILE *fp, int fmt, int ind, const char *label, const SECP256R1_KEY *key);

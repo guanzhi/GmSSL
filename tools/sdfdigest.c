@@ -82,6 +82,7 @@ int sdfdigest_main(int argc, char **argv)
 	uint8_t dgst[32];
 	int i;
 
+	memset(&dev, 0, sizeof(dev));
 	memset(&ctx, 0, sizeof(ctx));
 
 	argc--;
@@ -261,6 +262,7 @@ bad:
 	ret = 0;
 end:
 	(void)sdf_digest_cleanup(&ctx);
+	(void)sdf_close_device(&dev);
 	if (pubkeyfp) fclose(pubkeyfp);
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);

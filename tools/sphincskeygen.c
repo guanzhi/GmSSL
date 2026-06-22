@@ -124,7 +124,7 @@ bad:
 
 	ret = 0;
 end:
-	sphincs_key_cleanup(&key);
+	gmssl_secure_clear(&key, sizeof(key));
 	gmssl_secure_clear(out, sizeof(out));
 	if (outfile && outfp) fclose(outfp);
 	if (puboutfile && puboutfp) fclose(puboutfp);

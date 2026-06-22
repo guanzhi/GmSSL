@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
+#include <gmssl/mem.h>
 #include <gmssl/error.h>
 #include <gmssl/x509_crl.h>
 #include <gmssl/http.h>
@@ -2135,11 +2136,11 @@ int ocsp_sign(OCSP_SIGN_CTX *ctx,
 	if ((sign_key->algor == OID_ec_public_key
 		&& x509_sign_set_signature_size(&sign_ctx, signature_len) != 1)
 		|| x509_sign(&sign_ctx, response_data, response_data_len, signature, &signature_len) != 1) {
-		x509_sign_ctx_cleanup(&sign_ctx);
+		gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 		error_print();
 		return -1;
 	}
-	x509_sign_ctx_cleanup(&sign_ctx);
+	gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 
 	if (ocsp_basic_response_to_der(response_data, response_data_len,
 		sign_algor, signature, signature_len,

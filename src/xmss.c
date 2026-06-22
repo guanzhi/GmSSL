@@ -1153,14 +1153,6 @@ int xmss_signature_print(FILE *fp, int fmt, int ind, const char *label, const ui
 	return 1;
 }
 
-void xmss_sign_ctx_cleanup(XMSS_SIGN_CTX *ctx)
-{
-	if (ctx) {
-		gmssl_secure_clear(ctx->xmss_sig.random, sizeof(xmss_hash256_t));
-		gmssl_secure_clear(ctx->xmss_sig.wots_sig, sizeof(xmss_wots_sig_t)); // might cache wots_sk
-	}
-}
-
 int xmss_sign_init(XMSS_SIGN_CTX *ctx, XMSS_KEY *key)
 {
 	xmss_hash256_t hash256_index = {0};
@@ -2220,14 +2212,6 @@ int xmssmt_signature_print(FILE *fp, int fmt, int ind, const char *label, const 
 		return -1;
 	}
 	return 1;
-}
-
-void xmssmt_sign_ctx_cleanup(XMSSMT_SIGN_CTX *ctx)
-{
-	if (ctx) {
-		gmssl_secure_clear(ctx->xmssmt_sig.random, sizeof(xmss_hash256_t));
-		gmssl_secure_clear(ctx->xmssmt_sig.wots_sigs[0], sizeof(xmss_wots_sig_t));
-	}
 }
 
 int xmssmt_sign_init(XMSSMT_SIGN_CTX *ctx, XMSSMT_KEY *key)

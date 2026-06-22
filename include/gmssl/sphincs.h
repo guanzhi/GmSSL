@@ -336,7 +336,6 @@ int sphincs_public_key_print(FILE *fp, int fmt, int ind, const char *label, cons
 int sphincs_private_key_to_bytes(const SPHINCS_KEY *key, uint8_t **out, size_t *outlen);
 int sphincs_private_key_from_bytes(SPHINCS_KEY *key, const uint8_t **in, size_t *inlen);
 int sphincs_private_key_print(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_KEY *key);
-void sphincs_key_cleanup(SPHINCS_KEY *key);
 
 typedef struct {
 	sphincs_hash128_t random;
@@ -372,11 +371,9 @@ int sphincs_verify_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, const 
 int sphincs_verify_init(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, const uint8_t *sig, size_t siglen);
 int sphincs_verify_update(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int sphincs_verify_finish(SPHINCS_SIGN_CTX *ctx);
-void sphincs_sign_ctx_cleanup(SPHINCS_SIGN_CTX *ctx);
 
 
 #ifdef __cplusplus
 }
 #endif
 #endif
-

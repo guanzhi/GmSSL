@@ -276,7 +276,6 @@ int xmss_verify_init_ex(XMSS_SIGN_CTX *ctx, const XMSS_KEY *key, const XMSS_SIGN
 int xmss_verify_init(XMSS_SIGN_CTX *ctx, const XMSS_KEY *key, const uint8_t *sigbuf, size_t siglen);
 int xmss_verify_update(XMSS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int xmss_verify_finish(XMSS_SIGN_CTX *ctx);
-void xmss_sign_ctx_cleanup(XMSS_SIGN_CTX *ctx);
 
 
 enum {
@@ -432,7 +431,6 @@ int xmssmt_verify_init_ex(XMSSMT_SIGN_CTX *ctx, const XMSSMT_KEY *key, const XMS
 int xmssmt_verify_init(XMSSMT_SIGN_CTX *ctx, const XMSSMT_KEY *key, const uint8_t *sig, size_t siglen);
 int xmssmt_verify_update(XMSSMT_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int xmssmt_verify_finish(XMSSMT_SIGN_CTX *ctx);
-void xmssmt_sign_ctx_cleanup(XMSSMT_SIGN_CTX *ctx);
 
 #ifdef __cplusplus
 }

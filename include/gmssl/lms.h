@@ -216,7 +216,6 @@ int lms_verify_init_ex(LMS_SIGN_CTX *ctx, const LMS_KEY *key, const LMS_SIGNATUR
 int lms_verify_init(LMS_SIGN_CTX *ctx, const LMS_KEY *key, const uint8_t *sig, size_t siglen);
 int lms_verify_update(LMS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int lms_verify_finish(LMS_SIGN_CTX *ctx);
-void lms_sign_ctx_cleanup(LMS_SIGN_CTX *ctx);
 
 
 
@@ -293,7 +292,6 @@ int hss_verify_init_ex(HSS_SIGN_CTX *ctx, const HSS_KEY *key, const HSS_SIGNATUR
 int hss_verify_init(HSS_SIGN_CTX *ctx, const HSS_KEY *key, const uint8_t *sigbuf, size_t siglen);
 int hss_verify_update(HSS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int hss_verify_finish(HSS_SIGN_CTX *ctx);
-void hss_sign_ctx_cleanup(HSS_SIGN_CTX *ctx);
 
 
 #ifdef __cplusplus

@@ -211,7 +211,7 @@ bad:
 
 end:
 	gmssl_secure_clear(buf, sizeof(buf));
-	if (key_opened) sdf_release_key(&key);
+	if (key_opened) sdf_destroy_key(&key);
 	if (dev_opened) sdf_close_device(&dev);
 	if (lib) sdf_unload_library();
 	if (infile && infp) fclose(infp);

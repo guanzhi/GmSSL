@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <gmssl/sm4_cl.h>
 #include <gmssl/endian.h>
+#include <gmssl/mem.h>
 #include <gmssl/error.h>
 
 
@@ -79,10 +80,15 @@ static const char *sm4_cl_src;
 
 void sm4_cl_cleanup(SM4_CL_CTX *ctx)
 {
-	clReleaseContext(ctx->context);
-	clReleaseCommandQueue(ctx->queue);
-	clReleaseProgram(ctx->program);
-	clReleaseKernel(ctx->kernel);
+	if (ctx) {
+		if (ctx->mem_rk) clReleaseMemObject(ctx->mem_rk);
+		if (ctx->mem_io) clReleaseMemObject(ctx->mem_io);
+		if (ctx->kernel) clReleaseKernel(ctx->kernel);
+		if (ctx->program) clReleaseProgram(ctx->program);
+		if (ctx->queue) clReleaseCommandQueue(ctx->queue);
+		if (ctx->context) clReleaseContext(ctx->context);
+		gmssl_secure_clear(ctx, sizeof(*ctx));
+	}
 }
 
 static void clPrintDeviceInfo(cl_device_id device)
@@ -231,6 +237,7 @@ static int sm4_cl_set_key(SM4_CL_CTX *ctx, const uint8_t key[16], int enc)
 
 
 end:
+	sm4_cl_cleanup(ctx);
 	return -1;
 }
 
@@ -393,4 +400,3 @@ __kernel void sm4_ctr32_encrypt_blocks(__global const unsigned int *rkey, __glob
 }
 
 );
-

@@ -334,7 +334,7 @@ void x509_key_cleanup(X509_KEY *key)
 				break;
 #ifdef ENABLE_SECP256R1
 			case OID_secp256r1:
-				secp256r1_key_cleanup(&key->u.secp256r1_key);
+				gmssl_secure_clear(&key->u.secp256r1_key, sizeof(SECP256R1_KEY));
 				break;
 #endif
 			default:
@@ -360,12 +360,12 @@ void x509_key_cleanup(X509_KEY *key)
 #endif
 #ifdef ENABLE_SPHINCS
 		case OID_sphincs_hashsig:
-			sphincs_key_cleanup(&key->u.sphincs_key);
+			gmssl_secure_clear(&key->u.sphincs_key, sizeof(SPHINCS_KEY));
 			break;
 #endif
 #ifdef ENABLE_KYBER
 		case OID_kyber_kem:
-			kyber_key_cleanup(&key->u.kyber_key);
+			gmssl_secure_clear(&key->u.kyber_key, sizeof(KYBER_KEY));
 			break;
 #endif
 #ifdef ENABLE_SM9
@@ -1174,7 +1174,7 @@ int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, si
 				return -1;
 			}
 			if (secp256r1_public_key_equ(&key->u.secp256r1_key, &p256_pub) != 1) {
-				secp256r1_key_cleanup(&key->u.secp256r1_key);
+				gmssl_secure_clear(&key->u.secp256r1_key, sizeof(SECP256R1_KEY));
 				error_print();
 				return -1;
 			}
@@ -2496,50 +2496,6 @@ int x509_verify(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 		return -1;
 	}
 	return ret;
-}
-
-void x509_sign_ctx_cleanup(X509_SIGN_CTX *ctx)
-{
-	if (ctx) {
-		switch (ctx->sign_algor) {
-		case OID_sm2sign_with_sm3:
-			gmssl_secure_clear(&ctx->u.sm2_sign_ctx, sizeof(SM2_SIGN_CTX));
-			break;
-#ifdef ENABLE_SECP256R1
-		case OID_ecdsa_with_sha256:
-		case OID_ecdsa_with_sha384:
-		case OID_ecdsa_with_sha512:
-			gmssl_secure_clear(&ctx->u.ecdsa_sign_ctx, sizeof(ECDSA_SIGN_CTX));
-			break;
-#endif
-#ifdef ENABLE_LMS
-		case OID_lms_hashsig:
-			lms_sign_ctx_cleanup(&ctx->u.lms_sign_ctx);
-			break;
-		case OID_hss_lms_hashsig:
-			hss_sign_ctx_cleanup(&ctx->u.hss_sign_ctx);
-			break;
-#endif
-#ifdef ENABLE_XMSS
-		case OID_xmss_hashsig:
-			xmss_sign_ctx_cleanup(&ctx->u.xmss_sign_ctx);
-			break;
-		case OID_xmssmt_hashsig:
-			xmssmt_sign_ctx_cleanup(&ctx->u.xmssmt_sign_ctx);
-			break;
-#endif
-#ifdef ENABLE_SPHINCS
-		case OID_sphincs_hashsig:
-			sphincs_sign_ctx_cleanup(&ctx->u.sphincs_sign_ctx);
-			break;
-#endif
-#ifdef ENABLE_SM9
-		case OID_sm9sign:
-			gmssl_secure_clear(&ctx->u.sm9_sign_ctx, sizeof(SM9_SIGN_CTX));
-#endif
-		}
-		memset(ctx, 0, sizeof(X509_SIGN_CTX));
-	}
 }
 
 // FIXME: add arg max_outlen ?

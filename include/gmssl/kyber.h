@@ -138,7 +138,6 @@ int kyber_cpa_public_key_print(FILE *fp, int fmt, int ind, const char *label, co
 int kyber_cpa_private_key_to_bytes(const KYBER_CPA_KEY *key, uint8_t **out, size_t *outlen);
 int kyber_cpa_private_key_from_bytes(KYBER_CPA_KEY *key, const uint8_t **in, size_t *inlen);
 int kyber_cpa_private_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_KEY *sk);
-void kyber_cpa_key_cleanup(KYBER_CPA_KEY *key);
 
 typedef struct {
 	uint8_t c1[KYBER_K][KYBER_C1_SIZE];
@@ -172,7 +171,6 @@ int kyber_public_key_print(FILE *fp, int fmt, int ind, const char *label, const 
 int kyber_private_key_to_bytes(const KYBER_KEY *key, uint8_t **out, size_t *outlen);
 int kyber_private_key_from_bytes(KYBER_KEY *key, const uint8_t **in, size_t *inlen);
 int kyber_private_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_KEY *sk);
-void kyber_key_cleanup(KYBER_KEY *key);
 
 typedef KYBER_CPA_CIPHERTEXT KYBER_CIPHERTEXT;
 
