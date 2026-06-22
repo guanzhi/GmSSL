@@ -14,8 +14,6 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm4.h>
-#include <gmssl/sm4_cbc_sm3_hmac.h>
-#include <gmssl/sm4_ctr_sm3_hmac.h>
 #include <gmssl/hex.h>
 #include <gmssl/error.h>
 
@@ -255,8 +253,6 @@ int sm4_main(int argc, char **argv)
 		SM4_XTS_CTX xts;
 #endif
 		SM4_GCM_CTX gcm;
-		SM4_CBC_SM3_HMAC_CTX cbc_sm3_hmac;
-		SM4_CTR_SM3_HMAC_CTX ctr_sm3_hmac;
 	} sm4_ctx;
 
 
@@ -585,8 +581,6 @@ bad:
 		case SM4_MODE_XTS: rv = sm4_xts_encrypt_init(&sm4_ctx.xts, key, iv, xts_data_unit_size); break;
 #endif
 		case SM4_MODE_GCM: rv = sm4_gcm_encrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, aad, aadlen, GHASH_SIZE); break;
-		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_init(&sm4_ctx.cbc_sm3_hmac, key, iv, aad, aadlen); break;
-		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_init(&sm4_ctx.ctr_sm3_hmac, key, iv, aad, aadlen); break;
 		}
 		if (rv != 1) {
 			error_print();
@@ -609,8 +603,6 @@ bad:
 			case SM4_MODE_XTS: rv = sm4_xts_encrypt_update(&sm4_ctx.xts, inbuf, inlen, outbuf, &outlen); break;
 #endif
 			case SM4_MODE_GCM: rv = sm4_gcm_encrypt_update(&sm4_ctx.gcm, inbuf, inlen, outbuf, &outlen); break;
-			case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_update(&sm4_ctx.cbc_sm3_hmac, inbuf, inlen, outbuf, &outlen); break;
-			case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_update(&sm4_ctx.ctr_sm3_hmac, inbuf, inlen, outbuf, &outlen); break;
 			}
 			if (rv != 1) {
 				error_print();
@@ -637,8 +629,6 @@ bad:
 		case SM4_MODE_XTS: rv = sm4_xts_encrypt_finish(&sm4_ctx.xts, outbuf, &outlen); break;
 #endif
 		case SM4_MODE_GCM: rv = sm4_gcm_encrypt_finish(&sm4_ctx.gcm, outbuf, &outlen); break;
-		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_finish(&sm4_ctx.cbc_sm3_hmac, outbuf, &outlen); break;
-		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_finish(&sm4_ctx.ctr_sm3_hmac, outbuf, &outlen); break;
 		}
 		if (rv != 1) {
 			error_print();
@@ -665,8 +655,6 @@ bad:
 		case SM4_MODE_XTS: rv = sm4_xts_decrypt_init(&sm4_ctx.xts, key, iv, xts_data_unit_size); break;
 #endif
 		case SM4_MODE_GCM: rv = sm4_gcm_decrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, aad, aadlen, GHASH_SIZE); break;
-		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_init(&sm4_ctx.cbc_sm3_hmac, key, iv, aad, aadlen); break;
-		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_init(&sm4_ctx.ctr_sm3_hmac, key, iv, aad, aadlen); break;
 		}
 		if (rv != 1) {
 			error_print();
@@ -689,8 +677,6 @@ bad:
 			case SM4_MODE_XTS: rv = sm4_xts_decrypt_update(&sm4_ctx.xts, inbuf, inlen, outbuf, &outlen); break;
 #endif
 			case SM4_MODE_GCM: rv = sm4_gcm_decrypt_update(&sm4_ctx.gcm, inbuf, inlen, outbuf, &outlen); break;
-			case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_update(&sm4_ctx.cbc_sm3_hmac, inbuf, inlen, outbuf, &outlen); break;
-			case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_update(&sm4_ctx.ctr_sm3_hmac, inbuf, inlen, outbuf, &outlen); break;
 			}
 			if (rv != 1) {
 				error_print();
@@ -718,8 +704,6 @@ bad:
 		case SM4_MODE_XTS: rv = sm4_xts_decrypt_finish(&sm4_ctx.xts, outbuf, &outlen); break;
 #endif
 		case SM4_MODE_GCM: rv = sm4_gcm_decrypt_finish(&sm4_ctx.gcm, outbuf, &outlen); break;
-		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_finish(&sm4_ctx.cbc_sm3_hmac, outbuf, &outlen); break;
-		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_finish(&sm4_ctx.ctr_sm3_hmac, outbuf, &outlen); break;
 		}
 		if (rv != 1) {
 			error_print();

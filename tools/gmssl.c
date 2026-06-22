@@ -59,8 +59,6 @@ extern int sm4_xts_main(int argc, char **argv);
 #ifdef ENABLE_SM4_FF1
 extern int sm4_ff1_main(int argc, char **argv);
 #endif
-extern int sm4_cbc_sm3_hmac_main(int argc, char **argv);
-extern int sm4_ctr_sm3_hmac_main(int argc, char **argv);
 #ifdef ENABLE_SM4_CBC_MAC
 extern int sm4_cbc_mac_main(int argc, char **argv);
 #endif
@@ -155,8 +153,6 @@ static const char *options =
 	"  sm4_gcm           Encrypt or decrypt with SM4 GCM\n"
 	"  sm4_cbc           Encrypt or decrypt with SM4 CBC\n"
 	"  sm4_ctr           Encrypt or decrypt with SM4 CTR\n"
-	"  sm4_cbc_sm3_hmac  Encrypt or decrypt with SM4 CBC with SM3-HMAC\n"
-	"  sm4_ctr_sm3_hmac  Encrypt or decrypt with SM4 CTR with SM3-HMAC\n"
 #ifdef ENABLE_SM4_CCM
 	"  sm4_ccm           Encrypt or decrypt with SM4 CCM\n"
 #endif
@@ -366,10 +362,6 @@ int main(int argc, char **argv)
 		} else if (!strcmp(*argv, "sm4_ff1")) {
 			return sm4_ff1_main(argc, argv);
 #endif
-		} else if (!strcmp(*argv, "sm4_cbc_sm3_hmac")) {
-			return sm4_cbc_sm3_hmac_main(argc, argv);
-		} else if (!strcmp(*argv, "sm4_ctr_sm3_hmac")) {
-			return sm4_ctr_sm3_hmac_main(argc, argv);
 #ifdef ENABLE_GHASH
 		} else if (!strcmp(*argv, "ghash")) {
 			return ghash_main(argc, argv);
