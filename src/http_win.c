@@ -120,7 +120,6 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	char host[128];
 	int port;
 	char path[256];
-	struct hostent *hp;
 	struct sockaddr_in server;
 	tls_socket_t sock = tls_socket_invalid();
 	char get[sizeof(HTTP_GET_TEMPLATE) + sizeof(host) + sizeof(path)];
@@ -148,13 +147,10 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	socket_lib_inited = 1;
 
 	// connect and send request
-	if (!(hp = gethostbyname(host))) {
+	if (tls_socket_get_addr(host, port, &server) != 1) {
 		error_print();
 		goto end;
 	}
-	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port);
 
 	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
 		error_print();
@@ -207,7 +203,6 @@ int http_post(const char *uri, const char *content_type,
 	char host[128];
 	int port;
 	char path[256];
-	struct hostent *hp;
 	struct sockaddr_in server;
 	tls_socket_t sock = tls_socket_invalid();
 	char post[1024];
@@ -239,13 +234,10 @@ int http_post(const char *uri, const char *content_type,
 	}
 	socket_lib_inited = 1;
 
-	if (!(hp = gethostbyname(host))) {
+	if (tls_socket_get_addr(host, port, &server) != 1) {
 		error_print();
 		goto end;
 	}
-	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port);
 
 	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
 		error_print();

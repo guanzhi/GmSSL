@@ -75,6 +75,7 @@ int tls_socket_set_nonblocking(tls_socket_t sock, int nonblock);
 tls_socket_t tls_socket_invalid(void);
 int tls_socket_is_valid(tls_socket_t sock);
 int tls_socket_create(tls_socket_t *sock, int af, int type, int protocl);
+int tls_socket_get_addr(const char *host, int port, struct sockaddr_in *addr);
 int tls_socket_connect(tls_socket_t sock, const struct sockaddr_in *addr);
 int tls_socket_bind(tls_socket_t sock, const struct sockaddr_in *addr);
 int tls_socket_listen(tls_socket_t sock, int backlog);

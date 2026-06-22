@@ -123,6 +123,7 @@ option(ENABLE_SM4_CFB "Enable SM4 CFB mode" ON)
 option(ENABLE_SM4_CCM "Enable SM4 CCM mode" ON)
 option(ENABLE_SM4_XTS "Enable SM4 XTS mode" ON)
 option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
+option(ENABLE_SM4_FF1 "Enable SM4 FF1 format-preserving encryption" ON)
 
 option(ENABLE_SM9 "Enable SM9" ON)
 option(ENABLE_CMS "Enable CMS" ON)
@@ -461,6 +462,14 @@ if (ENABLE_SM4_XTS)
 	list(APPEND src src/sm4_xts.c)
 	list(APPEND tools tools/sm4_xts.c)
 	list(APPEND tests sm4_xts)
+endif()
+
+if (ENABLE_SM4_FF1)
+	message(STATUS "ENABLE_SM4_FF1 is ON")
+	add_definitions(-DENABLE_SM4_FF1)
+	list(APPEND src src/ff1.c)
+	list(APPEND tools tools/sm4_ff1.c)
+	list(APPEND tests ff1)
 endif()
 
 
@@ -825,6 +834,7 @@ add_test(NAME tool_sm4 COMMAND ${CMAKE_COMMAND}
 	-DENABLE_SM4_CCM=${ENABLE_SM4_CCM}
 	-DENABLE_SM4_XTS=${ENABLE_SM4_XTS}
 	-DENABLE_SM4_CBC_MAC=${ENABLE_SM4_CBC_MAC}
+	-DENABLE_SM4_FF1=${ENABLE_SM4_FF1}
 	-P "${CMAKE_SOURCE_DIR}/cmake/tool_sm4.cmake")
 if(ENABLE_ZUC)
 	add_test(NAME tool_zuc COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tool_zuc.cmake")
@@ -932,7 +942,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1154")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1155")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

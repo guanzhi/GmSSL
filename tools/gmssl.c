@@ -56,6 +56,9 @@ extern int sm4_gcm_main(int argc, char **argv);
 #ifdef ENABLE_SM4_XTS
 extern int sm4_xts_main(int argc, char **argv);
 #endif
+#ifdef ENABLE_SM4_FF1
+extern int sm4_ff1_main(int argc, char **argv);
+#endif
 extern int sm4_cbc_sm3_hmac_main(int argc, char **argv);
 extern int sm4_ctr_sm3_hmac_main(int argc, char **argv);
 #ifdef ENABLE_SM4_CBC_MAC
@@ -159,6 +162,9 @@ static const char *options =
 #endif
 #ifdef ENABLE_SM4_XTS
 	"  sm4_xts           Encrypt or decrypt with SM4 XTS\n"
+#endif
+#ifdef ENABLE_SM4_FF1
+	"  sm4_ff1           Encrypt or decrypt digits with SM4 FF1\n"
 #endif
 #ifdef ENABLE_SM4_ECB
 	"  sm4_ecb           Encrypt or decrypt with SM4 ECB\n"
@@ -355,6 +361,10 @@ int main(int argc, char **argv)
 #if ENABLE_SM4_XTS
 		} else if (!strcmp(*argv, "sm4_xts")) {
 			return sm4_xts_main(argc, argv);
+#endif
+#if ENABLE_SM4_FF1
+		} else if (!strcmp(*argv, "sm4_ff1")) {
+			return sm4_ff1_main(argc, argv);
 #endif
 		} else if (!strcmp(*argv, "sm4_cbc_sm3_hmac")) {
 			return sm4_cbc_sm3_hmac_main(argc, argv);

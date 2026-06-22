@@ -4,6 +4,7 @@ set(SM4_KEY 0123456789abcdeffedcba9876543210)
 set(SM4_IV 00000000000000000000000000000000)
 set(SM4_HMAC_KEY 0123456789abcdeffedcba98765432100123456789abcdeffedcba98765432100123456789abcdeffedcba9876543210)
 set(SM4_XTS_KEY 0123456789abcdeffedcba987654321000112233445566778899aabbccddeeff)
+set(SM4_FF1_KEY 2b7e151628aed2a6abf7158809cf4f3c)
 set(SM4_TEXT "0123456789abcdef0123456789abcdef")
 
 function(gmssl_symmetric_roundtrip name)
@@ -47,6 +48,12 @@ if(ENABLE_SM4_XTS)
 	gmssl_run(sm4_xts -decrypt -key ${SM4_XTS_KEY} -iv ${SM4_IV} -data_unit_size 32
 		-in tool_sm4_xts.cipher -out tool_sm4_xts.decrypt)
 	gmssl_files_equal(tool_sm4_xts.plain tool_sm4_xts.decrypt)
+endif()
+if(ENABLE_SM4_FF1)
+	gmssl_expect_stdout("2326982895499381"
+		sm4_ff1 -encrypt -key ${SM4_FF1_KEY} -tweak 39383736353433323130 -digits 6226090102675688)
+	gmssl_expect_stdout("6226090102675688"
+		sm4_ff1 -decrypt -key ${SM4_FF1_KEY} -tweak 39383736353433323130 -digits 2326982895499381)
 endif()
 if(ENABLE_SM4_CBC_MAC)
 	gmssl_expect_stdout("9054fccff72871fdad5202c821dbea05\n"

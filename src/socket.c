@@ -18,6 +18,7 @@
 
 #ifdef WIN32
 #include <windows.h>
+#include <ws2tcpip.h>
 #endif
 
 
@@ -27,6 +28,47 @@ static int tls_socket_should_print_error(int err, int is_read)
 	return type != TLS_SOCKET_ERR_WANT_READ
 		&& type != TLS_SOCKET_ERR_WANT_WRITE
 		&& type != TLS_SOCKET_ERR_INTERRUPTED;
+}
+
+int tls_socket_get_addr(const char *host, int port, struct sockaddr_in *addr)
+{
+	char service[16];
+	struct addrinfo hints;
+	struct addrinfo *res = NULL;
+	int err;
+
+	if (!host || !addr || port <= 0 || port > 65535) {
+		error_print();
+		return -1;
+	}
+	if (snprintf(service, sizeof(service), "%d", port) <= 0) {
+		error_print();
+		return -1;
+	}
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if ((err = getaddrinfo(host, service, &hints, &res)) != 0) {
+#ifdef WIN32
+		error_print_msg("getaddrinfo error: %d (%s)\n", err, gai_strerrorA(err));
+#else
+		error_print_msg("getaddrinfo error: %d (%s)\n", err, gai_strerror(err));
+#endif
+		return -1;
+	}
+	if (!res || res->ai_addrlen < sizeof(struct sockaddr_in)) {
+		error_print();
+		if (res) {
+			freeaddrinfo(res);
+		}
+		return -1;
+	}
+
+	memcpy(addr, res->ai_addr, sizeof(struct sockaddr_in));
+	freeaddrinfo(res);
+	return 1;
 }
 
 #ifdef WIN32

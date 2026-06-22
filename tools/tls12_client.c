@@ -220,7 +220,6 @@ int tls12_client_main(int argc, char *argv[])
 	int verbose = 0;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
-	struct hostent *hp;
 	struct sockaddr_in server;
 	tls_socket_t sock = tls_socket_invalid();
 	char buf[1024] = {0};
@@ -469,14 +468,10 @@ bad:
 		goto end;
 	}
 
-	if (!(hp = gethostbyname(host))) {
+	if (tls_socket_get_addr(host, port, &server) != 1) {
 		fprintf(stderr, "%s: failed to parse host name '%s'\n", prog, host);
 		goto end;
 	}
-
-	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port);
 
 	if (tls_socket_connect(sock, &server) != 1) {
 		fprintf(stderr, "%s: socket connect error\n", prog);

@@ -228,7 +228,6 @@ int tlcp_client_main(int argc, char *argv[])
 	char *infile = NULL;
 	char *certoutfile = NULL;
 	int verbose = 0;
-	struct hostent *hp;
 	struct sockaddr_in server;
 	tls_socket_t sock = tls_socket_invalid();
 	TLS_CTX ctx;
@@ -479,14 +478,10 @@ bad:
 		goto end;
 	}
 
-	if (!(hp = gethostbyname(host))) {
+	if (tls_socket_get_addr(host, port, &server) != 1) {
 		fprintf(stderr, "%s: failed to parse host name '%s'\n", prog, host);
 		goto end;
 	}
-
-	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port);
 
 	if (tls_socket_connect(sock, &server) != 1) {
 		fprintf(stderr, "%s: failed to connect socket\n", prog);
