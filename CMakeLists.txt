@@ -129,6 +129,7 @@ option(ENABLE_SM9 "Enable SM9" ON)
 option(ENABLE_CMS "Enable CMS" ON)
 
 option(ENABLE_SECP256R1 "Enable ECDH/ECDSA on curve secp256r1" ON)
+option(ENABLE_SECP384R1 "Enable curve secp384r1" ON)
 
 option(ENABLE_LMS "Enable LMS/HSS signature" ON)
 option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" ON)
@@ -514,6 +515,16 @@ if (ENABLE_SECP256R1)
 	list(APPEND src src/bn.c src/secp256r1.c src/secp256r1_key.c src/ecdsa.c src/ecdh.c)
 	list(APPEND tools tools/p256keygen.c)
 	list(APPEND tests bn secp256r1 secp256r1_key ecdsa)
+endif()
+
+if (ENABLE_SECP384R1)
+	message(STATUS "ENABLE_SECP384R1 is ON")
+	add_definitions(-DENABLE_SECP384R1)
+	if (NOT ENABLE_SECP256R1)
+		list(APPEND src src/bn.c)
+	endif()
+	list(APPEND src src/secp384r1.c)
+	list(APPEND tests secp384r1)
 endif()
 
 
@@ -931,7 +942,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1161")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1162")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
