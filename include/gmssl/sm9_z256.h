@@ -36,12 +36,8 @@ uint64_t sm9_z256_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_mul(uint64_t r[8], const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_from_bytes(sm9_z256_t r, const uint8_t in[32]);
 void sm9_z256_to_bytes(const sm9_z256_t a, uint8_t out[32]);
-int  sm9_z256_from_hex(sm9_z256_t r, const char *hex);
-void sm9_z256_to_hex(const sm9_z256_t r, char hex[64]);
-int  sm9_z256_equ_hex(const sm9_z256_t a, const char *hex);
 void sm9_z256_to_bits(const sm9_z256_t a, char bits[256]);
 int  sm9_z256_rand_range(sm9_z256_t r, const sm9_z256_t range);
-void sm9_z256_print_bn(const char *prefix, const sm9_z256_t a);
 int  sm9_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm9_z256_t a);
 
 const uint64_t *sm9_z256_prime(void);
@@ -81,8 +77,6 @@ void sm9_z256_fp2_copy(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 int  sm9_z256_fp2_rand(sm9_z256_fp2_t r);
 void sm9_z256_fp2_to_bytes(const sm9_z256_fp2_t a, uint8_t buf[64]);
 int  sm9_z256_fp2_from_bytes(sm9_z256_fp2_t r, const uint8_t buf[64]);
-void sm9_z256_fp2_to_hex(const sm9_z256_fp2_t a, char hex[129]);
-int  sm9_z256_fp2_from_hex(sm9_z256_fp2_t r, const char hex[129]);
 void sm9_z256_fp2_add(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b);
 void sm9_z256_fp2_dbl(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 void sm9_z256_fp2_tri(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
@@ -109,8 +103,6 @@ int  sm9_z256_fp4_rand(sm9_z256_fp4_t r);
 void sm9_z256_fp4_copy(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
 void sm9_z256_fp4_to_bytes(const sm9_z256_fp4_t a, uint8_t buf[128]);
 int  sm9_z256_fp4_from_bytes(sm9_z256_fp4_t r, const uint8_t buf[128]);
-int  sm9_z256_fp4_from_hex(sm9_z256_fp4_t r, const char hex[259]);
-void sm9_z256_fp4_to_hex(const sm9_z256_fp4_t a, char hex[259]);
 void sm9_z256_fp4_add(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
 void sm9_z256_fp4_dbl(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
 void sm9_z256_fp4_sub(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
@@ -136,12 +128,9 @@ void sm9_z256_fp12_set_one(sm9_z256_fp12_t r);
 void sm9_z256_fp12_set_zero(sm9_z256_fp12_t r);
 void sm9_z256_fp12_copy(sm9_z256_fp12_t r, const sm9_z256_fp12_t a);
 int  sm9_z256_fp12_rand(sm9_z256_fp12_t r);
-int  sm9_z256_fp12_from_hex(sm9_z256_fp12_t r, const char hex[779]); // 779 = 64*12 + 11
-void sm9_z256_fp12_to_hex(const sm9_z256_fp12_t a, char hex[779]);
 void sm9_z256_fp12_to_bytes(const sm9_z256_fp12_t a, uint8_t buf[384]);
 int  sm9_z256_fp12_from_bytes(sm9_z256_fp12_t r, const uint8_t buf[384]);
 
-void sm9_z256_fp12_print(const char *prefix, const sm9_z256_fp12_t a);
 void sm9_z256_fp12_set(sm9_z256_fp12_t r, const sm9_z256_fp4_t a0, const sm9_z256_fp4_t a1, const sm9_z256_fp4_t a2);
 int  sm9_z256_fp12_equ(const sm9_z256_fp12_t a, const sm9_z256_fp12_t b);
 void sm9_z256_fp12_add(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_fp12_t b);
@@ -169,7 +158,6 @@ typedef struct {
 
 const SM9_Z256_POINT *sm9_z256_generator(void);
 
-int  sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[129]);
 int  sm9_z256_point_is_at_infinity(const SM9_Z256_POINT *P);
 void sm9_z256_point_set_infinity(SM9_Z256_POINT *R);
 void sm9_z256_point_get_xy(const SM9_Z256_POINT *P, sm9_z256_t x, sm9_z256_t y);
@@ -208,7 +196,6 @@ int sm9_z256_twist_point_to_uncompressed_octets(const SM9_Z256_TWIST_POINT *P, u
 int sm9_z256_twist_point_from_uncompressed_octets(SM9_Z256_TWIST_POINT *P, const uint8_t octets[129]);
 
 int  sm9_z256_twist_point_print(FILE *fp, int fmt, int ind, const char *label, const SM9_Z256_TWIST_POINT *P);
-void sm9_z256_twist_point_from_hex(SM9_Z256_TWIST_POINT *R, const char hex[259]); // 259 = 64 * 4 + 3
 int  sm9_z256_twist_point_is_at_infinity(const SM9_Z256_TWIST_POINT *P);
 void sm9_z256_twist_point_set_infinity(SM9_Z256_TWIST_POINT *R);
 void sm9_z256_twist_point_get_xy(const SM9_Z256_TWIST_POINT *P, sm9_z256_fp2_t x, sm9_z256_fp2_t y);

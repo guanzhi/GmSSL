@@ -126,9 +126,6 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 			return -1;
 		}
 		
-		// Only for testing
-		//sm9_z256_from_hex(r, "00033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE");
-
 		// A3: w = g^r
 		sm9_z256_fp12_pow(g, g, r);
 		sm9_z256_fp12_to_bytes(g, wbuf);
@@ -529,9 +526,6 @@ int sm9_exch_step_1A(const SM9_EXCH_MASTER_KEY *mpk, const char *idB, size_t idB
 		error_print();
 		return -1;
 	}
-	// Only for testing
-	sm9_z256_from_hex(rA, "00005879DD1D51E175946F23B1B41E93BA31C584AE59A426EC1046A4D03B06C8");
-
 	// A3: RA = rA * Q
 	sm9_z256_point_mul(RA, rA, RA);
 
@@ -560,9 +554,6 @@ int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 			error_print();
 			return -1;
 		}
-		// Only for testing
-		sm9_z256_from_hex(rB, "00018B98C44BEF9F8537FB7D071B2C928B3BC65BD3D69E1EEE213564905634FE");
-
 		// B3: RB = rB * Q
 		sm9_z256_point_mul(RB, rB, RB);
 

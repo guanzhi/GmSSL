@@ -18,6 +18,126 @@
 #include <gmssl/rand.h>
 
 
+#define SM9_Z256_TEST_HEX_SEP '\n'
+
+static const sm9_z256_t SM9_Z256_TEST_P = {
+	0xe56f9b27e351457d, 0x21f2934b1a7aeedb, 0xd603ab4ff58ec745, 0xb640000002a3a6f1
+};
+
+static int sm9_z256_from_hex(sm9_z256_t r, const char *hex)
+{
+	uint8_t buf[32];
+	size_t len;
+
+	if (strlen(hex) < 64) {
+		error_print();
+		return -1;
+	}
+	if (hex_to_bytes(hex, 64, buf, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_from_bytes(r, buf);
+	return 1;
+}
+
+static int sm9_z256_equ_hex(const sm9_z256_t a, const char *hex)
+{
+	sm9_z256_t b;
+
+	if (sm9_z256_from_hex(b, hex) != 1) {
+		error_print();
+		return 0;
+	}
+	return sm9_z256_cmp(a, b) == 0;
+}
+
+static int sm9_z256_fp2_from_hex(sm9_z256_fp2_t r, const char hex[64 * 2 + 1])
+{
+	if (sm9_z256_from_hex(r[1], hex) != 1
+		|| sm9_z256_cmp(r[1], SM9_Z256_TEST_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_modp_to_mont(r[1], r[1]);
+
+	if (hex[64] != SM9_Z256_TEST_HEX_SEP) {
+		error_print();
+		return -1;
+	}
+
+	if (sm9_z256_from_hex(r[0], hex + 65) != 1
+		|| sm9_z256_cmp(r[0], SM9_Z256_TEST_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_modp_to_mont(r[0], r[0]);
+
+	return 1;
+}
+
+static int sm9_z256_fp4_from_hex(sm9_z256_fp4_t r, const char hex[64 * 4 + 3])
+{
+	if (sm9_z256_fp2_from_hex(r[1], hex) != 1
+		|| hex[129] != SM9_Z256_TEST_HEX_SEP
+		|| sm9_z256_fp2_from_hex(r[0], hex + 130) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static int sm9_z256_fp12_from_hex(sm9_z256_fp12_t r, const char hex[64 * 12 + 11])
+{
+	if (sm9_z256_fp4_from_hex(r[2], hex) != 1
+		|| hex[65 * 4 - 1] != SM9_Z256_TEST_HEX_SEP
+		|| sm9_z256_fp4_from_hex(r[1], hex + 65 * 4) != 1
+		|| hex[65 * 8 - 1] != SM9_Z256_TEST_HEX_SEP
+		|| sm9_z256_fp4_from_hex(r[0], hex + 65 * 8) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static int sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[64 * 2 + 1])
+{
+	if (sm9_z256_from_hex(R->X, hex) != 1
+		|| sm9_z256_cmp(R->X, SM9_Z256_TEST_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_modp_to_mont(R->X, R->X);
+
+	if (hex[64] != SM9_Z256_TEST_HEX_SEP) {
+		error_print();
+		return -1;
+	}
+
+	if (sm9_z256_from_hex(R->Y, hex + 65) != 1
+		|| sm9_z256_cmp(R->Y, SM9_Z256_TEST_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_modp_to_mont(R->Y, R->Y);
+	sm9_z256_set_one(R->Z);
+	sm9_z256_modp_to_mont(R->Z, R->Z);
+
+	return 1;
+}
+
+static int sm9_z256_twist_point_from_hex(SM9_Z256_TWIST_POINT *R, const char hex[64 * 4 + 3])
+{
+	if (sm9_z256_fp2_from_hex(R->X, hex) != 1
+		|| sm9_z256_fp2_from_hex(R->Y, hex + 65 * 2) != 1) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_fp2_set_one(R->Z);
+	return 1;
+}
+
+
 #define hex_iv 		"123456789abcdef00fedcba987654321123456789abcdef00fedcba987654321"
 #define hex_fp_add 	"114efe24536598809df494ff7657484edff1812d51c3955b7d869149aa123d31"
 #define hex_fp_sub 	"43cee97c9abed9be3efe7ffffc9d30abe1d643b9b27ea351460aabb2239d3fd4"
@@ -838,13 +958,72 @@ err:
 	"44B0294AA04290E1524FF3E3DA8CFD432BB64DE3A8040B5B88D1B5FC86A4EBC1\n" \
 	"8CFC48FB4FF37F1E27727464F3C34E2153861AD08E972D1625FC1A7BD18D5539"
 
+#define hex_rA		"00005879DD1D51E175946F23B1B41E93BA31C584AE59A426EC1046A4D03B06C8"
+#define hex_rB		"00018B98C44BEF9F8537FB7D071B2C928B3BC65BD3D69E1EEE213564905634FE"
+
+static int sm9_z256_test_exch_step_1A(const SM9_EXCH_MASTER_KEY *mpk, const char *idB, size_t idBlen,
+	SM9_Z256_POINT *RA, const sm9_z256_t rA)
+{
+	sm9_z256_t h;
+
+	sm9_z256_hash1(h, idB, idBlen, SM9_HID_EXCH);
+	sm9_z256_point_mul(RA, h, sm9_z256_generator());
+	sm9_z256_point_add(RA, RA, &mpk->Ppube);
+	sm9_z256_point_mul(RA, rA, RA);
+
+	return 1;
+}
+
+static int sm9_z256_test_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idAlen,
+	const char *idB, size_t idBlen, const SM9_EXCH_KEY *key, const SM9_Z256_POINT *RA,
+	SM9_Z256_POINT *RB, const sm9_z256_t randB, uint8_t *sk, size_t klen)
+{
+	sm9_z256_t h;
+	sm9_z256_fp12_t G1, G2, G3;
+	uint8_t g1[32 * 12], g2[32 * 12], g3[32 * 12];
+	uint8_t ta[65], tb[65];
+	SM3_KDF_CTX kdf_ctx;
+
+	sm9_z256_hash1(h, idA, idAlen, SM9_HID_EXCH);
+	sm9_z256_point_mul(RB, h, sm9_z256_generator());
+	sm9_z256_point_add(RB, RB, &mpk->Ppube);
+	sm9_z256_point_mul(RB, randB, RB);
+
+	if (!sm9_z256_point_is_on_curve(RA)) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_pairing(G1, &key->de, RA);
+	sm9_z256_pairing(G2, sm9_z256_twist_generator(), &mpk->Ppube);
+	sm9_z256_fp12_pow(G2, G2, randB);
+	sm9_z256_fp12_pow(G3, G1, randB);
+
+	sm9_z256_point_to_uncompressed_octets(RA, ta);
+	sm9_z256_point_to_uncompressed_octets(RB, tb);
+	sm9_z256_fp12_to_bytes(G1, g1);
+	sm9_z256_fp12_to_bytes(G2, g2);
+	sm9_z256_fp12_to_bytes(G3, g3);
+
+	sm3_kdf_init(&kdf_ctx, klen);
+	sm3_kdf_update(&kdf_ctx, (uint8_t *)idA, idAlen);
+	sm3_kdf_update(&kdf_ctx, (uint8_t *)idB, idBlen);
+	sm3_kdf_update(&kdf_ctx, ta + 1, 64);
+	sm3_kdf_update(&kdf_ctx, tb + 1, 64);
+	sm3_kdf_update(&kdf_ctx, g1, sizeof(g1));
+	sm3_kdf_update(&kdf_ctx, g2, sizeof(g2));
+	sm3_kdf_update(&kdf_ctx, g3, sizeof(g3));
+	sm3_kdf_finish(&kdf_ctx, sk);
+
+	return 1;
+}
+
 int test_sm9_z256_exchange()
 {
 	SM9_EXCH_MASTER_KEY msk;
 	SM9_EXCH_KEY keyA, keyB;
 	SM9_Z256_TWIST_POINT de;
 	SM9_Z256_POINT RA, RB;
-	sm9_z256_t rA;
+	sm9_z256_t rA, randB;
 	size_t i, j = 1;
 
 	uint8_t idA[5] = {0x41, 0x6C, 0x69, 0x63, 0x65};
@@ -859,8 +1038,10 @@ int test_sm9_z256_exchange()
 	sm9_z256_twist_point_from_hex(&de, hex_deA); if (!sm9_z256_twist_point_equ(&(keyA.de), &de)) goto err; ++j;
 	sm9_z256_twist_point_from_hex(&de, hex_deB); if (!sm9_z256_twist_point_equ(&(keyB.de), &de)) goto err; ++j;
 
-	if (sm9_exch_step_1A(&msk, (char *)idB, sizeof(idB), &RA, rA) < 0) goto err; ++j;
-	if (sm9_exch_step_1B(&msk, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB), &keyB, &RA, &RB, skB, klen) < 0) goto err; ++j;
+	if (sm9_z256_from_hex(rA, hex_rA) != 1) goto err; ++j;
+	if (sm9_z256_from_hex(randB, hex_rB) != 1) goto err; ++j;
+	if (sm9_z256_test_exch_step_1A(&msk, (char *)idB, sizeof(idB), &RA, rA) < 0) goto err; ++j;
+	if (sm9_z256_test_exch_step_1B(&msk, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB), &keyB, &RA, &RB, randB, skB, klen) < 0) goto err; ++j;
 	if (sm9_exch_step_2A(&msk, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB), &keyA, rA, &RA, &RB, skA, klen) < 0) goto err; ++j;
 
 	for (i = 0; i < klen; i++) {

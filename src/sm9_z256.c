@@ -13,15 +13,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <gmssl/hex.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm9_z256.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/rand.h>
-
-
-#define SM9_Z256_HEX_SEP '\n'
 
 
 const sm9_z256_t SM9_Z256_ONE = {1,0,0,0};
@@ -362,49 +358,6 @@ int sm9_z256_get_booth(const uint64_t a[4], uint64_t window_size, int i)
 		wbits |= a[n + 1] << (64 - j);
 	}
 	return (int)(wbits & mask) - (int)((wbits >> 1) & mask);
-}
-
-int sm9_z256_from_hex(sm9_z256_t r, const char *hex)
-{
-	uint8_t buf[32];
-	size_t len;
-
-	if (strlen(hex) < 64) {
-		error_print();
-		return -1;
-	}
-	if (hex_to_bytes(hex, 64, buf, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	sm9_z256_from_bytes(r, buf);
-	return 1;
-}
-
-void sm9_z256_to_hex(const sm9_z256_t r, char hex[64])
-{
-	int i;
-	for (i = 3; i >= 0; i--) {
-		(void)sprintf(hex + 16*(3-i), "%016llx", (unsigned long long)r[i]);
-	}
-}
-
-void sm9_z256_print_bn(const char *prefix, const sm9_z256_t a)
-{
-	char hex[65] = {0};
-	sm9_z256_to_hex(a, hex);
-	printf("%s\n%s\n", prefix, hex);
-}
-
-int sm9_z256_equ_hex(const sm9_z256_t a, const char *hex)
-{
-	sm9_z256_t b;
-	sm9_z256_from_hex(b, hex);
-	if (sm9_z256_cmp(a, b) == 0) {
-		return 1;
-	} else {
-		return 0;
-	}
 }
 
 int sm9_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm9_z256_t a)
@@ -810,47 +763,6 @@ int sm9_z256_fp2_from_bytes(sm9_z256_fp2_t r, const uint8_t buf[64])
 	return 1;
 }
 
-int sm9_z256_fp2_from_hex(sm9_z256_fp2_t r, const char hex[64 * 2 + 1])
-{
-	if (sm9_z256_from_hex(r[1], hex) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sm9_z256_cmp(r[1], SM9_Z256_P) >= 0) {
-		error_print();
-		return -1;
-	}
-	sm9_z256_modp_to_mont(r[1], r[1]);
-
-	if (hex[64] != SM9_Z256_HEX_SEP) {
-		error_print();
-		return -1;
-	}
-
-	if (sm9_z256_from_hex(r[0], hex + 65) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sm9_z256_cmp(r[0], SM9_Z256_P) >= 0) {
-		error_print();
-		return -1;
-	}
-	sm9_z256_modp_to_mont(r[0], r[0]);
-
-	return 1;
-}
-
-void sm9_z256_fp2_to_hex(const sm9_z256_fp2_t a, char hex[64 * 2 + 1])
-{
-	sm9_z256_t z;
-
-	sm9_z256_modp_from_mont(z, a[1]);
-	sm9_z256_to_hex(z, hex);
-	hex[64] = SM9_Z256_HEX_SEP;
-	sm9_z256_modp_from_mont(z, a[0]);
-	sm9_z256_to_hex(z, hex + 65);
-}
-
 void sm9_z256_fp2_add(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b)
 {
 	sm9_z256_modp_add(r[0], a[0], b[0]);
@@ -1116,30 +1028,6 @@ int sm9_z256_fp4_from_bytes(sm9_z256_fp4_t r, const uint8_t buf[128])
 	return 1;
 }
 
-int sm9_z256_fp4_from_hex(sm9_z256_fp4_t r, const char hex[64 * 4 + 3])
-{
-	if (sm9_z256_fp2_from_hex(r[1], hex) != 1) {
-		error_print();
-		return -1;
-	}
-	if (hex[129] != SM9_Z256_HEX_SEP) {
-		error_print();
-		return -1;
-	}
-	if (sm9_z256_fp2_from_hex(r[0], hex + 130) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-void sm9_z256_fp4_to_hex(const sm9_z256_fp4_t a, char hex[64 * 4 + 3])
-{
-	sm9_z256_fp2_to_hex(a[1], hex);
-	hex[129] = SM9_Z256_HEX_SEP;
-	sm9_z256_fp2_to_hex(a[0], hex + 130);
-}
-
 void sm9_z256_fp4_add(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b)
 {
 	sm9_z256_fp2_add(r[0], a[0], b[0]);
@@ -1336,28 +1224,6 @@ void sm9_z256_fp12_set_one(sm9_z256_fp12_t r)
 	sm9_z256_fp4_copy(r[2], SM9_Z256_FP4_ZERO);
 }
 
-int sm9_z256_fp12_from_hex(sm9_z256_fp12_t r, const char hex[64 * 12 + 11])
-{
-	if (sm9_z256_fp4_from_hex(r[2], hex) != 1
-		|| hex[65 * 4 - 1] != SM9_Z256_HEX_SEP
-		|| sm9_z256_fp4_from_hex(r[1], hex + 65 * 4) != 1
-		|| hex[65 * 4 - 1] != SM9_Z256_HEX_SEP
-		|| sm9_z256_fp4_from_hex(r[0], hex + 65 * 8) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-void sm9_z256_fp12_to_hex(const sm9_z256_fp12_t a, char hex[64 * 12 + 11])
-{
-	sm9_z256_fp4_to_hex(a[2], hex);
-	hex[65 * 4 - 1] = SM9_Z256_HEX_SEP;
-	sm9_z256_fp4_to_hex(a[1], hex + 65 * 4);
-	hex[65 * 8 - 1] = SM9_Z256_HEX_SEP;
-	sm9_z256_fp4_to_hex(a[0], hex + 65 * 8);
-}
-
 void sm9_z256_fp12_to_bytes(const sm9_z256_fp12_t a, uint8_t buf[32 * 12])
 {
 	sm9_z256_fp4_to_bytes(a[2], buf);
@@ -1380,13 +1246,6 @@ int sm9_z256_fp12_from_bytes(sm9_z256_fp12_t r, const uint8_t buf[32 * 12])
 		return -1;
 	}
 	return 1;
-}
-
-void sm9_z256_fp12_print(const char *prefix, const sm9_z256_fp12_t a)
-{
-	char hex[65 * 12];
-	sm9_z256_fp12_to_hex(a, hex);
-	printf("%s\n%s\n", prefix, hex);
 }
 
 void sm9_z256_fp12_set(sm9_z256_fp12_t r, const sm9_z256_fp4_t a0, const sm9_z256_fp4_t a1, const sm9_z256_fp4_t a2)
@@ -1760,38 +1619,6 @@ void sm9_z256_fp12_frobenius6(sm9_z256_fp12_t r, const sm9_z256_fp12_t x)
 	sm9_z256_fp4_copy(r[2], c);
 }
 
-int sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[64 * 2 + 1])
-{
-	if (sm9_z256_from_hex(R->X, hex) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sm9_z256_cmp(R->X, SM9_Z256_P) >= 0) {
-		error_print();
-		return -1;
-	}
-	sm9_z256_modp_to_mont(R->X, R->X);
-
-	if (hex[64] != SM9_Z256_HEX_SEP) {
-		error_print();
-		return -1;
-	}
-
-	if (sm9_z256_from_hex(R->Y, hex + 65) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sm9_z256_cmp(R->Y, SM9_Z256_P) >= 0) {
-		error_print();
-		return -1;
-	}
-	sm9_z256_modp_to_mont(R->Y, R->Y);
-
-	sm9_z256_copy(R->Z, SM9_Z256_MODP_MONT_ONE);
-
-	return 1;
-}
-
 int sm9_z256_point_is_at_infinity(const SM9_Z256_POINT *P)
 {
 	if (sm9_z256_is_zero(P->Z)) {
@@ -2150,13 +1977,6 @@ int sm9_z256_twist_point_print(FILE *fp, int fmt, int ind, const char *label, co
 	sm9_z256_twist_point_to_uncompressed_octets(P, buf);
 	format_bytes(fp, fmt, ind, label, buf, sizeof(buf));
 	return 1;
-}
-
-void sm9_z256_twist_point_from_hex(SM9_Z256_TWIST_POINT *R, const char hex[64 * 4 + 3])
-{
-	sm9_z256_fp2_from_hex(R->X, hex);
-	sm9_z256_fp2_from_hex(R->Y, hex + 65 * 2);
-	sm9_z256_fp2_set_one(R->Z);
 }
 
 int sm9_z256_twist_point_is_at_infinity(const SM9_Z256_TWIST_POINT *P)
