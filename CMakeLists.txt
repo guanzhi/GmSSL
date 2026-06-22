@@ -19,25 +19,96 @@ else()
 	add_compile_options(-O3)
 endif()
 
+set(GMSSL_TARGET_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+if (APPLE AND CMAKE_OSX_ARCHITECTURES)
+	list(LENGTH CMAKE_OSX_ARCHITECTURES GMSSL_OSX_ARCH_COUNT)
+	if (GMSSL_OSX_ARCH_COUNT EQUAL 1)
+		list(GET CMAKE_OSX_ARCHITECTURES 0 GMSSL_TARGET_PROCESSOR)
+	else()
+		set(GMSSL_TARGET_PROCESSOR "")
+	endif()
+endif()
+string(TOLOWER "${GMSSL_TARGET_PROCESSOR}" GMSSL_TARGET_PROCESSOR)
+
+set(GMSSL_DEFAULT_ENABLE_SM2_ARM64 OFF)
+set(GMSSL_DEFAULT_ENABLE_SM3_ARM64 OFF)
+set(GMSSL_DEFAULT_ENABLE_SM4_ARM64 OFF)
+set(GMSSL_DEFAULT_ENABLE_SM4_CE OFF)
+set(GMSSL_DEFAULT_ENABLE_SM2_NEON OFF)
+set(GMSSL_DEFAULT_ENABLE_SM4_AVX2 OFF)
+set(GMSSL_DEFAULT_ENABLE_SM4_AESNI OFF)
+set(GMSSL_DEFAULT_ENABLE_SM2_AMD64 OFF)
+set(GMSSL_DEFAULT_ENABLE_SM3_SSE OFF)
+
+if (NOT MSVC)
+	if (GMSSL_TARGET_PROCESSOR MATCHES "^(aarch64|arm64)$")
+		set(GMSSL_DEFAULT_ENABLE_SM2_ARM64 ON)
+		set(GMSSL_DEFAULT_ENABLE_SM3_ARM64 ON)
+		set(GMSSL_DEFAULT_ENABLE_SM4_ARM64 ON)
+	elseif (GMSSL_TARGET_PROCESSOR MATCHES "^(x86_64|amd64|x64)$")
+		set(GMSSL_DEFAULT_ENABLE_SM2_AMD64 ON)
+		if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang" AND NOT CMAKE_CROSSCOMPILING)
+			include(CheckCSourceCompiles)
+			set(GMSSL_CMAKE_REQUIRED_FLAGS_SAVE "${CMAKE_REQUIRED_FLAGS}")
+			set(CMAKE_REQUIRED_FLAGS "-march=native")
+			check_c_source_compiles(
+				"#include <immintrin.h>
+				int main(void) { __m128i x = _mm_setzero_si128(); x = _mm_shuffle_epi8(x, x); return _mm_cvtsi128_si32(x); }"
+				GMSSL_HAVE_NATIVE_SSSE3)
+			check_c_source_compiles(
+				"#include <x86intrin.h>
+				int main(void) { __m128i x = _mm_setzero_si128(); x = _mm_aesenclast_si128(x, x); x = _mm_shuffle_epi8(x, x); return _mm_cvtsi128_si32(x); }"
+				GMSSL_HAVE_NATIVE_AESNI)
+			check_c_source_compiles(
+				"#include <immintrin.h>
+				int main(void) { __m256i x = _mm256_setzero_si256(); x = _mm256_shuffle_epi8(x, x); return _mm256_extract_epi32(x, 0); }"
+				GMSSL_HAVE_NATIVE_AVX2)
+			set(CMAKE_REQUIRED_FLAGS "${GMSSL_CMAKE_REQUIRED_FLAGS_SAVE}")
+			if (GMSSL_HAVE_NATIVE_SSSE3)
+				set(GMSSL_DEFAULT_ENABLE_SM3_SSE ON)
+			endif()
+			if (DEFINED ENABLE_SM4_AVX2 AND ENABLE_SM4_AVX2)
+				set(GMSSL_DEFAULT_ENABLE_SM4_AESNI OFF)
+			elseif (DEFINED ENABLE_SM4_AESNI AND ENABLE_SM4_AESNI)
+				set(GMSSL_DEFAULT_ENABLE_SM4_AVX2 OFF)
+			elseif (GMSSL_HAVE_NATIVE_AVX2)
+				set(GMSSL_DEFAULT_ENABLE_SM4_AVX2 ON)
+			elseif (GMSSL_HAVE_NATIVE_AESNI)
+				set(GMSSL_DEFAULT_ENABLE_SM4_AESNI ON)
+			endif()
+		endif()
+	elseif (GMSSL_TARGET_PROCESSOR MATCHES "^arm")
+		include(CheckCSourceCompiles)
+		check_c_source_compiles(
+			"#include <arm_neon.h>
+			int main(void) { uint64x2_t x = vmovq_n_u64(0); return (int)vgetq_lane_u64(x, 0); }"
+			GMSSL_HAVE_ARM_NEON)
+		if (GMSSL_HAVE_ARM_NEON)
+			set(GMSSL_DEFAULT_ENABLE_SM2_NEON ON)
+		endif()
+	endif()
+endif()
+
 option(ENABLE_TEST_SPEED "Enable test speed" OFF)
 option(ENABLE_SLOW_TEST "Enable slow tests" OFF)
 
 
 
-option(ENABLE_SM2_ARM64 "Enable SM2_Z256 ARMv8 assembly" OFF)
-option(ENABLE_SM3_ARM64 "Enable SM3 Arm Neon implementation (10% faster on Apple M2)" OFF)
-option(ENABLE_SM4_ARM64 "Enable SM4 AARCH64 assembly implementation" OFF)
-option(ENABLE_SM4_CE "Enable SM4 ARM CE assembly implementation" OFF)
+option(ENABLE_SM2_ARM64 "Enable SM2_Z256 ARMv8 assembly" ${GMSSL_DEFAULT_ENABLE_SM2_ARM64})
+option(ENABLE_SM3_ARM64 "Enable SM3 Arm Neon implementation (10% faster on Apple M2)" ${GMSSL_DEFAULT_ENABLE_SM3_ARM64})
+option(ENABLE_SM4_ARM64 "Enable SM4 AARCH64 assembly implementation" ${GMSSL_DEFAULT_ENABLE_SM4_ARM64})
+option(ENABLE_SM4_CE "Enable SM4 ARM CE assembly implementation" ${GMSSL_DEFAULT_ENABLE_SM4_CE})
+option(ENABLE_SM2_NEON "Enable SM2_Z256 Arm Neon implementation" ${GMSSL_DEFAULT_ENABLE_SM2_NEON})
 option(ENABLE_SM9_ARM64 "Enable SM9_Z256 ARMv8 assembly" OFF)
 option(ENABLE_GMUL_ARM64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
 
 
-option(ENABLE_SM4_AVX2 "Enable SM4 AVX2 8x implementation" OFF)
-option(ENABLE_SM4_AESNI "Enable SM4 AES-NI (4x) implementation" OFF)
-option(ENABLE_SM2_AMD64 "Enable SM2_Z256 X86_64 assembly" OFF)
+option(ENABLE_SM4_AVX2 "Enable SM4 AVX2 8x implementation" ${GMSSL_DEFAULT_ENABLE_SM4_AVX2})
+option(ENABLE_SM4_AESNI "Enable SM4 AES-NI (4x) implementation" ${GMSSL_DEFAULT_ENABLE_SM4_AESNI})
+option(ENABLE_SM2_AMD64 "Enable SM2_Z256 X86_64 assembly" ${GMSSL_DEFAULT_ENABLE_SM2_AMD64})
 
 
-option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" OFF)
+option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" ${GMSSL_DEFAULT_ENABLE_SM3_SSE})
 
 option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
 option(ENABLE_SM4_CL "Enable SM4 OpenCL" OFF)
@@ -284,6 +355,9 @@ if (ENABLE_SM3_SSE)
 	list(FIND src src/sm3.c sm3_index)
 	list(REMOVE_AT src ${sm3_index})
 	list(INSERT src ${sm3_index} src/sm3_sse.c)
+	if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+		set_source_files_properties(src/sm3_sse.c PROPERTIES COMPILE_OPTIONS "-march=native")
+	endif()
 endif()
 
 if (ENABLE_SM3_ARM64)
@@ -865,7 +939,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1152")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1153")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

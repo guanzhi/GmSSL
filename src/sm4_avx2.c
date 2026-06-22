@@ -375,15 +375,18 @@ void sm4_cbc_encrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
 void sm4_cbc_decrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
-	const uint8_t *piv = iv;
+	uint8_t piv[16];
+	uint8_t next_iv[16];
 
+	memcpy(piv, iv, 16);
 	while (nblocks--) {
 		size_t i;
+		memcpy(next_iv, in, 16);
 		sm4_encrypt(key, in, out);
 		for (i = 0; i < 16; i++) {
 			out[i] ^= piv[i];
 		}
-		piv = in;
+		memcpy(piv, next_iv, 16);
 		in += 16;
 		out += 16;
 	}
