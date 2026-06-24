@@ -35,6 +35,7 @@ extern int sm2sign_main(int argc, char **argv);
 extern int sm2verify_main(int argc, char **argv);
 extern int sm2encrypt_main(int argc, char **argv);
 extern int sm2decrypt_main(int argc, char **argv);
+extern int sm2exch_main(int argc, char **argv);
 extern int sm3_main(int argc, char **argv);
 extern int sm3hmac_main(int argc, char **argv);
 extern int sm3_pbkdf2_main(int argc, char **argv);
@@ -64,6 +65,9 @@ extern int sm4_cbc_mac_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_ZUC
 extern int zuc_main(int argc, char **argv);
+extern int zuc256_main(int argc, char **argv);
+extern int zuc_128_eea3_main(int argc, char **argv);
+extern int zuc_128_eia3_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_GHASH
 extern int ghash_main(int argc, char **argv);
@@ -75,6 +79,7 @@ extern int sm9sign_main(int argc, char **argv);
 extern int sm9verify_main(int argc, char **argv);
 extern int sm9encrypt_main(int argc, char **argv);
 extern int sm9decrypt_main(int argc, char **argv);
+extern int sm9exch_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_CMS
 extern int cmsparse_main(int argc, char **argv);
@@ -91,6 +96,10 @@ extern int tls12_server_main(int argc, char **argv);
 extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
 extern int sctverify_main(int argc, char **argv);
+#endif
+#ifdef ENABLE_QUIC
+extern int quic_client_main(int argc, char **argv);
+extern int quic_server_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_SECP256R1
 extern int p256keygen_main(int argc, char **argv);
@@ -147,9 +156,11 @@ static const char *options =
 	"  sm2verify         Verify SM2 signature\n"
 	"  sm2encrypt        Encrypt with SM2 public key\n"
 	"  sm2decrypt        Decrypt with SM2 private key\n"
+	"  sm2exch           SM2 key exchange\n"
 	"  sm3               Generate SM3 hash\n"
 	"  sm3hmac           Generate SM3 HMAC tag\n"
 	"  sm3_pbkdf2        Hash password into key using PBKDF2 algoritm\n"
+	"  sm4               Encrypt or decrypt with SM4\n"
 	"  sm4_gcm           Encrypt or decrypt with SM4 GCM\n"
 	"  sm4_cbc           Encrypt or decrypt with SM4 CBC\n"
 	"  sm4_ctr           Encrypt or decrypt with SM4 CTR\n"
@@ -179,6 +190,9 @@ static const char *options =
 #endif
 #ifdef ENABLE_ZUC
 	"  zuc               Encrypt or decrypt with ZUC\n"
+	"  zuc256            Encrypt or decrypt with ZUC-256\n"
+	"  zuc_128_eea3      Encrypt or decrypt with ZUC 128-EEA3\n"
+	"  zuc_128_eia3      Generate ZUC 128-EIA3 MAC\n"
 #endif
 #ifdef ENABLE_SM9
 	"  sm9setup          Generate SM9 master secret\n"
@@ -187,6 +201,7 @@ static const char *options =
 	"  sm9verify         Verify SM9 signature\n"
 	"  sm9encrypt        SM9 public key encryption\n"
 	"  sm9decrypt        SM9 decryption\n"
+	"  sm9exch           SM9 key exchange\n"
 #endif
 	"  reqgen            Generate certificate signing request (CSR)\n"
 	"  reqsign           Generate certificate from CSR\n"
@@ -260,6 +275,10 @@ static const char *options =
 	"  tls13_client      TLS 1.3 client\n"
 	"  tls13_server      TLS 1.3 server\n"
 #endif
+#ifdef ENABLE_QUIC
+	"  quic_client       QUIC client\n"
+	"  quic_server       QUIC server\n"
+#endif
 	"\n"
 	"run `gmssl <command> -help` to print help of the given command\n"
 	"\n";
@@ -326,6 +345,8 @@ int main(int argc, char **argv)
 			return sm2encrypt_main(argc, argv);
 		} else if (!strcmp(*argv, "sm2decrypt")) {
 			return sm2decrypt_main(argc, argv);
+		} else if (!strcmp(*argv, "sm2exch")) {
+			return sm2exch_main(argc, argv);
 		} else if (!strcmp(*argv, "sm3")) {
 			return sm3_main(argc, argv);
 		} else if (!strcmp(*argv, "sm3hmac")) {
@@ -373,6 +394,12 @@ int main(int argc, char **argv)
 #ifdef ENABLE_ZUC
 		} else if (!strcmp(*argv, "zuc")) {
 			return zuc_main(argc, argv);
+		} else if (!strcmp(*argv, "zuc256")) {
+			return zuc256_main(argc, argv);
+		} else if (!strcmp(*argv, "zuc_128_eea3")) {
+			return zuc_128_eea3_main(argc, argv);
+		} else if (!strcmp(*argv, "zuc_128_eia3")) {
+			return zuc_128_eia3_main(argc, argv);
 #endif
 #ifdef ENABLE_SM9
 		} else if (!strcmp(*argv, "sm9setup")) {
@@ -387,6 +414,8 @@ int main(int argc, char **argv)
 			return sm9encrypt_main(argc, argv);
 		} else if (!strcmp(*argv, "sm9decrypt")) {
 			return sm9decrypt_main(argc, argv);
+		} else if (!strcmp(*argv, "sm9exch")) {
+			return sm9exch_main(argc, argv);
 #endif
 #ifdef ENABLE_CMS
 		} else if (!strcmp(*argv, "cmsparse")) {
@@ -415,6 +444,12 @@ int main(int argc, char **argv)
 			return tls13_server_main(argc, argv);
 		} else if (!strcmp(*argv, "sctverify")) {
 			return sctverify_main(argc, argv);
+#endif
+#ifdef ENABLE_QUIC
+		} else if (!strcmp(*argv, "quic_client")) {
+			return quic_client_main(argc, argv);
+		} else if (!strcmp(*argv, "quic_server")) {
+			return quic_server_main(argc, argv);
 #endif
 #ifdef ENABLE_SECP256R1
 		} else if (!strcmp(*argv, "p256keygen")) {

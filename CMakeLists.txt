@@ -221,7 +221,7 @@ set(src
 set(tools
 	tools/gmssl.c
 	tools/version.c
-	tools/sm4.c
+#	tools/sm4.c
 	tools/sm4_cbc.c
 	tools/sm4_ctr.c
 	tools/sm4_gcm.c
@@ -233,6 +233,7 @@ set(tools
 	tools/sm2verify.c
 	tools/sm2encrypt.c
 	tools/sm2decrypt.c
+	tools/sm2exch.c
 	tools/rand.c
 	tools/certgen.c
 	tools/certparse.c
@@ -507,7 +508,8 @@ if (ENABLE_SM9)
 		tools/sm9sign.c
 		tools/sm9verify.c
 		tools/sm9encrypt.c
-		tools/sm9decrypt.c)
+		tools/sm9decrypt.c
+		tools/sm9exch.c)
 	list(APPEND tests sm9)
 endif()
 
@@ -657,7 +659,11 @@ if (ENABLE_ZUC)
 	message(STATUS "ENABLE_ZUC is ON")
 	add_definitions(-DENABLE_ZUC)
 	list(APPEND src src/zuc.c src/zuc_modes.c)
-	list(APPEND tools tools/zuc.c)
+	list(APPEND tools
+		tools/zuc.c
+		tools/zuc256.c
+		tools/zuc_128_eea3.c
+		tools/zuc_128_eia3.c)
 	list(APPEND tests zuc)
 endif()
 
@@ -1010,7 +1016,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1168")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1169")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

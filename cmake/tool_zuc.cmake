@@ -8,3 +8,25 @@ gmssl_run(zuc -key ${ZUC_KEY} -iv ${ZUC_IV} -in tool_zuc.plain -out tool_zuc.cip
 gmssl_expect_file_hex(tool_zuc.cipher "178fec4735b5b4edbfed84d4fc7cda00")
 gmssl_run(zuc -key ${ZUC_KEY} -iv ${ZUC_IV} -in tool_zuc.cipher -out tool_zuc.decrypt)
 gmssl_files_equal(tool_zuc.plain tool_zuc.decrypt)
+
+gmssl_run(zuc_128_eea3
+	-key 173d14ba5003731d7a60049470f00a29
+	-count 0x66035492 -bearer 15 -direction 0
+	-in_hex 6cf65340735552ab0c9752fa6f9025fe0bd675d9005875b2
+	-out tool_zuc_128_eea3.cipher)
+gmssl_expect_file_hex(tool_zuc_128_eea3.cipher
+	"a6c85fc66afb8533aafc2518dfe784940ee1e4b030238cc8")
+gmssl_expect_stdout("390a91b7\n" zuc_128_eia3
+	-key 00000000000000000000000000000000
+	-count 0 -bearer 0 -direction 0 -in_hex 00)
+
+gmssl_run(zuc256
+	-key 0000000000000000000000000000000000000000000000000000000000000000
+	-iv 0000000000000000000000000000000000000000000000
+	-in tool_zuc.plain -out tool_zuc256.cipher)
+gmssl_expect_file_hex(tool_zuc256.cipher "68e108e51a361ad5e2c509585ad9ae65")
+gmssl_run(zuc256
+	-key 0000000000000000000000000000000000000000000000000000000000000000
+	-iv 0000000000000000000000000000000000000000000000
+	-in tool_zuc256.cipher -out tool_zuc256.decrypt)
+gmssl_files_equal(tool_zuc.plain tool_zuc256.decrypt)

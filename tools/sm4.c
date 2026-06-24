@@ -27,8 +27,6 @@ enum {
 	SM4_MODE_XTS,
 	SM4_MODE_CCM,
 	SM4_MODE_GCM,
-	SM4_MODE_CBC_SM3_HMAC,
-	SM4_MODE_CTR_SM3_HMAC,
 };
 
 static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)
@@ -188,8 +186,6 @@ static const char *options =
 "    -ctr                CTR mode, need 16-byte key and 16-byte iv\n"
 "    -ccm                CCM mode, need 16-byte key and any iv length\n"
 "    -gcm                GCM mode, need 16-byte key and any iv length\n"
-"    -cbc_sm3_hmac       CBC mode with padding and HMAC-SM3 (encrypt-then-mac), need 48-byte key and 16-byte iv\n"
-"    -ctr_sm3_hmac       CTR mode with HMAC-SM3 (entrypt-then-mac), need 48-byte key and 16-byte iv\n"
 "    -xts                XTS mode\n"
 "\n"
 "    -encrypt            Encrypt\n"
@@ -205,13 +201,6 @@ static const char *options =
 "\n"
 "  echo \"hello\" | gmssl sm4 -gcm -encrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -out ciphertext.bin\n"
 "  gmssl sm4 -gcm -decrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -in ciphertext.bin\n"
-"\n"
-"  echo \"hello\" | gmssl sm4 -cbc_sm3_hmac -encrypt \\\n"
-"                       -key 112233445566778811223344556677881122334455667788112233445566778811223344556677881122334455667788 \\\n"
-"                       -iv 11223344556677881122334455667788 -out ciphertext.bin\n"
-"  gmssl sm4 -cbc_sm3_hmac -decrypt \\\n"
-"                       -key 112233445566778811223344556677881122334455667788112233445566778811223344556677881122334455667788 \\\n"
-"                       -iv 11223344556677881122334455667788 -in ciphertext.bin\n"
 "\n";
 
 int sm4_main(int argc, char **argv)
@@ -322,12 +311,6 @@ int sm4_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-ctr")) {
 			if (mode) goto bad;
 			mode = SM4_MODE_CTR;
-		} else if (!strcmp(*argv, "-cbc_sm3_hmac")) {
-			if (mode) goto bad;
-			mode = SM4_MODE_CBC_SM3_HMAC;
-		} else if (!strcmp(*argv, "-ctr_sm3_hmac")) {
-			if (mode) goto bad;
-			mode = SM4_MODE_CTR_SM3_HMAC;
 		} else if (!strcmp(*argv, "-gcm")) {
 			if (mode) goto bad;
 			mode = SM4_MODE_GCM;
@@ -449,9 +432,6 @@ bad:
 #ifdef ENABLE_SM4_XTS
 	case SM4_MODE_XTS:
 #endif
-	case SM4_MODE_CBC_SM3_HMAC:
-	case SM4_MODE_CTR_SM3_HMAC:
-		break;
 	default:
 		fprintf(stderr, "%s: mode is not supported\n", prog);
 		goto end;
@@ -477,13 +457,6 @@ bad:
 			goto end;
 		}
 		break;
-	case SM4_MODE_CBC_SM3_HMAC:
-	case SM4_MODE_CTR_SM3_HMAC:
-		if (keylen != 48) {
-			fprintf(stderr, "%s: invalid key length, should be 96 hex digits\n", prog);
-			goto end;
-		}
-		break;
 	}
 
 	// check iv length
@@ -498,8 +471,6 @@ bad:
 	case SM4_MODE_CFB:
 	case SM4_MODE_OFB:
 	case SM4_MODE_CTR:
-	case SM4_MODE_CBC_SM3_HMAC:
-	case SM4_MODE_CTR_SM3_HMAC:
 		if (ivlen != 16) {
 			fprintf(stderr, "%s: invalid IV length, should be 32 hex digits\n", prog);
 			goto end;
@@ -613,7 +584,6 @@ bad:
 				goto end;
 			}
 		}
-
 		switch (mode) {
 #ifdef ENABLE_SM4_ECB
 		case SM4_MODE_ECB: rv = sm4_ecb_encrypt_finish(&sm4_ctx.ecb, outbuf, &outlen); break;
@@ -688,7 +658,6 @@ bad:
 				goto end;
 			}
 		}
-
 		switch (mode) {
 #ifdef ENABLE_SM4_ECB
 		case SM4_MODE_ECB: rv = sm4_ecb_decrypt_finish(&sm4_ctx.ecb, outbuf, &outlen); break;

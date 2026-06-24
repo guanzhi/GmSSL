@@ -13,6 +13,9 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <gmssl/digest.h>
+#include <gmssl/tls.h>
 
 
 #ifdef __cplusplus
@@ -30,6 +33,40 @@ extern "C" {
 #define QUIC_TRANSPORT_PARAM_MAX_COUNT	32
 #define QUIC_TRANSPORT_PARAM_MAX_SIZE	512
 
+
+typedef enum {
+	QUIC_packet_initial		= 0,
+	QUIC_packet_0_rtt		= 1,
+	QUIC_packet_handshake		= 2,
+	QUIC_packet_retry		= 3,
+} QUIC_PACKET_TYPE;
+
+typedef enum {
+	QUIC_frame_padding		= 0x00,
+	QUIC_frame_ping			= 0x01,
+	QUIC_frame_ack			= 0x02,
+	QUIC_frame_ack_ecn		= 0x03,
+	QUIC_frame_reset_stream		= 0x04,
+	QUIC_frame_stop_sending		= 0x05,
+	QUIC_frame_crypto		= 0x06,
+	QUIC_frame_new_token		= 0x07,
+	QUIC_frame_stream_base		= 0x08,
+	QUIC_frame_max_data		= 0x10,
+	QUIC_frame_max_stream_data	= 0x11,
+	QUIC_frame_max_streams_bidi	= 0x12,
+	QUIC_frame_max_streams_uni	= 0x13,
+	QUIC_frame_data_blocked		= 0x14,
+	QUIC_frame_stream_data_blocked	= 0x15,
+	QUIC_frame_streams_blocked_bidi	= 0x16,
+	QUIC_frame_streams_blocked_uni	= 0x17,
+	QUIC_frame_new_connection_id	= 0x18,
+	QUIC_frame_retire_connection_id	= 0x19,
+	QUIC_frame_path_challenge	= 0x1a,
+	QUIC_frame_path_response		= 0x1b,
+	QUIC_frame_connection_close	= 0x1c,
+	QUIC_frame_connection_close_app	= 0x1d,
+	QUIC_frame_handshake_done	= 0x1e,
+} QUIC_FRAME_TYPE;
 
 typedef enum {
 	QUIC_transport_param_original_destination_connection_id		= 0x00,
@@ -71,6 +108,25 @@ typedef struct {
 } QUIC_INITIAL_KEYS;
 
 typedef struct {
+	int cipher_suite;
+	uint8_t key[QUIC_INITIAL_KEY_SIZE];
+	uint8_t iv[QUIC_INITIAL_IV_SIZE];
+	uint8_t hp[QUIC_INITIAL_HP_KEY_SIZE]; /* hp is Header Protection. QUIC protects packet number bytes and selected header bits separately from payload AEAD. */
+} QUIC_PACKET_KEYS;
+
+typedef struct {
+	int type;
+	uint64_t packet_number;
+	size_t packet_len;
+	uint8_t dcid[20];
+	size_t dcid_len;
+	uint8_t scid[20];
+	size_t scid_len;
+	uint8_t plaintext[4096];
+	size_t plaintext_len;
+} QUIC_DECRYPTED_PACKET;
+
+typedef struct {
 	uint64_t id;
 	uint8_t data[QUIC_TRANSPORT_PARAM_MAX_SIZE];
 	size_t datalen;
@@ -104,6 +160,30 @@ int quic_derive_initial_secrets(const uint8_t *dcid, size_t dcid_len, QUIC_INITI
 int quic_derive_initial_client_keys(const QUIC_INITIAL_SECRETS *secrets, QUIC_INITIAL_KEYS *keys);
 int quic_derive_initial_server_keys(const QUIC_INITIAL_SECRETS *secrets, QUIC_INITIAL_KEYS *keys);
 int quic_derive_initial_keys(const uint8_t secret[QUIC_INITIAL_SECRET_SIZE], QUIC_INITIAL_KEYS *keys);
+int quic_packet_keys_derive(const DIGEST *digest, const uint8_t secret[32], int cipher_suite, QUIC_PACKET_KEYS *keys);
+int quic_packet_keys_from_initial(const QUIC_INITIAL_KEYS *initial_keys, QUIC_PACKET_KEYS *keys);
+
+int quic_packet_total_length(const uint8_t *packet, size_t packet_len, size_t *total_len);
+int quic_long_packet_decrypt(const QUIC_PACKET_KEYS *keys, const uint8_t *packet, size_t packet_len, int expected_type, QUIC_DECRYPTED_PACKET *out);
+int quic_long_packet_encrypt(const QUIC_PACKET_KEYS *keys, int type, const uint8_t *dcid, size_t dcid_len,
+	const uint8_t *scid, size_t scid_len, uint64_t packet_number, const uint8_t *frames, size_t frames_len,
+	uint8_t *packet, size_t *packet_len);
+int quic_short_packet_decrypt(const QUIC_PACKET_KEYS *keys, const uint8_t *packet, size_t packet_len,
+	const uint8_t *dcid, size_t dcid_len, QUIC_DECRYPTED_PACKET *out);
+int quic_short_packet_encrypt(const QUIC_PACKET_KEYS *keys, const uint8_t *dcid, size_t dcid_len,
+	uint64_t packet_number, const uint8_t *frames, size_t frames_len, uint8_t *packet, size_t *packet_len);
+
+int quic_client_hello_to_bytes_ex(TLS_CONNECT *conn, const QUIC_TRANSPORT_PARAMS *params, uint8_t **out, size_t *outlen);
+int quic_client_hello_to_bytes(TLS_CONNECT *conn, uint8_t **out, size_t *outlen);
+int quic_server_hello_to_bytes(TLS_CONNECT *conn, uint8_t **out, size_t *outlen);
+
+const char *quic_packet_type_name(int type);
+const char *quic_frame_type_name(uint64_t type);
+const char *quic_encryption_level_name(int level);
+int quic_packet_print(FILE *fp, int fmt, int ind, const uint8_t *packet, size_t packetlen);
+int quic_frames_print(FILE *fp, int fmt, int ind, int level, const uint8_t *frames, size_t frameslen);
+int quic_frame_print(FILE *fp, int fmt, int ind, int level, const uint8_t **in, size_t *inlen);
+int quic_crypto_data_print(FILE *fp, int fmt, int ind, int level, const uint8_t *data, size_t datalen);
 
 
 #ifdef __cplusplus

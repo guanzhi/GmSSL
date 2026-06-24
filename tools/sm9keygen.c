@@ -17,12 +17,13 @@
 #include <gmssl/error.h>
 
 
-static const char *usage = "-alg (sm9sign|sm9encrypt) -in master_key.pem -inpass str -id str [-out pem] -outpass str";
+static const char *usage = "-alg (sm9sign|sm9encrypt|sm9keyagreement) -in master_key.pem -inpass str -id str [-out pem] -outpass str";
 
 static const char *options =
 "Options\n"
 "\n"
-"    -alg sm9sign|sm9encrypt     Generate maeter key for sm9sign or sm9encrypt\n"
+"    -alg sm9sign|sm9encrypt|sm9keyagreement\n"
+"                                 Generate user's private key for sm9sign, sm9encrypt or sm9keyagreement\n"
 "    -in pem                     SM9 master private key in PEM format\n"
 "    -inpass pass                Password to decrypt the master private key\n"
 "    -id str                     User's identity\n"
@@ -36,6 +37,7 @@ static const char *options =
 "\n"
 "    $ gmssl sm9setup -alg sm9encrypt -pass P@ssw0rd -out sm9enc_msk.pem\n"
 "    $ gmssl sm9keygen -alg sm9encrypt -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9enc.pem -outpass 123456\n"
+"    $ gmssl sm9keygen -alg sm9keyagreement -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9exch.pem -outpass 123456\n"
 "\n";
 
 int sm9keygen_main(int argc, char **argv)
@@ -60,19 +62,20 @@ int sm9keygen_main(int argc, char **argv)
 	argv++;
 
 	if (argc < 1) {
-		fprintf(stderr, "usage: %s %s\n", prog, options);
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
 		return 1;
 	}
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			fprintf(stdout, "usage: %s %s\n", prog, options);
+			fprintf(stdout, "usage: gmssl %s %s\n", prog, usage);
+			fprintf(stdout, "%s\n", options);
 			return 0;
 		} else if (!strcmp(*argv, "-alg")) {
 			if (--argc < 1) goto bad;
 			alg = *(++argv);
 			if ((oid = sm9_oid_from_name(alg)) < 1) {
-				fprintf(stdout, "%s: invalid alg '%s', should be sm9sign or sm9encrypt\n", prog, alg);
+				fprintf(stdout, "%s: invalid alg '%s', should be sm9sign, sm9encrypt or sm9keyagreement\n", prog, alg);
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-in")) {
@@ -130,6 +133,14 @@ bad:
 	case OID_sm9encrypt:
 		if (sm9_enc_master_key_info_decrypt_from_pem(&enc_msk, inpass, infp) != 1
 			|| sm9_enc_master_key_extract_key(&enc_msk, id, strlen(id), &enc_key) != 1
+			|| sm9_enc_key_info_encrypt_to_pem(&enc_key, outpass, outfp) != 1) {
+			error_print();
+			goto end;
+		}
+		break;
+	case OID_sm9keyagreement:
+		if (sm9_enc_master_key_info_decrypt_from_pem(&enc_msk, inpass, infp) != 1
+			|| sm9_exch_master_key_extract_key(&enc_msk, id, strlen(id), &enc_key) != 1
 			|| sm9_enc_key_info_encrypt_to_pem(&enc_key, outpass, outfp) != 1) {
 			error_print();
 			goto end;

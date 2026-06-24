@@ -1,0 +1,35 @@
+"\n"
+"Supported cipher suites:\n"
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2)
+"      TLS_AES_128_GCM_SHA256\n"
+#ifdef ENABLE_AES_CCM
+"      TLS_AES_128_CCM_SHA256\n"
+#endif
+#endif
+"      TLS_SM4_GCM_SM3\n"
+#ifdef ENABLE_SM4_CCM
+"      TLS_SM4_CCM_SM3\n"
+#endif
+"\n"
+"Examples\n"
+"\n"
+"    gmssl quic_server -port 4433 -cert p256_tls_server_certs.pem -key p256_tls_server_key.pem \\\n"
+"        -pass P@ssw0rd -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 \\\n"
+"        -sig_alg ecdsa_secp256r1_sha256 -verbose\n"
+"    gmssl quic_client -host 127.0.0.1 -port 4433 -server_name localhost \\\n"
+"        -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 \\\n"
+"        -sig_alg ecdsa_secp256r1_sha256 -get / -verbose\n"
+"\n"
+"    gmssl quic_server -port 4434 -cert sm2_tls_server_certs.pem -key sm2_tls_server_key.pem \\\n"
+"        -pass P@ssw0rd -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 \\\n"
+"        -sig_alg sm2sig_sm3 -verbose\n"
+"    gmssl quic_client -host 127.0.0.1 -port 4434 -server_name localhost \\\n"
+"        -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
+"        -get / -verbose\n"
+"\n"
+"    ngtcp2/examples/osslserver --groups=P-256 --ciphers=TLS_AES_128_GCM_SHA256 \\\n"
+"        -d htdocs 127.0.0.1 4435 p256-key.pem p256-cert.pem\n"
+"    gmssl quic_client -host 127.0.0.1 -port 4435 -server_name localhost \\\n"
+"        -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 \\\n"
+"        -sig_alg ecdsa_secp256r1_sha256 -get / -verbose\n"
+"\n"
