@@ -39,6 +39,8 @@ set(GMSSL_DEFAULT_ENABLE_SM4_AVX2 OFF)
 set(GMSSL_DEFAULT_ENABLE_SM4_AESNI OFF)
 set(GMSSL_DEFAULT_ENABLE_SM2_AMD64 OFF)
 set(GMSSL_DEFAULT_ENABLE_SM3_SSE OFF)
+set(GMSSL_DEFAULT_ENABLE_LMS_CL OFF)
+set(GMSSL_DEFAULT_ENABLE_XMSS_CL OFF)
 
 if (NOT MSVC)
 	if (GMSSL_TARGET_PROCESSOR MATCHES "^(aarch64|arm64)$")
@@ -89,6 +91,21 @@ if (NOT MSVC)
 	endif()
 endif()
 
+if (APPLE)
+	include(CheckCSourceCompiles)
+	set(GMSSL_CMAKE_REQUIRED_LIBRARIES_SAVE "${CMAKE_REQUIRED_LIBRARIES}")
+	set(CMAKE_REQUIRED_LIBRARIES "-framework OpenCL")
+	check_c_source_compiles(
+		"#include <OpenCL/OpenCL.h>
+		int main(void) { cl_uint n = 0; clGetPlatformIDs(0, 0, &n); return 0; }"
+		GMSSL_HAVE_MACOS_OPENCL)
+	set(CMAKE_REQUIRED_LIBRARIES "${GMSSL_CMAKE_REQUIRED_LIBRARIES_SAVE}")
+	if (GMSSL_HAVE_MACOS_OPENCL)
+		set(GMSSL_DEFAULT_ENABLE_LMS_CL ON)
+		set(GMSSL_DEFAULT_ENABLE_XMSS_CL ON)
+	endif()
+endif()
+
 option(ENABLE_TEST_SPEED "Enable test speed" OFF)
 option(ENABLE_SLOW_TEST "Enable slow tests" OFF)
 
@@ -112,8 +129,8 @@ option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" ${GMSSL_DEFAULT_E
 
 option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
 option(ENABLE_SM4_CL "Enable SM4 OpenCL" OFF)
-option(ENABLE_LMS_CL "Enable LMS OpenCL" OFF)
-option(ENABLE_XMSS_CL "Enable XMSS OpenCL" OFF)
+option(ENABLE_LMS_CL "Enable LMS OpenCL" ${GMSSL_DEFAULT_ENABLE_LMS_CL})
+option(ENABLE_XMSS_CL "Enable XMSS OpenCL" ${GMSSL_DEFAULT_ENABLE_XMSS_CL})
 
 
 option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
@@ -981,7 +998,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1165")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1166")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

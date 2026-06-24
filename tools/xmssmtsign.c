@@ -15,9 +15,6 @@
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
 #include <gmssl/xmss.h>
-#ifdef ENABLE_XMSS_CL
-#include <gmssl/xmss_cl.h>
-#endif
 
 static const char *usage = "-key file [-in file] [-out file] [-verbose]\n";
 
@@ -72,15 +69,8 @@ int xmssmtsign_main(int argc, char **argv)
 	XMSSMT_SIGN_CTX ctx;
 	uint8_t sig[XMSSMT_SIGNATURE_MAX_SIZE];
 	size_t siglen;
-#ifdef ENABLE_XMSS_CL
-	XMSS_CL_CTX cl_ctx;
-	int cl_inited = 0;
-#endif
 
 	memset(&key, 0, sizeof(key));
-#ifdef ENABLE_XMSS_CL
-	memset(&cl_ctx, 0, sizeof(cl_ctx));
-#endif
 
 	argc--;
 	argv++;
@@ -136,14 +126,6 @@ bad:
 		goto end;
 	}
 
-#ifdef ENABLE_XMSS_CL
-	if (xmss_cl_init(&cl_ctx) != 1) {
-		error_print();
-		goto end;
-	}
-	cl_inited = 1;
-#endif
-
 	if (xmssmt_private_key_from_file(&key, keyfp) != 1) {
 		fprintf(stderr, "%s: read private key failure\n", prog);
 		goto end;
@@ -158,17 +140,10 @@ bad:
 		goto end;
 	}
 
-#ifdef ENABLE_XMSS_CL
-	if (xmssmt_cl_sign_init(&cl_ctx, &ctx, &key) != 1) {
-		error_print();
-		goto end;
-	}
-#else
 	if (xmssmt_sign_init(&ctx, &key) != 1) {
 		error_print();
 		goto end;
 	}
-#endif
 
 	while (1) {
 		uint8_t buf[1024];
@@ -196,9 +171,6 @@ bad:
 	ret = 0;
 
 end:
-#ifdef ENABLE_XMSS_CL
-	if (cl_inited) xmss_cl_cleanup(&cl_ctx);
-#endif
 	xmssmt_key_cleanup(&key);
 	gmssl_secure_clear(&ctx, sizeof(ctx));
 	if (keyfp) fclose(keyfp);
