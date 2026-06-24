@@ -52,7 +52,7 @@ int sm9_algor_from_der(int *alg, int *params, const uint8_t **in, size_t *inlen)
 #define PEM_SM9_ENC_PRIVATE_KEY		"ENCRYPTED PRIVATE KEY" //"ENCRYPTED SM9 ENC PRIVATE KEY"
 
 
-#define SM9_MAX_ID_SIZE		(SM2_MAX_ID_SIZE)
+#define SM9_MAX_ID_SIZE		(SM2_MAX_ID_LENGTH)
 
 /*
 SM9SignMasterKey ::= SEQUENCE {
@@ -236,6 +236,28 @@ int sm9_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 #define SM9_EXCH_KEY SM9_ENC_KEY
 #define sm9_exch_master_key_generate(msk) sm9_enc_master_key_generate(msk)
 int sm9_exch_master_key_extract_key(SM9_EXCH_MASTER_KEY *master, const char *id, size_t idlen, SM9_EXCH_KEY *key);
+
+int sm9_key_exchange(int is_initiator,
+	const SM9_EXCH_MASTER_KEY *mpk,
+	const SM9_EXCH_KEY *key, const char *id, size_t idlen,
+	const char *peer_id, size_t peer_idlen,
+	const sm9_z256_t r,
+	const SM9_Z256_POINT *R, const SM9_Z256_POINT *peer_R,
+	size_t shared_key_len, uint8_t *shared_key);
+int sm9_key_exchange_compute_confirm(int is_initiator,
+	const SM9_EXCH_MASTER_KEY *mpk,
+	const SM9_EXCH_KEY *key, const char *id, size_t idlen,
+	const char *peer_id, size_t peer_idlen,
+	const sm9_z256_t r,
+	const SM9_Z256_POINT *R, const SM9_Z256_POINT *peer_R,
+	uint8_t confirm[32]);
+int sm9_key_exchange_verify_confirm(int is_initiator,
+	const SM9_EXCH_MASTER_KEY *mpk,
+	const SM9_EXCH_KEY *key, const char *id, size_t idlen,
+	const char *peer_id, size_t peer_idlen,
+	const sm9_z256_t r,
+	const SM9_Z256_POINT *R, const SM9_Z256_POINT *peer_R,
+	const uint8_t confirm[32]);
 
 int sm9_exch_step_1A(const SM9_EXCH_MASTER_KEY *mpk, const char *idB, size_t idBlen, SM9_Z256_POINT *RA, sm9_z256_t rA);
 int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idAlen, const char *idB, size_t idBlen,

@@ -499,7 +499,8 @@ if (ENABLE_SM9)
 		src/sm9_key.c
 		src/sm9_sign.c
 		src/sm9_enc.c
-		src/sm9_exch.c)
+		src/sm9_exch.c
+		src/sm9_cms.c)
 	list(APPEND tools
 		tools/sm9setup.c
 		tools/sm9keygen.c
@@ -703,6 +704,9 @@ if (ENABLE_QUIC)
 		message(STATUS "ENABLE_QUIC is ON")
 		add_definitions(-DENABLE_QUIC)
 		list(APPEND src src/quic.c)
+		list(APPEND tools
+			tools/quic_client.c
+			tools/quic_server.c)
 		list(APPEND tests quic)
 	else()
 		message(STATUS "ENABLE_QUIC requires ENABLE_TLS and ENABLE_SHA2; disabled")
@@ -1006,7 +1010,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1167")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1168")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

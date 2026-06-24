@@ -1031,6 +1031,10 @@ int test_sm9_z256_exchange()
 	size_t klen = 0x10;
 	uint8_t skA[200];
 	uint8_t skB[200];
+	uint8_t skA_new[200];
+	uint8_t skB_new[200];
+	uint8_t SA[32];
+	uint8_t SB[32];
 	sm9_z256_from_hex(msk.ke, hex_kex);
 	sm9_z256_point_mul_generator(&(msk.Ppube), msk.ke);
 	if (sm9_exch_master_key_extract_key(&msk, (char *)idA, sizeof(idA), &keyA) < 0) goto err; ++j;
@@ -1049,6 +1053,37 @@ int test_sm9_z256_exchange()
 			printf("Exchange key different at byte %zu\n", i);
 			goto err;
 		}
+	} ++j;
+
+	if (sm9_key_exchange(1, &msk, &keyA, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB),
+			rA, &RA, &RB, klen, skA_new) != 1
+		|| sm9_key_exchange(0, &msk, &keyB, (char *)idB, sizeof(idB), (char *)idA, sizeof(idA),
+			randB, &RB, &RA, klen, skB_new) != 1) {
+		goto err;
+	} ++j;
+	if (memcmp(skA, skA_new, klen) != 0 || memcmp(skB, skB_new, klen) != 0
+		|| memcmp(skA_new, skB_new, klen) != 0) {
+		printf("New SM9 key exchange API is not interoperable with step API\n");
+		goto err;
+	} ++j;
+
+	if (sm9_key_exchange_compute_confirm(1, &msk, &keyA, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB),
+			rA, &RA, &RB, SA) != 1
+		|| sm9_key_exchange_compute_confirm(0, &msk, &keyB, (char *)idB, sizeof(idB), (char *)idA, sizeof(idA),
+			randB, &RB, &RA, SB) != 1) {
+		goto err;
+	} ++j;
+	if (sm9_key_exchange_verify_confirm(1, &msk, &keyA, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB),
+			rA, &RA, &RB, SB) != 1
+		|| sm9_key_exchange_verify_confirm(0, &msk, &keyB, (char *)idB, sizeof(idB), (char *)idA, sizeof(idA),
+			randB, &RB, &RA, SA) != 1) {
+		goto err;
+	} ++j;
+
+	SB[0] ^= 0x01;
+	if (sm9_key_exchange_verify_confirm(1, &msk, &keyA, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB),
+			rA, &RA, &RB, SB) != 0) {
+		goto err;
 	} ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
