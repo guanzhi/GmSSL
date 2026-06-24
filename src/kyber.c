@@ -14,7 +14,9 @@
 #include <gmssl/hex.h>
 #include <gmssl/mem.h>
 #include <gmssl/rand.h>
+#include <gmssl/sm3.h>
 #include <gmssl/hkdf.h>
+#include <gmssl/sha3.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/kyber.h>
@@ -22,13 +24,29 @@
 
 void kyber_h_hash(const uint8_t *in, size_t inlen, uint8_t out[32])
 {
-	SM3_CTX ctx;
-	sm3_init(&ctx);
-	sm3_update(&ctx, in, inlen);
-	sm3_finish(&ctx, out);
+	sha3_256(in, inlen, out);
 }
 
 void kyber_g_hash(const uint8_t *in, size_t inlen, uint8_t out[64])
+{
+	sha3_512(in, inlen, out);
+}
+
+/*
+ * Legacy SM3-based Kyber variants kept for compatibility/reference only.
+ * The ML-KEM path above uses FIPS 203 SHA3/SHAKE functions.
+ */
+void kyber_h_hash_sm3(const uint8_t *in, size_t inlen, uint8_t out[32])
+{
+	SM3_CTX ctx;
+
+	sm3_init(&ctx);
+	sm3_update(&ctx, in, inlen);
+	sm3_finish(&ctx, out);
+	gmssl_secure_clear(&ctx, sizeof(ctx));
+}
+
+void kyber_g_hash_sm3(const uint8_t *in, size_t inlen, uint8_t out[64])
 {
 	SM3_CTX ctx;
 	uint8_t ctr[4] = {0};
@@ -43,30 +61,53 @@ void kyber_g_hash(const uint8_t *in, size_t inlen, uint8_t out[64])
 	sm3_update(&ctx, in, inlen);
 	sm3_update(&ctx, ctr, 4);
 	sm3_finish(&ctx, out + 32);
+
+	gmssl_secure_clear(&ctx, sizeof(ctx));
+	gmssl_secure_clear(ctr, sizeof(ctr));
 }
 
-// https://www.cryptosys.net/pki/manpki/pki_prfxof.html
 static int kyber_prf(const uint8_t seed[32], uint8_t N, size_t outlen, uint8_t *out)
 {
-	uint8_t salt[1];
-	uint8_t key[32];
+	uint8_t in[33];
 
-	salt[0] = (uint8_t)N;
+	memcpy(in, seed, 32);
+	in[32] = N;
+	shake256(in, sizeof(in), out, outlen);
+	gmssl_secure_clear(in, sizeof(in));
+	return 1;
+}
+
+static int kyber_prf_sm3(const uint8_t seed[32], uint8_t N, size_t outlen, uint8_t *out)
+{
+	uint8_t key[32];
 
 	if (sm3_hkdf_extract(NULL, 0, seed, 32, key) != 1) {
 		error_print();
 		return -1;
 	}
-	sm3_hkdf_expand(key, &N, 1, outlen, out);
+	if (sm3_hkdf_expand(key, &N, 1, outlen, out) != 1) {
+		gmssl_secure_clear(key, sizeof(key));
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(key, sizeof(key));
 	return 1;
 }
 
-static int kyber_kdf(const uint8_t in[64], uint8_t out[32])
+static int kyber_kdf_sm3(const uint8_t in[64], uint8_t out[32])
 {
 	uint8_t key[32];
-	sm3_hkdf_extract(NULL, 0, in, 64, key);
-	sm3_hkdf_expand(key, NULL, 0, 32, out);
-	gmssl_secure_clear(key, 32);
+
+	if (sm3_hkdf_extract(NULL, 0, in, 64, key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm3_hkdf_expand(key, NULL, 0, 32, out) != 1) {
+		gmssl_secure_clear(key, sizeof(key));
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(key, sizeof(key));
 	return 1;
 }
 
@@ -113,6 +154,51 @@ int kyber_poly_rand(kyber_poly_t r)
 
 int kyber_poly_uniform_sample(kyber_poly_t r, const uint8_t rho[32], uint8_t j, uint8_t i)
 {
+	SHAKE_CTX ctx;
+	uint8_t seed[32 + 2];
+	uint8_t rand[168];
+	size_t n;
+	int16_t *out = r;
+	int16_t *end = r + 256;
+
+	memcpy(seed, rho, 32);
+	seed[32] = j;
+	seed[33] = i;
+	shake128_init(&ctx);
+	shake_update(&ctx, seed, sizeof(seed));
+	shake_finish(&ctx);
+
+	for (;;) {
+		shake_squeeze(&ctx, rand, sizeof(rand));
+		for (n = 0; n < sizeof(rand); n += 3) {
+			int16_t a0 = rand[n] | ((int16_t)(rand[n + 1] & 0xf) << 8);
+			int16_t a1 = (rand[n + 1] >> 4) | ((int16_t)rand[n + 2] << 4);
+
+			if (a0 < KYBER_Q) {
+
+				*out++ = a0;
+				if (out >= end) {
+					goto end;
+				}
+			}
+			if (a1 < KYBER_Q) {
+				*out++ = a1;
+				if (out >= end) {
+					goto end;
+				}
+			}
+		}
+	}
+
+end:
+	gmssl_secure_clear(&ctx, sizeof(ctx));
+	gmssl_secure_clear(seed, sizeof(seed));
+	gmssl_secure_clear(rand, sizeof(rand));
+	return 1;
+}
+
+int kyber_poly_uniform_sample_sm3(kyber_poly_t r, const uint8_t rho[32], uint8_t j, uint8_t i)
+{
 	SM3_CTX ctx;
 	uint8_t seed[32 + 2 + 4];
 	uint8_t rand[32 * 3];
@@ -154,6 +240,9 @@ int kyber_poly_uniform_sample(kyber_poly_t r, const uint8_t rho[32], uint8_t j, 
 	}
 
 end:
+	gmssl_secure_clear(&ctx, sizeof(ctx));
+	gmssl_secure_clear(seed, sizeof(seed));
+	gmssl_secure_clear(rand, sizeof(rand));
 	return 1;
 }
 
@@ -198,6 +287,9 @@ int kyber_poly_cbd_sample(kyber_poly_t r, int eta, const uint8_t secret[32], uin
 		}
 
 		gmssl_secure_clear(bytes, sizeof(bytes));
+	} else {
+		error_print();
+		return -1;
 	}
 
 	for (i = 0; i < 256; i++) {
@@ -586,21 +678,23 @@ int kyber_cpa_key_generate_ex(KYBER_CPA_KEY *key, const uint8_t random[32])
 	kyber_poly_t e[KYBER_K];
 	kyber_poly_t t[KYBER_K];
 	uint8_t d[64];
+	uint8_t g_in[33];
 	uint8_t *rho = d;
 	uint8_t *sigma = d + 32;
 	uint8_t N = 0;
 	int i,j;
 
 	if (random) {
-		memcpy(d, random, 32);
+		memcpy(g_in, random, 32);
 	} else {
-		if (rand_bytes(d, 32) != 1) {
+		if (rand_bytes(g_in, 32) != 1) {
 			error_print();
 			return -1;
 		}
 	}
+	g_in[32] = KYBER_K;
 
-	kyber_g_hash(d, 32, d);
+	kyber_g_hash(g_in, sizeof(g_in), d);
 
 	// AHat[i][j] = Parse(XOR(rho, j, i))
 	for (i = 0; i < KYBER_K; i++) {
@@ -652,6 +746,7 @@ int kyber_cpa_key_generate_ex(KYBER_CPA_KEY *key, const uint8_t random[32])
 	memcpy(key->public_key.rho, rho, 32);
 
 	gmssl_secure_clear(d, sizeof(d));
+	gmssl_secure_clear(g_in, sizeof(g_in));
 	gmssl_secure_clear(s, sizeof(s));
 	gmssl_secure_clear(e, sizeof(e));
 
@@ -677,6 +772,9 @@ int kyber_cpa_public_key_to_bytes(const KYBER_CPA_KEY *key, uint8_t **out, size_
 
 int kyber_cpa_public_key_from_bytes(KYBER_CPA_KEY *key, const uint8_t **in, size_t *inlen)
 {
+	kyber_poly_t t;
+	int i;
+
 	if (!key || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
@@ -685,13 +783,19 @@ int kyber_cpa_public_key_from_bytes(KYBER_CPA_KEY *key, const uint8_t **in, size
 		error_print();
 		return -1;
 	}
-	memset(key, 0, sizeof(*key));
 	memcpy(key->public_key.t, *in, sizeof(key->public_key.t));
 	*in += sizeof(key->public_key.t);
 	*inlen -= sizeof(key->public_key.t);
 	memcpy(key->public_key.rho, *in, sizeof(key->public_key.rho));
 	*in += sizeof(key->public_key.rho);
 	*inlen -= sizeof(key->public_key.rho);
+
+	for (i = 0; i < KYBER_K; i++) {
+		if (kyber_poly_decode12(t, key->public_key.t[i]) != 1) {
+			error_print();
+			return -1;
+		}
+	}
 	return 1;
 }
 
@@ -701,15 +805,15 @@ int kyber_cpa_private_key_to_bytes(const KYBER_CPA_KEY *key, uint8_t **out, size
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_public_key_to_bytes(key, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
 	if (out && *out) {
 		memcpy(*out, key->s, sizeof(key->s));
 		*out += sizeof(key->s);
 	}
 	*outlen += sizeof(key->s);
+	if (kyber_cpa_public_key_to_bytes(key, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -720,10 +824,6 @@ int kyber_cpa_private_key_from_bytes(KYBER_CPA_KEY *key, const uint8_t **in, siz
 		return -1;
 	}
 	memset(key, 0, sizeof(*key));
-	if (kyber_cpa_public_key_from_bytes(key, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
 	if (*inlen < sizeof(key->s)) {
 		error_print();
 		return -1;
@@ -731,6 +831,10 @@ int kyber_cpa_private_key_from_bytes(KYBER_CPA_KEY *key, const uint8_t **in, siz
 	memcpy(key->s, *in, sizeof(key->s));
 	*in += sizeof(key->s);
 	*inlen -= sizeof(key->s);
+	if (kyber_cpa_public_key_from_bytes(key, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -932,8 +1036,8 @@ int kyber_cpa_encrypt(const KYBER_CPA_KEY *key, const uint8_t in[32],
 		kyber_poly_encode10(u[i], out->c1[i]);
 	}
 
-	// c2 = Encode4(Compress(v, 4))
-	kyber_poly_compress(v, 4, v);
+	// c2 = Encode4(Compress(v, KYBER_DV))
+	kyber_poly_compress(v, KYBER_DV, v);
 	kyber_poly_encode4(v, out->c2);
 
 	gmssl_secure_clear(m, sizeof(m));
@@ -962,7 +1066,7 @@ int kyber_cpa_decrypt(const KYBER_CPA_KEY *key, const KYBER_CPA_CIPHERTEXT *in, 
 
 	// v = Decompress(Decode_dv(c2), dv)
 	kyber_poly_decode4(v, in->c2);
-	kyber_poly_decompress(v, 4, v);
+	kyber_poly_decompress(v, KYBER_DV, v);
 
 
 	// s = Decode_12(sk)
@@ -997,20 +1101,46 @@ int kyber_cpa_decrypt(const KYBER_CPA_KEY *key, const KYBER_CPA_CIPHERTEXT *in, 
 
 int kyber_key_generate_ex(KYBER_KEY *key, const uint8_t random[32])
 {
+	uint8_t seed[64];
+
 	if (!key) {
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_key_generate_ex(&key->cpa_key, random) != 1) {
+	if (random) {
+		memcpy(seed, random, 32);
+	} else if (rand_bytes(seed, 32) != 1) {
 		error_print();
 		return -1;
 	}
-	kyber_h_hash((uint8_t *)key, sizeof(KYBER_CPA_PUBLIC_KEY), key->pk_hash);
-	if (rand_bytes(key->z, 32) != 1) {
-		gmssl_secure_clear(&key->cpa_key, sizeof(KYBER_CPA_KEY));
+	if (rand_bytes(seed + 32, 32) != 1) {
+		gmssl_secure_clear(seed, sizeof(seed));
 		error_print();
 		return -1;
 	}
+	if (kyber_key_generate_from_seed(key, seed) != 1) {
+		gmssl_secure_clear(seed, sizeof(seed));
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(seed, sizeof(seed));
+	return 1;
+}
+
+int kyber_key_generate_from_seed(KYBER_KEY *key, const uint8_t seed[64])
+{
+	if (!key || !seed) {
+		error_print();
+		return -1;
+	}
+	memset(key, 0, sizeof(*key));
+	if (kyber_cpa_key_generate_ex(&key->cpa_key, seed) != 1) {
+		gmssl_secure_clear(key, sizeof(*key));
+		error_print();
+		return -1;
+	}
+	kyber_h_hash((const uint8_t *)&key->cpa_key.public_key, sizeof(KYBER_CPA_PUBLIC_KEY), key->pk_hash);
+	memcpy(key->z, seed + 32, 32);
 	return 1;
 }
 
@@ -1064,6 +1194,8 @@ int kyber_private_key_to_bytes(const KYBER_KEY *key, uint8_t **out, size_t *outl
 
 int kyber_private_key_from_bytes(KYBER_KEY *key, const uint8_t **in, size_t *inlen)
 {
+	uint8_t pk_hash[32];
+
 	if (!key || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
@@ -1084,6 +1216,14 @@ int kyber_private_key_from_bytes(KYBER_KEY *key, const uint8_t **in, size_t *inl
 	memcpy(key->z, *in, sizeof(key->z));
 	*in += sizeof(key->z);
 	*inlen -= sizeof(key->z);
+	kyber_h_hash((const uint8_t *)&key->cpa_key.public_key, sizeof(KYBER_CPA_PUBLIC_KEY), pk_hash);
+	if (gmssl_secure_memcmp(key->pk_hash, pk_hash, sizeof(pk_hash)) != 0) {
+		gmssl_secure_clear(key, sizeof(*key));
+		gmssl_secure_clear(pk_hash, sizeof(pk_hash));
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(pk_hash, sizeof(pk_hash));
 	return 1;
 }
 
@@ -1101,44 +1241,56 @@ int kyber_private_key_print(FILE *fp, int fmt, int ind, const char *label, const
 	return 1;
 }
 
-int kyber_encap(const KYBER_KEY *key, KYBER_CIPHERTEXT *c, uint8_t K[32])
+int kyber_encap_ex(const KYBER_KEY *key, const uint8_t m[32], KYBER_CIPHERTEXT *c, uint8_t K[32])
 {
 	uint8_t m_h[64];
 	uint8_t K_r[64];
-	uint8_t *m = m_h;
 	uint8_t *h = m_h + 32;
 	uint8_t *K_ = K_r;
 	uint8_t *r = K_r + 32;
 
-	// m = rand(32)
-	if (rand_bytes(m, 32) != 1) {
+	if (!key || !m || !c || !K) {
 		error_print();
 		return -1;
 	}
 
-	// m = H(m)
-	kyber_h_hash(m, 32, m);
+	memcpy(m_h, m, 32);
 
 	// h = H(pk)
-	kyber_h_hash((const uint8_t *)key, sizeof(KYBER_PUBLIC_KEY), h);
+	kyber_h_hash((const uint8_t *)&key->cpa_key.public_key, sizeof(KYBER_PUBLIC_KEY), h);
 
 	// (K_, r) = G(m || H(pk))
 	kyber_g_hash(m_h, 64, K_r);
 
 	// c = Kyber.CPA.Enc(pk, m, r)
 	if (kyber_cpa_encrypt(&key->cpa_key, m, r, c) != 1) {
+		gmssl_secure_clear(m_h, sizeof(m_h));
+		gmssl_secure_clear(K_r, sizeof(K_r));
 		error_print();
 		return -1;
 	}
 
-	// H(c)
-	kyber_h_hash((uint8_t *)c, sizeof(KYBER_CIPHERTEXT), r);
-
-	// K = KDF(K_ || H(c))
-	kyber_kdf(K_r, K);
+	memcpy(K, K_, 32);
 
 	gmssl_secure_clear(m_h, sizeof(m_h));
 	gmssl_secure_clear(K_r, sizeof(K_r));
+	return 1;
+}
+
+int kyber_encap(const KYBER_KEY *key, KYBER_CIPHERTEXT *c, uint8_t K[32])
+{
+	uint8_t m[32];
+
+	if (rand_bytes(m, sizeof(m)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_encap_ex(key, m, c, K) != 1) {
+		gmssl_secure_clear(m, sizeof(m));
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(m, sizeof(m));
 	return 1;
 }
 
@@ -1146,15 +1298,29 @@ int kyber_decap(const KYBER_KEY *key, const KYBER_CIPHERTEXT *c, uint8_t K[32])
 {
 	uint8_t m_h[64];
 	uint8_t K_r[64];
+	uint8_t Kbar[32];
+	uint8_t z_c[32 + sizeof(KYBER_CIPHERTEXT)];
 	uint8_t *m = m_h;
 	uint8_t *h = m_h + 32;
-	uint8_t *K_ = K_r;
 	uint8_t *r = K_r + 32;
 	KYBER_CIPHERTEXT c_;
+	uint8_t mask;
+	int diff;
+	int i;
 
+
+	if (!key || !c || !K) {
+		error_print();
+		return -1;
+	}
 
 	// m' = Dec(sk, c)
 	if (kyber_cpa_decrypt(&key->cpa_key, c, m) != 1) {
+		gmssl_secure_clear(m_h, sizeof(m_h));
+		gmssl_secure_clear(K_r, sizeof(K_r));
+		gmssl_secure_clear(Kbar, sizeof(Kbar));
+		gmssl_secure_clear(z_c, sizeof(z_c));
+		gmssl_secure_clear(&c_, sizeof(c_));
 		error_print();
 		return -1;
 	}
@@ -1169,24 +1335,29 @@ int kyber_decap(const KYBER_KEY *key, const KYBER_CIPHERTEXT *c, uint8_t K[32])
 	if (kyber_cpa_encrypt(&key->cpa_key, m, r, &c_) != 1) {
 		gmssl_secure_clear(m_h, sizeof(m_h));
 		gmssl_secure_clear(K_r, sizeof(K_r));
+		gmssl_secure_clear(Kbar, sizeof(Kbar));
+		gmssl_secure_clear(z_c, sizeof(z_c));
+		gmssl_secure_clear(&c_, sizeof(c_));
 		error_print();
 		return -1;
 	}
 
-	// H(c)
-	kyber_h_hash((uint8_t *)c, sizeof(KYBER_CIPHERTEXT), r);
+	memcpy(z_c, key->z, 32);
+	memcpy(z_c + 32, c, sizeof(KYBER_CIPHERTEXT));
+	shake256(z_c, sizeof(z_c), Kbar, sizeof(Kbar));
 
-	if (memcmp(c, &c_, sizeof(KYBER_CIPHERTEXT)) == 0) {
-		// K = KDF(K_||H(c))
-		kyber_kdf(K_r, K);
-	} else {
-		error_print();
-		memcpy(K_r, key->z, 32); // TODO: const time
-		kyber_kdf(K_r, K);
+	memcpy(K, K_r, 32);
+	diff = gmssl_secure_memcmp(c, &c_, sizeof(KYBER_CIPHERTEXT));
+	mask = (uint8_t)(0 - (uint8_t)(diff == 0));
+	for (i = 0; i < 32; i++) {
+		K[i] = (K[i] & mask) | (Kbar[i] & ~mask);
 	}
 
 	gmssl_secure_clear(m_h, sizeof(m_h));
 	gmssl_secure_clear(K_r, sizeof(K_r));
+	gmssl_secure_clear(Kbar, sizeof(Kbar));
+	gmssl_secure_clear(z_c, sizeof(z_c));
+	gmssl_secure_clear(&c_, sizeof(c_));
 	return 1;
 }
 

@@ -42,13 +42,13 @@ extern "C" {
 #define KYBER1024_DU	11
 
 #define KYBER512_DV	4
-#define KYBER769_DV	4
+#define KYBER768_DV	4
 #define KYBER1024_DV	5
 
-#define KYBER_K		KYBER512_K
-#define KYBER_ETA1	KYBER512_ETA1
-#define KYBER_DU	KYBER512_DU
-#define KYBER_DV	KYBER512_DV
+#define KYBER_K		KYBER768_K
+#define KYBER_ETA1	KYBER768_ETA1
+#define KYBER_DU	KYBER768_DU
+#define KYBER_DV	KYBER768_DV
 
 
 #define KYBER_C1_SIZE	((256 * KYBER_DU)/8)
@@ -77,6 +77,8 @@ CRYSTALS-Kyber Algorithm Specifications and Supporing Documentation (version 3.0
 
 void kyber_h_hash(const uint8_t *in, size_t inlen, uint8_t out[32]);
 void kyber_g_hash(const uint8_t *in, size_t inlen, uint8_t out[64]);
+void kyber_h_hash_sm3(const uint8_t *in, size_t inlen, uint8_t out[32]);
+void kyber_g_hash_sm3(const uint8_t *in, size_t inlen, uint8_t out[64]);
 
 
 
@@ -88,6 +90,7 @@ int  kyber_poly_print(FILE *fp, int fmt, int ind, const char *label, const kyber
 void kyber_poly_set_zero(kyber_poly_t r);
 int  kyber_poly_rand(kyber_poly_t r);
 int  kyber_poly_uniform_sample(kyber_poly_t r, const uint8_t rho[32], uint8_t j, uint8_t i);
+int  kyber_poly_uniform_sample_sm3(kyber_poly_t r, const uint8_t rho[32], uint8_t j, uint8_t i);
 int  kyber_poly_cbd_sample(kyber_poly_t r, int eta, const uint8_t secret[32], uint8_t n);
 int  kyber_poly_equ(const kyber_poly_t a, const kyber_poly_t b);
 void kyber_poly_add(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b);
@@ -165,6 +168,7 @@ typedef struct {
 #define KYBER_PRIVATE_KEY_SIZE	sizeof(KYBER_KEY)
 
 int kyber_key_generate_ex(KYBER_KEY *key, const uint8_t random[32]);
+int kyber_key_generate_from_seed(KYBER_KEY *key, const uint8_t seed[64]);
 int kyber_public_key_to_bytes(const KYBER_KEY *key, uint8_t **out, size_t *outlen);
 int kyber_public_key_from_bytes(KYBER_KEY *key, const uint8_t **in, size_t *inlen);
 int kyber_public_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_KEY *pk);
@@ -178,6 +182,7 @@ int kyber_ciphertext_to_bytes(const KYBER_CIPHERTEXT *ciphertext, uint8_t **out,
 int kyber_ciphertext_from_bytes(KYBER_CIPHERTEXT *ciphertext, const uint8_t **in, size_t *inlen);
 int kyber_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CIPHERTEXT *c);
 
+int kyber_encap_ex(const KYBER_KEY *pk, const uint8_t m[32], KYBER_CIPHERTEXT *c, uint8_t K[32]);
 int kyber_encap(const KYBER_KEY *pk, KYBER_CIPHERTEXT *c, uint8_t K[32]);
 int kyber_decap(const KYBER_KEY *sk, const KYBER_CIPHERTEXT *c, uint8_t K[32]);
 

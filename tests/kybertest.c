@@ -15,6 +15,21 @@
 #include <gmssl/error.h>
 #include <gmssl/kyber.h>
 
+#include "kybertest_mlkem768.h"
+
+
+static int test_hex_to_bytes(const char *hex, uint8_t *out, size_t outlen)
+{
+	size_t len = outlen;
+
+	if (hex_to_bytes(hex, strlen(hex), out, &len) != 1 || len != outlen) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
 
 static int test_kyber_poly_uniform_sample(void)
 {
@@ -506,6 +521,91 @@ static int test_kyber_kem(void)
 	return 1;
 }
 
+static int test_mlkem768_vector(void)
+{
+	uint8_t seed[64];
+	uint8_t m[32];
+	KYBER_KEY key;
+	KYBER_CIPHERTEXT c;
+	uint8_t K[32];
+	uint8_t K_[32];
+	uint8_t expected_ek[KYBER_PUBLIC_KEY_SIZE];
+	uint8_t expected_dk[KYBER_PRIVATE_KEY_SIZE];
+	uint8_t expected_ct[sizeof(KYBER_CIPHERTEXT)];
+	uint8_t expected_ss[32];
+	uint8_t ek[KYBER_PUBLIC_KEY_SIZE];
+	uint8_t dk[KYBER_PRIVATE_KEY_SIZE];
+	uint8_t ct[sizeof(KYBER_CIPHERTEXT)];
+	uint8_t *p;
+	size_t len;
+	size_t i;
+
+	for (i = 0; i < sizeof(seed); i++) {
+		seed[i] = (uint8_t)i;
+	}
+	for (i = 0; i < sizeof(m); i++) {
+		m[i] = (uint8_t)(0x40 + i);
+	}
+
+	if (test_hex_to_bytes(mlkem768_ek_hex, expected_ek, sizeof(expected_ek)) != 1
+		|| test_hex_to_bytes(mlkem768_dk_hex, expected_dk, sizeof(expected_dk)) != 1
+		|| test_hex_to_bytes(mlkem768_ct_hex, expected_ct, sizeof(expected_ct)) != 1
+		|| test_hex_to_bytes(mlkem768_ss_hex, expected_ss, sizeof(expected_ss)) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (kyber_key_generate_from_seed(&key, seed) != 1) {
+		error_print();
+		return -1;
+	}
+	p = ek;
+	len = 0;
+	if (kyber_public_key_to_bytes(&key, &p, &len) != 1 || len != sizeof(ek)) {
+		error_print();
+		return -1;
+	}
+	p = dk;
+	len = 0;
+	if (kyber_private_key_to_bytes(&key, &p, &len) != 1 || len != sizeof(dk)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(ek, expected_ek, sizeof(ek)) != 0
+		|| memcmp(dk, expected_dk, sizeof(dk)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	if (kyber_encap_ex(&key, m, &c, K) != 1) {
+		error_print();
+		return -1;
+	}
+	p = ct;
+	len = 0;
+	if (kyber_ciphertext_to_bytes(&c, &p, &len) != 1 || len != sizeof(ct)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(ct, expected_ct, sizeof(ct)) != 0
+		|| memcmp(K, expected_ss, sizeof(K)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	if (kyber_decap(&key, &c, K_) != 1) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(K_, expected_ss, sizeof(K_)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_kyber_cpa_key_to_bytes(void)
 {
 	KYBER_CPA_KEY key;
@@ -652,6 +752,7 @@ int main(void)
 	if (test_kyber_key_to_bytes() != 1) goto err;
 	if (test_kyber_cpa_ciphertext_to_bytes() != 1) goto err;
 	if (test_kyber_kem() != 1) goto err;
+	if (test_mlkem768_vector() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
@@ -659,4 +760,3 @@ err:
 	error_print();
 	return 1;
 }
-
