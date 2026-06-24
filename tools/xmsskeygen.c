@@ -15,6 +15,9 @@
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
 #include <gmssl/xmss.h>
+#ifdef ENABLE_XMSS_CL
+#include <gmssl/xmss_cl.h>
+#endif
 
 
 static const char *usage = "-xmss_type type -out file [-pubout file] [-verbose]\n";
@@ -48,8 +51,15 @@ int xmsskeygen_main(int argc, char **argv)
 	uint8_t pubout[XMSS_PUBLIC_KEY_SIZE];
 	uint8_t *ppubout;
 	size_t puboutlen ;
+#ifdef ENABLE_XMSS_CL
+	XMSS_CL_CTX cl_ctx;
+	int cl_inited = 0;
+#endif
 
 	memset(&key, 0, sizeof(key));
+#ifdef ENABLE_XMSS_CL
+	memset(&cl_ctx, 0, sizeof(cl_ctx));
+#endif
 
 	argc--;
 	argv++;
@@ -109,10 +119,22 @@ bad:
 		goto end;
 	}
 
+#ifdef ENABLE_XMSS_CL
+	if (xmss_cl_init(&cl_ctx) != 1) {
+		error_print();
+		goto end;
+	}
+	cl_inited = 1;
+	if (xmss_cl_key_generate(&cl_ctx, &key, xmss_type_val) != 1) {
+		error_print();
+		goto end;
+	}
+#else
 	if (xmss_key_generate(&key, xmss_type_val) != 1) {
 		error_print();
 		return -1;
 	}
+#endif
 	if (verbose) {
 		xmss_public_key_print(stderr, 0, 0, "xmss_public_key", &key);
 	}
@@ -154,6 +176,9 @@ bad:
 
 	ret = 0;
 end:
+#ifdef ENABLE_XMSS_CL
+	if (cl_inited) xmss_cl_cleanup(&cl_ctx);
+#endif
 	xmss_key_cleanup(&key);
 	if (out) {
 		gmssl_secure_clear(out, outlen);

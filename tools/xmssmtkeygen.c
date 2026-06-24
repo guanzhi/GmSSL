@@ -15,6 +15,9 @@
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
 #include <gmssl/xmss.h>
+#ifdef ENABLE_XMSS_CL
+#include <gmssl/xmss_cl.h>
+#endif
 
 
 static const char *usage = "-xmssmt_type type -out file [-pubout file] [-verbose]\n";
@@ -52,8 +55,15 @@ int xmssmtkeygen_main(int argc, char **argv)
 	uint8_t *pout;
 	uint8_t *ppubout = pubout;
 	size_t outlen = 0, puboutlen = 0;
+#ifdef ENABLE_XMSS_CL
+	XMSS_CL_CTX cl_ctx;
+	int cl_inited = 0;
+#endif
 
 	memset(&key, 0, sizeof(key));
+#ifdef ENABLE_XMSS_CL
+	memset(&cl_ctx, 0, sizeof(cl_ctx));
+#endif
 
 	argc--;
 	argv++;
@@ -113,10 +123,22 @@ bad:
 		goto end;
 	}
 
+#ifdef ENABLE_XMSS_CL
+	if (xmss_cl_init(&cl_ctx) != 1) {
+		error_print();
+		goto end;
+	}
+	cl_inited = 1;
+	if (xmssmt_cl_key_generate(&cl_ctx, &key, xmssmt_type_val) != 1) {
+		error_print();
+		goto end;
+	}
+#else
 	if (xmssmt_key_generate(&key, xmssmt_type_val) != 1) {
 		error_print();
 		return -1;
 	}
+#endif
 	if (verbose) {
 		xmssmt_public_key_print(stderr, 0, 0, "xmssmt_public_key", &key);
 	}
@@ -151,6 +173,9 @@ bad:
 
 	ret = 0;
 end:
+#ifdef ENABLE_XMSS_CL
+	if (cl_inited) xmss_cl_cleanup(&cl_ctx);
+#endif
 	xmssmt_key_cleanup(&key);
 	if (out) {
 		gmssl_secure_clear(out, outlen);

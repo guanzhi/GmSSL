@@ -113,6 +113,7 @@ option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" ${GMSSL_DEFAULT_E
 option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
 option(ENABLE_SM4_CL "Enable SM4 OpenCL" OFF)
 option(ENABLE_LMS_CL "Enable LMS OpenCL" OFF)
+option(ENABLE_XMSS_CL "Enable XMSS OpenCL" OFF)
 
 
 option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
@@ -562,6 +563,19 @@ if (ENABLE_XMSS)
 	list(APPEND tests xmss)
 endif()
 
+if (ENABLE_XMSS_CL)
+	if (NOT ENABLE_XMSS)
+		message(FATAL_ERROR "ENABLE_XMSS_CL requires ENABLE_XMSS")
+	endif()
+	message(STATUS "ENABLE_XMSS_CL is ON")
+	add_definitions(-DENABLE_XMSS_CL)
+	if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+		add_definitions(-DMACOS) # to include <OpenCL/OpenCL.h>
+	endif()
+	list(APPEND src src/xmss_cl.c)
+	list(APPEND tests xmss_cl)
+endif()
+
 
 if (ENABLE_SPHINCS)
 	message(STATUS "ENABLE_SPHINCS is ON")
@@ -784,7 +798,7 @@ else()
 	endif()
 endif()
 
-if (ENABLE_SM4_CL OR ENABLE_LMS_CL)
+if (ENABLE_SM4_CL OR ENABLE_LMS_CL OR ENABLE_XMSS_CL)
 	if (APPLE)
 		target_link_libraries(gmssl "-framework OpenCL")
 	else()
@@ -967,7 +981,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1164")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1165")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
