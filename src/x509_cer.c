@@ -2116,7 +2116,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	return 1;
 }
 
-// 只有 TLCP 的服务器证书链才是双证书，客户端证书和TLS12是一样的
+// TLCP ECC server and TLCP ECDHE client certificate chains use dual entity certificates.
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen,
 	const uint8_t *crl, size_t crl_len,
@@ -2143,6 +2143,10 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 	case X509_cert_chain_server:
 		sign_cert_type = X509_cert_server_auth;
 		kenc_cert_type = X509_cert_server_key_encipher;
+		break;
+	case X509_cert_chain_client:
+		sign_cert_type = X509_cert_client_auth;
+		kenc_cert_type = X509_cert_client_key_encipher;
 		break;
 	default:
 		error_print();

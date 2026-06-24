@@ -287,7 +287,7 @@ int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 	return 1;
 }
 
-int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
+static int tlcp_ctx_add_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass)
 {
 	int ret = -1;
@@ -314,7 +314,7 @@ int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 		error_print();
 		return -1;
 	}
-	if (ctx->protocol != TLS_protocol_tlcp || ctx->is_client) {
+	if (ctx->protocol != TLS_protocol_tlcp) {
 		error_print();
 		return -1;
 	}
@@ -397,6 +397,34 @@ end:
 	return ret;
 }
 
+int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
+	const char *keyfile, const char *keypass)
+{
+	if (!ctx || ctx->is_client) {
+		error_print();
+		return -1;
+	}
+	if (tlcp_ctx_add_certificate_and_keys(ctx, chainfile, keyfile, keypass) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tlcp_ctx_add_client_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
+	const char *keyfile, const char *keypass)
+{
+	if (!ctx || !ctx->is_client) {
+		error_print();
+		return -1;
+	}
+	if (tlcp_ctx_add_certificate_and_keys(ctx, chainfile, keyfile, keypass) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass)
 {
@@ -405,6 +433,21 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 		return -1;
 	}
 	if (tlcp_ctx_add_server_certificate_and_keys(ctx, chainfile,
+		keyfile, keypass) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls_ctx_set_tlcp_client_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
+	const char *keyfile, const char *keypass)
+{
+	if (!ctx || ctx->cert_chains_len || ctx->x509_keys_cnt) {
+		error_print();
+		return -1;
+	}
+	if (tlcp_ctx_add_client_certificate_and_keys(ctx, chainfile,
 		keyfile, keypass) != 1) {
 		error_print();
 		return -1;
@@ -583,5 +626,4 @@ int tls12_cert_chains_select(const uint8_t *cert_chains, size_t cert_chains_len,
 
 	return 0;
 }
-
 

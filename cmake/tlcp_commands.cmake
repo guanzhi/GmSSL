@@ -5,6 +5,8 @@ gmssl_require_file(sm2_tlcp_server_certs.pem)
 gmssl_require_file(sm2_tlcp_server_keys.pem)
 gmssl_require_file(sm2_tls_client_certs.pem)
 gmssl_require_file(sm2_tls_client_key.pem)
+gmssl_require_file(sm2_tlcp_client_certs.pem)
+gmssl_require_file(sm2_tlcp_client_keys.pem)
 
 if(NOT DEFINED TEST_CASE)
 	set(TEST_CASE tlcp_sm4_gcm_sni)
@@ -25,6 +27,18 @@ elseif(TEST_CASE STREQUAL tlcp_sm4_gcm_client_cert)
 	set(TEST_PORT 4436)
 	set(TEST_CIPHER_SUITE TLS_ECC_SM4_GCM_SM3)
 	set(TEST_CLIENT_CERT ON)
+elseif(TEST_CASE STREQUAL tlcp_ecdhe_sm4_cbc_client_cert)
+	set(TEST_NAME tlcp_ecdhe_sm4_cbc_client_cert)
+	set(TEST_PORT 4437)
+	set(TEST_CIPHER_SUITE TLS_ECDHE_SM4_CBC_SM3)
+	set(TEST_CLIENT_CERT ON)
+	set(TEST_CLIENT_DOUBLE_CERT ON)
+elseif(TEST_CASE STREQUAL tlcp_ecdhe_sm4_gcm_client_cert)
+	set(TEST_NAME tlcp_ecdhe_sm4_gcm_client_cert)
+	set(TEST_PORT 4438)
+	set(TEST_CIPHER_SUITE TLS_ECDHE_SM4_GCM_SM3)
+	set(TEST_CLIENT_CERT ON)
+	set(TEST_CLIENT_DOUBLE_CERT ON)
 else()
 	message(FATAL_ERROR "unknown TLCP test case: ${TEST_CASE}")
 endif()
@@ -50,10 +64,17 @@ if(TEST_CLIENT_CERT)
 	list(APPEND TEST_SERVER_ARGS
 		-cacert sm2_root_ca_cert.pem
 		-cert_request)
-	list(APPEND TEST_CLIENT_ARGS
-		-cert sm2_tls_client_certs.pem
-		-key sm2_tls_client_key.pem
-		-pass P@ssw0rd)
+	if(TEST_CLIENT_DOUBLE_CERT)
+		list(APPEND TEST_CLIENT_ARGS
+			-cert sm2_tlcp_client_certs.pem
+			-key sm2_tlcp_client_keys.pem
+			-pass P@ssw0rd)
+	else()
+		list(APPEND TEST_CLIENT_ARGS
+			-cert sm2_tls_client_certs.pem
+			-key sm2_tls_client_key.pem
+			-pass P@ssw0rd)
+	endif()
 endif()
 
 gmssl_run_tls_command_test(

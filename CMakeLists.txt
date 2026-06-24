@@ -244,6 +244,7 @@ set(tests
 	sm2_key
 	sm2_sign
 	sm2_enc
+	sm2_exch
 	block_cipher
 	digest
 	hkdf
@@ -873,6 +874,8 @@ if(ENABLE_TLS AND NOT WIN32)
 	add_test(NAME tool_tlcp_sm4_gcm_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_gcm_sni -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
 	add_test(NAME tool_tlcp_sm4_cbc_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_cbc_sni -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
 	add_test(NAME tool_tlcp_sm4_gcm_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_gcm_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
+	add_test(NAME tool_tlcp_ecdhe_sm4_cbc_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_ecdhe_sm4_cbc_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
+	add_test(NAME tool_tlcp_ecdhe_sm4_gcm_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_ecdhe_sm4_gcm_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
 	add_test(NAME tool_tls12_sm4_gcm_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm_sni -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
 	add_test(NAME tool_tls12_sm4_cbc_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_cbc_sni -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
 	add_test(NAME tool_tls12_sm4_gcm_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
@@ -890,6 +893,8 @@ if(ENABLE_TLS AND NOT WIN32)
 		tool_tlcp_sm4_gcm_sni
 		tool_tlcp_sm4_cbc_sni
 		tool_tlcp_sm4_gcm_client_cert
+		tool_tlcp_ecdhe_sm4_cbc_client_cert
+		tool_tlcp_ecdhe_sm4_gcm_client_cert
 		tool_tls12_sm4_gcm_sni
 		tool_tls12_sm4_cbc_sni
 		tool_tls12_sm4_gcm_client_cert
@@ -942,7 +947,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1162")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1163")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

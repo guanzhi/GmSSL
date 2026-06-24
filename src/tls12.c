@@ -14,6 +14,7 @@
 #include <string.h>
 #include <assert.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_ext.h>
 #include <gmssl/error.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
@@ -1676,9 +1677,91 @@ int tls_recv_server_hello_done(TLS_CONNECT *conn)
 	return 1;
 }
 
+static int tlcp_cert_is_encryption_cert(const uint8_t *cert, size_t certlen)
+{
+	int ret;
+	int critical;
+	const uint8_t *exts;
+	size_t extslen;
+	const uint8_t *val;
+	size_t vlen;
+	int bits;
+
+	if (!cert || !certlen) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_cert_get_exts(cert, certlen, &exts, &extslen)) != 1) {
+		if (ret) error_print();
+		return ret;
+	}
+	if ((ret = x509_exts_get_ext_by_oid(exts, extslen, OID_ce_key_usage,
+		&critical, &val, &vlen)) != 1) {
+		if (ret) error_print();
+		return ret;
+	}
+	if (x509_key_usage_from_der(&bits, &val, &vlen) != 1
+		|| asn1_length_is_zero(vlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return (bits & X509_KU_KEY_ENCIPHERMENT) ? 1 : 0;
+}
+
+static int tlcp_client_certs_without_encryption_cert(const uint8_t *certs, size_t certslen,
+	uint8_t *out, size_t *outlen, size_t maxlen)
+{
+	const uint8_t *p = certs;
+	size_t len = certslen;
+	size_t cert_idx = 0;
+
+	if (!certs || !certslen || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+
+	*outlen = 0;
+	while (len) {
+		const uint8_t *cert_der = p;
+		const uint8_t *cert;
+		size_t certlen;
+		size_t derlen;
+		int skip = 0;
+
+		if (x509_cert_from_der(&cert, &certlen, &p, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		derlen = (size_t)(p - cert_der);
+		if (cert_idx == 1) {
+			int ret = tlcp_cert_is_encryption_cert(cert, certlen);
+			if (ret < 0) {
+				error_print();
+				return -1;
+			}
+			skip = ret;
+		}
+		if (!skip) {
+			if (*outlen > maxlen || derlen > maxlen - *outlen) {
+				error_print();
+				return -1;
+			}
+			memcpy(out + *outlen, cert_der, derlen);
+			*outlen += derlen;
+		}
+		cert_idx++;
+	}
+	return 1;
+}
+
 int tls_send_client_certificate(TLS_CONNECT *conn)
 {
 	int ret;
+	const uint8_t *client_certs;
+	size_t client_certs_len;
+	uint8_t client_certs_without_enc[TLS_MAX_CERTIFICATES_SIZE];
+	size_t client_certs_without_enc_len;
+
 	if(conn->verbose) tls_trace("send client Certificate\n");
 
 	if (conn->client_certs_len == 0) {
@@ -1687,8 +1770,23 @@ int tls_send_client_certificate(TLS_CONNECT *conn)
 	}
 
 	if (conn->recordlen == 0) {
+		client_certs = conn->client_certs;
+		client_certs_len = conn->client_certs_len;
+		if (conn->protocol == TLS_protocol_tlcp
+			&& (conn->cipher_suite == TLS_cipher_ecc_sm4_cbc_sm3
+				|| conn->cipher_suite == TLS_cipher_ecc_sm4_gcm_sm3)) {
+			if (tlcp_client_certs_without_encryption_cert(conn->client_certs, conn->client_certs_len,
+				client_certs_without_enc, &client_certs_without_enc_len,
+				sizeof(client_certs_without_enc)) != 1) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_internal_error);
+				return -1;
+			}
+			client_certs = client_certs_without_enc;
+			client_certs_len = client_certs_without_enc_len;
+		}
 		if (tls_record_set_handshake_certificate(conn->record, &conn->recordlen,
-			conn->client_certs, conn->client_certs_len) != 1) {
+			client_certs, client_certs_len) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -2746,6 +2844,30 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 		return -1;
 	}
 	conn->verify_result = verify_result;
+
+	if (conn->protocol == TLS_protocol_tlcp
+		&& (conn->cipher_suite == TLS_cipher_ecdhe_sm4_cbc_sm3
+			|| conn->cipher_suite == TLS_cipher_ecdhe_sm4_gcm_sm3)) {
+		const uint8_t *enc_cert;
+		size_t enc_cert_len;
+
+		if (x509_certs_get_cert_by_index(conn->client_certs, conn->client_certs_len,
+			1, &enc_cert, &enc_cert_len) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
+		ret = tlcp_cert_is_encryption_cert(enc_cert, enc_cert_len);
+		if (ret < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_unsupported_certificate);
+			return -1;
+		}
+	}
 
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {

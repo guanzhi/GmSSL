@@ -187,6 +187,20 @@ gmssl_generate_end_entity(SM2 sm2_tls_client "GmSSL SM2 TLS Client"
 gmssl_write_bundle(sm2_tls_client_certs.pem
 	sm2_tls_client_cert.pem sm2_tls_client_ca_cert.pem)
 
+# SM2 TLCP client chain reuses the SM2 TLS client CA and adds an encryption certificate.
+gmssl_generate_end_entity(SM2 sm2_tlcp_client_sign "GmSSL SM2 TLCP Client"
+	sm2_tls_client_ca_cert.pem sm2_tls_client_ca_key.pem
+	digitalSignature clientAuth "" OFF)
+gmssl_generate_end_entity(SM2 sm2_tlcp_client_enc "GmSSL SM2 TLCP Client"
+	sm2_tls_client_ca_cert.pem sm2_tls_client_ca_key.pem
+	keyEncipherment clientAuth "" OFF)
+gmssl_write_bundle(sm2_tlcp_client_certs.pem
+	sm2_tlcp_client_sign_cert.pem
+	sm2_tlcp_client_enc_cert.pem
+	sm2_tls_client_ca_cert.pem)
+gmssl_write_bundle(sm2_tlcp_client_keys.pem
+	sm2_tlcp_client_sign_key.pem sm2_tlcp_client_enc_key.pem)
+
 # P256 TLS client chain: root -> client CA -> client certificate
 gmssl_generate_ca(P256 p256_tls_client_ca "GmSSL P256 TLS Client CA"
 	p256_root_ca_cert.pem p256_root_ca_key.pem 0)

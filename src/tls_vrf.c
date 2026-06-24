@@ -101,6 +101,17 @@ static int tls12_signature_scheme_from_cipher_suite(int cipher_suite)
 	}
 }
 
+static int tls_cipher_suite_is_tlcp_ecdhe(int cipher_suite)
+{
+	switch (cipher_suite) {
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 static int tls_cert_chain_check_name(const uint8_t *cert_chain, size_t cert_chain_len,
 	const uint8_t *host_name, size_t host_name_len, int *verify_result)
 {
@@ -398,7 +409,10 @@ int tls_cert_chain_verify(
 	}
 
 	if (verify_chain) {
-		if (protocol == TLS_protocol_tlcp && cert_chain_type == X509_cert_chain_server) {
+		if (protocol == TLS_protocol_tlcp
+			&& (cert_chain_type == X509_cert_chain_server
+				|| (cert_chain_type == X509_cert_chain_client
+					&& tls_cipher_suite_is_tlcp_ecdhe(cipher_suite)))) {
 			ret = x509_certs_verify_tlcp(cert_chain, cert_chain_len, cert_chain_type,
 				cacerts, cacerts_len, crl, crl_len, ocsp, ocsp_len,
 				verify_depth, verify_result);

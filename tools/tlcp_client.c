@@ -37,8 +37,8 @@ static const char *help =
 "    -sig_alg str           Supported signature algorithms\n"
 "    -cacert pem            Trusted CA certificate(s) in PEM format\n"
 "    -verify_depth num      Certificate verification depth\n"
-"    -cert pem              Client certificate(s) in PEM format\n"
-"    -key pem               Private key of client certificate in PEM format\n"
+"    -cert pem              Client certificate(s) in PEM format, TLCP ECDHE requires a double certificate chain\n"
+"    -key pem               Private key of client certificate in PEM format, TLCP ECDHE requires signing and encryption keys\n"
 "    -pass password         Password of encrypted private key\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -get path              Send a GET request with given path of URI\n"
@@ -52,6 +52,29 @@ static const char *help =
 "\n"
 #include "tlcp_help.h"
 "\n";
+
+static int tlcp_cipher_suite_is_ecdhe(int cipher_suite)
+{
+	switch (cipher_suite) {
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+static int tlcp_cipher_suites_have_ecdhe(const int *cipher_suites, size_t cipher_suites_cnt)
+{
+	size_t i;
+
+	for (i = 0; i < cipher_suites_cnt; i++) {
+		if (tlcp_cipher_suite_is_ecdhe(cipher_suites[i])) {
+			return 1;
+		}
+	}
+	return 0;
+}
 
 
 static int do_handshake_select(TLS_CONNECT *conn)
@@ -228,6 +251,7 @@ int tlcp_client_main(int argc, char *argv[])
 	char *infile = NULL;
 	char *certoutfile = NULL;
 	int verbose = 0;
+	int has_ecdhe_cipher_suite = 0;
 	struct sockaddr_in server;
 	tls_socket_t sock = tls_socket_invalid();
 	TLS_CTX ctx;
@@ -379,6 +403,11 @@ bad:
 		fprintf(stderr, "%s: '-get' and '-in' should not be used together\n", prog);
 		return -1;
 	}
+	has_ecdhe_cipher_suite = tlcp_cipher_suites_have_ecdhe(cipher_suites, cipher_suites_cnt);
+	if (has_ecdhe_cipher_suite && (!certfile || !keyfile || !pass)) {
+		fprintf(stderr, "%s: TLCP ECDHE cipher suites require '-cert', '-key' and '-pass' with a double certificate chain\n", prog);
+		return -1;
+	}
 
 	if (tls_socket_lib_init() != 1) {
 		error_print();
@@ -447,9 +476,16 @@ bad:
 			fprintf(stderr, "%s: option '-pass' missing\n", prog);
 			goto end;
 		}
-		if (tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
-			fprintf(stderr, "%s: failed to load client certificate\n", prog);
-			goto end;
+		if (has_ecdhe_cipher_suite) {
+			if (tls_ctx_set_tlcp_client_certificate_and_keys(&ctx, certfile, keyfile, pass) != 1) {
+				fprintf(stderr, "%s: failed to load TLCP client double certificate chain and keys\n", prog);
+				goto end;
+			}
+		} else {
+			if (tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+				fprintf(stderr, "%s: failed to load client certificate\n", prog);
+				goto end;
+			}
 		}
 	}
 

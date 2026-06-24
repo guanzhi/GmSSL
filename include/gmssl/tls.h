@@ -1008,7 +1008,11 @@ int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass);
 int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass);
+int tlcp_ctx_add_client_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
+	const char *keyfile, const char *keypass);
 int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
+	const char *keyfile, const char *keypass);
+int tls_ctx_set_tlcp_client_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass);
 void tls_ctx_cleanup(TLS_CTX *ctx);
 

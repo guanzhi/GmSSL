@@ -3077,6 +3077,29 @@ static int tls_ctx_get_certificate_chain(const TLS_CTX *ctx, size_t idx,
 	return 1;
 }
 
+static int tls_cipher_suite_is_tlcp_ecdhe(int cipher_suite)
+{
+	switch (cipher_suite) {
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+static int tls_ctx_has_tlcp_ecdhe_cipher_suite(const TLS_CTX *ctx)
+{
+	size_t i;
+
+	for (i = 0; i < ctx->cipher_suites_cnt; i++) {
+		if (tls_cipher_suite_is_tlcp_ecdhe(ctx->cipher_suites[i])) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 static int tls_ctx_check(const TLS_CTX *ctx)
 {
 	const int *supported_cipher_suites = NULL;
@@ -3088,6 +3111,7 @@ static int tls_ctx_check(const TLS_CTX *ctx)
 	const uint8_t *cert_chains;
 	size_t cert_chains_len;
 	size_t cert_chains_cnt = 0;
+	int tlcp_client_needs_double_certs = 0;
 	size_t i;
 
 	if (!ctx) {
@@ -3136,6 +3160,9 @@ static int tls_ctx_check(const TLS_CTX *ctx)
 			error_print();
 			return -1;
 		}
+	}
+	if (ctx->protocol == TLS_protocol_tlcp && ctx->is_client) {
+		tlcp_client_needs_double_certs = tls_ctx_has_tlcp_ecdhe_cipher_suite(ctx);
 	}
 
 	if (ctx->supported_groups_cnt > sizeof(ctx->supported_groups)/sizeof(ctx->supported_groups[0])) {
@@ -3249,6 +3276,7 @@ static int tls_ctx_check(const TLS_CTX *ctx)
 		const uint8_t *cert_chain;
 		size_t cert_chain_len;
 		size_t certs_cnt;
+		size_t key_idx = cert_chains_cnt;
 
 		if (tls_uint24array_from_bytes(&cert_chain, &cert_chain_len,
 			&cert_chains, &cert_chains_len) != 1
@@ -3264,10 +3292,23 @@ static int tls_ctx_check(const TLS_CTX *ctx)
 			error_print();
 			return -1;
 		}
+		if (tlcp_client_needs_double_certs) {
+			if (certs_cnt < 2
+				|| ctx->enc_keys[key_idx].algor != OID_ec_public_key
+				|| ctx->enc_keys[key_idx].algor_param != OID_sm2) {
+				error_print();
+				return -1;
+			}
+		}
 		cert_chains_cnt++;
 	}
 
 	if (ctx->protocol == TLS_protocol_tlcp && !ctx->is_client) {
+		if (!ctx->cert_chains_len || !ctx->x509_keys_cnt || cert_chains_cnt != ctx->x509_keys_cnt) {
+			error_print();
+			return -1;
+		}
+	} else if (tlcp_client_needs_double_certs) {
 		if (!ctx->cert_chains_len || !ctx->x509_keys_cnt || cert_chains_cnt != ctx->x509_keys_cnt) {
 			error_print();
 			return -1;

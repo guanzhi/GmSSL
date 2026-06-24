@@ -254,6 +254,22 @@ int sm2_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int 
 int sm2_do_ecdh(const SM2_KEY *key, const SM2_KEY *peer_key, uint8_t out[32]);
 int sm2_ecdh(const SM2_KEY *key, const uint8_t uncompressed_point[65], uint8_t out[32]);
 
+int sm2_key_exchange(int is_initiator,
+	const SM2_KEY *key, const char *id, size_t idlen,
+	const SM2_KEY *peer_public_key, const char *peer_id, size_t peer_idlen,
+	const SM2_KEY *key_exchange, const uint8_t peer_key_exchange[65],
+	uint8_t optional_shared_point[65], size_t shared_key_len, uint8_t *shared_key);
+int sm2_key_exchange_compute_confirm(int is_initiator,
+	const SM2_KEY *key, const char *id, size_t idlen,
+	const SM2_KEY *peer_public_key, const char *peer_id, size_t peer_idlen,
+	const SM2_KEY *key_exchange, const uint8_t peer_key_exchange[65],
+	const uint8_t shared_point[65], uint8_t confirm[32]);
+int sm2_key_exchange_verify_confirm(int is_initiator,
+	const SM2_KEY *key, const char *id, size_t idlen,
+	const SM2_KEY *peer_public_key, const char *peer_id, size_t peer_idlen,
+	const SM2_KEY *key_exchange, const uint8_t peer_key_exchange[65],
+	const uint8_t shared_point[65], const uint8_t confirm[32]);
+
 
 typedef struct {
 	sm2_z256_t k;
