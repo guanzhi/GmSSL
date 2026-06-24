@@ -16,6 +16,7 @@
 #include <gmssl/rand.h>
 #include <gmssl/endian.h>
 #include <gmssl/error.h>
+#include "cl.h"
 
 
 static const char *lms_cl_src;
@@ -23,106 +24,6 @@ static const char *lms_cl_src;
 #define LMS_CL_DEFAULT_LOCAL_WORK_SIZE 64
 #define LMS_CL_DEFAULT_MAX_LEAF_BATCH (size_t)(32768)
 
-
-static char *clErrorString(cl_int err)
-{
-	switch (err) {
-	case CL_SUCCESS: return "CL_SUCCESS";
-	case CL_DEVICE_NOT_FOUND: return "CL_DEVICE_NOT_FOUND";
-	case CL_DEVICE_NOT_AVAILABLE: return "CL_DEVICE_NOT_AVAILABLE";
-	case CL_COMPILER_NOT_AVAILABLE: return "CL_COMPILER_NOT_AVAILABLE";
-	case CL_MEM_OBJECT_ALLOCATION_FAILURE: return "CL_MEM_OBJECT_ALLOCATION_FAILURE";
-	case CL_OUT_OF_RESOURCES: return "CL_OUT_OF_RESOURCES";
-	case CL_OUT_OF_HOST_MEMORY: return "CL_OUT_OF_HOST_MEMORY";
-	case CL_PROFILING_INFO_NOT_AVAILABLE: return "CL_PROFILING_INFO_NOT_AVAILABLE";
-	case CL_MEM_COPY_OVERLAP: return "CL_MEM_COPY_OVERLAP";
-	case CL_IMAGE_FORMAT_MISMATCH: return "CL_IMAGE_FORMAT_MISMATCH";
-	case CL_IMAGE_FORMAT_NOT_SUPPORTED: return "CL_IMAGE_FORMAT_NOT_SUPPORTED";
-	case CL_BUILD_PROGRAM_FAILURE: return "CL_BUILD_PROGRAM_FAILURE";
-	case CL_MAP_FAILURE: return "CL_MAP_FAILURE";
-	case CL_INVALID_VALUE: return "CL_INVALID_VALUE";
-	case CL_INVALID_DEVICE_TYPE: return "CL_INVALID_DEVICE_TYPE";
-	case CL_INVALID_PLATFORM: return "CL_INVALID_PLATFORM";
-	case CL_INVALID_DEVICE: return "CL_INVALID_DEVICE";
-	case CL_INVALID_CONTEXT: return "CL_INVALID_CONTEXT";
-	case CL_INVALID_QUEUE_PROPERTIES: return "CL_INVALID_QUEUE_PROPERTIES";
-	case CL_INVALID_COMMAND_QUEUE: return "CL_INVALID_COMMAND_QUEUE";
-	case CL_INVALID_HOST_PTR: return "CL_INVALID_HOST_PTR";
-	case CL_INVALID_MEM_OBJECT: return "CL_INVALID_MEM_OBJECT";
-	case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR: return "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
-	case CL_INVALID_IMAGE_SIZE: return "CL_INVALID_IMAGE_SIZE";
-	case CL_INVALID_SAMPLER: return "CL_INVALID_SAMPLER";
-	case CL_INVALID_BINARY: return "CL_INVALID_BINARY";
-	case CL_INVALID_BUILD_OPTIONS: return "CL_INVALID_BUILD_OPTIONS";
-	case CL_INVALID_PROGRAM: return "CL_INVALID_PROGRAM";
-	case CL_INVALID_PROGRAM_EXECUTABLE: return "CL_INVALID_PROGRAM_EXECUTABLE";
-	case CL_INVALID_KERNEL_NAME: return "CL_INVALID_KERNEL_NAME";
-	case CL_INVALID_KERNEL_DEFINITION: return "CL_INVALID_KERNEL_DEFINITION";
-	case CL_INVALID_KERNEL: return "CL_INVALID_KERNEL";
-	case CL_INVALID_ARG_INDEX: return "CL_INVALID_ARG_INDEX";
-	case CL_INVALID_ARG_VALUE: return "CL_INVALID_ARG_VALUE";
-	case CL_INVALID_ARG_SIZE: return "CL_INVALID_ARG_SIZE";
-	case CL_INVALID_KERNEL_ARGS: return "CL_INVALID_KERNEL_ARGS";
-	case CL_INVALID_WORK_DIMENSION: return "CL_INVALID_WORK_DIMENSION";
-	case CL_INVALID_WORK_GROUP_SIZE: return "CL_INVALID_WORK_GROUP_SIZE";
-	case CL_INVALID_WORK_ITEM_SIZE: return "CL_INVALID_WORK_ITEM_SIZE";
-	case CL_INVALID_GLOBAL_OFFSET: return "CL_INVALID_GLOBAL_OFFSET";
-	case CL_INVALID_EVENT_WAIT_LIST: return "CL_INVALID_EVENT_WAIT_LIST";
-	case CL_INVALID_EVENT: return "CL_INVALID_EVENT";
-	case CL_INVALID_OPERATION: return "CL_INVALID_OPERATION";
-	case CL_INVALID_GL_OBJECT: return "CL_INVALID_GL_OBJECT";
-	case CL_INVALID_BUFFER_SIZE: return "CL_INVALID_BUFFER_SIZE";
-	case CL_INVALID_MIP_LEVEL: return "CL_INVALID_MIP_LEVEL";
-	}
-	return "UNKNOWN_OPENCL_ERROR";
-}
-
-#define cl_error_print(e) \
-	do { fprintf(stderr, "%s: %d: %s\n", __FILE__, __LINE__, clErrorString(e)); } while (0)
-
-static size_t lms_cl_round_up(size_t a, size_t b)
-{
-	return (a + b - 1)/b*b;
-}
-
-static int lms_cl_get_device(cl_platform_id *platform, cl_device_id *device)
-{
-	cl_uint num_platforms;
-	cl_platform_id *platforms = NULL;
-	cl_int err;
-	cl_uint i;
-	int ret = -1;
-
-	if ((err = clGetPlatformIDs(0, NULL, &num_platforms)) != CL_SUCCESS) {
-		cl_error_print(err);
-		return -1;
-	}
-	if (!num_platforms) {
-		error_print();
-		return -1;
-	}
-	if (!(platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id) * num_platforms))) {
-		error_print();
-		return -1;
-	}
-	if ((err = clGetPlatformIDs(num_platforms, platforms, NULL)) != CL_SUCCESS) {
-		cl_error_print(err);
-		goto end;
-	}
-
-	for (i = 0; i < num_platforms; i++) {
-		if (clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, 1, device, NULL) == CL_SUCCESS) {
-			*platform = platforms[i];
-			ret = 1;
-			goto end;
-		}
-	}
-	error_print();
-
-end:
-	free(platforms);
-	return ret;
-}
 
 void lms_cl_cleanup(LMS_CL_CTX *ctx)
 {
@@ -144,6 +45,7 @@ int lms_cl_init(LMS_CL_CTX *ctx)
 	cl_int err;
 	size_t max_work_group_size;
 	const char *build_opts = NULL;
+	const char *sources[2];
 
 	if (!ctx) {
 		error_print();
@@ -151,7 +53,7 @@ int lms_cl_init(LMS_CL_CTX *ctx)
 	}
 	memset(ctx, 0, sizeof(*ctx));
 
-	if (lms_cl_get_device(&platform, &device) != 1) {
+	if (gmssl_cl_get_gpu_device(&platform, &device) != 1) {
 		error_print();
 		return -1;
 	}
@@ -163,7 +65,9 @@ int lms_cl_init(LMS_CL_CTX *ctx)
 		cl_error_print(err);
 		goto end;
 	}
-	if (!(ctx->program = clCreateProgramWithSource(ctx->context, 1, &lms_cl_src, NULL, &err))) {
+	sources[0] = sm3_cl_source();
+	sources[1] = lms_cl_src;
+	if (!(ctx->program = clCreateProgramWithSource(ctx->context, 2, sources, NULL, &err))) {
 		cl_error_print(err);
 		goto end;
 	}
@@ -228,7 +132,7 @@ static int lms_cl_enqueue_leafs_tree(LMS_CL_CTX *ctx, cl_mem mem_seed, cl_mem me
 	}
 
 	local_work_size = ctx->local_work_size;
-	global_work_size = lms_cl_round_up(leaf_count, local_work_size);
+	global_work_size = gmssl_cl_round_up(leaf_count, local_work_size);
 	if ((err = clEnqueueNDRangeKernel(ctx->queue, ctx->leafs_tree_kernel, 1, NULL,
 		&global_work_size, &local_work_size, 0, NULL, NULL)) != CL_SUCCESS) {
 		cl_error_print(err);
@@ -256,7 +160,7 @@ static int lms_cl_enqueue_leafs_compact(LMS_CL_CTX *ctx, cl_mem mem_seed, cl_mem
 	}
 
 	local_work_size = ctx->local_work_size;
-	global_work_size = lms_cl_round_up(leaf_count, local_work_size);
+	global_work_size = gmssl_cl_round_up(leaf_count, local_work_size);
 	if ((err = clEnqueueNDRangeKernel(ctx->queue, ctx->leafs_compact_kernel, 1, NULL,
 		&global_work_size, &local_work_size, 0, NULL, NULL)) != CL_SUCCESS) {
 		cl_error_print(err);
@@ -318,7 +222,7 @@ int lms_cl_derive_merkle_tree(LMS_CL_CTX *ctx,
 			cl_error_print(err);
 			goto end;
 		}
-		global_work_size = lms_cl_round_up(level_nodes, local_work_size);
+		global_work_size = gmssl_cl_round_up(level_nodes, local_work_size);
 		if ((err = clEnqueueNDRangeKernel(ctx->queue, ctx->internal_nodes_kernel, 1, NULL,
 			&global_work_size, &local_work_size, 0, NULL, NULL)) != CL_SUCCESS) {
 			cl_error_print(err);
@@ -809,125 +713,7 @@ int hss_cl_sign_init(LMS_CL_CTX *ctx, HSS_SIGN_CTX *sign_ctx, HSS_KEY *key)
 	return 1;
 }
 
-#define KERNEL(...) #__VA_ARGS__
 static const char *lms_cl_src = KERNEL(
-
-__constant uint K[64] = {
-	0x79cc4519U, 0xf3988a32U, 0xe7311465U, 0xce6228cbU,
-	0x9cc45197U, 0x3988a32fU, 0x7311465eU, 0xe6228cbcU,
-	0xcc451979U, 0x988a32f3U, 0x311465e7U, 0x6228cbceU,
-	0xc451979cU, 0x88a32f39U, 0x11465e73U, 0x228cbce6U,
-	0x9d8a7a87U, 0x3b14f50fU, 0x7629ea1eU, 0xec53d43cU,
-	0xd8a7a879U, 0xb14f50f3U, 0x629ea1e7U, 0xc53d43ceU,
-	0x8a7a879dU, 0x14f50f3bU, 0x29ea1e76U, 0x53d43cecU,
-	0xa7a879d8U, 0x4f50f3b1U, 0x9ea1e762U, 0x3d43cec5U,
-	0x7a879d8aU, 0xf50f3b14U, 0xea1e7629U, 0xd43cec53U,
-	0xa879d8a7U, 0x50f3b14fU, 0xa1e7629eU, 0x43cec53dU,
-	0x879d8a7aU, 0x0f3b14f5U, 0x1e7629eaU, 0x3cec53d4U,
-	0x79d8a7a8U, 0xf3b14f50U, 0xe7629ea1U, 0xcec53d43U,
-	0x9d8a7a87U, 0x3b14f50fU, 0x7629ea1eU, 0xec53d43cU,
-	0xd8a7a879U, 0xb14f50f3U, 0x629ea1e7U, 0xc53d43ceU,
-	0x8a7a879dU, 0x14f50f3bU, 0x29ea1e76U, 0x53d43cecU,
-	0xa7a879d8U, 0x4f50f3b1U, 0x9ea1e762U, 0x3d43cec5U,
-};
-
-uint rotl32(uint x, uint n)
-{
-	return (x << n) | (x >> (32 - n));
-}
-
-uint P0(uint x)
-{
-	return x ^ rotl32(x, 9) ^ rotl32(x, 17);
-}
-
-uint P1(uint x)
-{
-	return x ^ rotl32(x, 15) ^ rotl32(x, 23);
-}
-
-uint FF(uint x, uint y, uint z, uint j)
-{
-	return j < 16 ? (x ^ y ^ z) : ((x & y) | (x & z) | (y & z));
-}
-
-uint GG(uint x, uint y, uint z, uint j)
-{
-	return j < 16 ? (x ^ y ^ z) : (((y ^ z) & x) ^ z);
-}
-
-uint load_be32(__global const uchar *p)
-{
-	return ((uint)p[0] << 24) | ((uint)p[1] << 16) | ((uint)p[2] << 8) | (uint)p[3];
-}
-
-uint load_be32_private(__private const uchar *p)
-{
-	return ((uint)p[0] << 24) | ((uint)p[1] << 16) | ((uint)p[2] << 8) | (uint)p[3];
-}
-
-void store_be32(__private uchar *p, uint x)
-{
-	p[0] = (uchar)(x >> 24);
-	p[1] = (uchar)(x >> 16);
-	p[2] = (uchar)(x >> 8);
-	p[3] = (uchar)x;
-}
-
-void sm3_compress_words(__private uint dgst[8], __private uint W[68])
-{
-	uint A = dgst[0];
-	uint B = dgst[1];
-	uint C = dgst[2];
-	uint D = dgst[3];
-	uint E = dgst[4];
-	uint F = dgst[5];
-	uint G = dgst[6];
-	uint H = dgst[7];
-	uint SS1, SS2, TT1, TT2;
-	uint j;
-
-	for (j = 16; j < 68; j++) {
-		W[j] = P1(W[j - 16] ^ W[j - 9] ^ rotl32(W[j - 3], 15))
-			^ rotl32(W[j - 13], 7) ^ W[j - 6];
-	}
-
-	for (j = 0; j < 64; j++) {
-		SS1 = rotl32(rotl32(A, 12) + E + K[j], 7);
-		SS2 = SS1 ^ rotl32(A, 12);
-		TT1 = FF(A, B, C, j) + D + SS2 + (W[j] ^ W[j + 4]);
-		TT2 = GG(E, F, G, j) + H + SS1 + W[j];
-		D = C;
-		C = rotl32(B, 9);
-		B = A;
-		A = TT1;
-		H = G;
-		G = rotl32(F, 19);
-		F = E;
-		E = P0(TT2);
-	}
-
-	dgst[0] ^= A;
-	dgst[1] ^= B;
-	dgst[2] ^= C;
-	dgst[3] ^= D;
-	dgst[4] ^= E;
-	dgst[5] ^= F;
-	dgst[6] ^= G;
-	dgst[7] ^= H;
-}
-
-void sm3_init_state(__private uint dgst[8])
-{
-	dgst[0] = 0x7380166fU;
-	dgst[1] = 0x4914b2b9U;
-	dgst[2] = 0x172442d7U;
-	dgst[3] = 0xda8a0600U;
-	dgst[4] = 0xa96f30bcU;
-	dgst[5] = 0x163138aaU;
-	dgst[6] = 0xe38dee4dU;
-	dgst[7] = 0xb0fb0e4eU;
-}
 
 void sm3_hash_lmots_step(__global const uchar *I, uint q, ushort i, uchar j,
 	__private const uchar in[32], __private uchar out[32])
@@ -952,56 +738,6 @@ void sm3_hash_lmots_step(__global const uchar *I, uint q, ushort i, uchar j,
 	sm3_compress_words(dgst, W);
 	for (k = 0; k < 8; k++) {
 		store_be32(out + 4*k, dgst[k]);
-	}
-}
-
-void sm3_compress_block_bytes(__private uint dgst[8], __private uchar block[64])
-{
-	uint W[68];
-	uint i;
-	for (i = 0; i < 16; i++) {
-		W[i] = load_be32_private(block + 4*i);
-	}
-	sm3_compress_words(dgst, W);
-}
-
-void sm3_update_byte(__private uint dgst[8], __private uchar block[64],
-	__private uint *num, __private ulong *nblocks, uchar b)
-{
-	block[*num] = b;
-	*num += 1;
-	if (*num == 64) {
-		sm3_compress_block_bytes(dgst, block);
-		*nblocks += 1;
-		*num = 0;
-	}
-}
-
-void sm3_finish_ctx(__private uint dgst[8], __private uchar block[64],
-	uint num, ulong nblocks, __private uchar out[32])
-{
-	ulong bits;
-	ulong len = nblocks * 64 + num;
-	uint i;
-
-	block[num++] = 0x80;
-	if (num > 56) {
-		while (num < 64) {
-			block[num++] = 0;
-		}
-		sm3_compress_block_bytes(dgst, block);
-		num = 0;
-	}
-	while (num < 56) {
-		block[num++] = 0;
-	}
-	bits = len * 8;
-	for (i = 0; i < 8; i++) {
-		block[56 + i] = (uchar)(bits >> (56 - 8*i));
-	}
-	sm3_compress_block_bytes(dgst, block);
-	for (i = 0; i < 8; i++) {
-		store_be32(out + 4*i, dgst[i]);
 	}
 }
 

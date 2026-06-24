@@ -602,6 +602,14 @@ if (ENABLE_SPHINCS)
 	list(APPEND tests sphincs)
 endif()
 
+if (ENABLE_SM4_CL OR ENABLE_LMS_CL OR ENABLE_XMSS_CL)
+	list(APPEND src src/cl.c)
+endif()
+
+if (ENABLE_LMS_CL OR ENABLE_XMSS_CL)
+	list(APPEND src src/sm3_cl.c)
+endif()
+
 
 if (ENABLE_KYBER)
 	message(STATUS "ENABLE_KYBER is ON")
@@ -998,7 +1006,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1166")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1167")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
