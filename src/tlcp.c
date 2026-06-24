@@ -91,22 +91,32 @@ static int tlcp_cipher_suite_is_ecdhe(int cipher_suite)
 
 
 
-ServerKeyExchange
+服务器Certificate
 
-select (KeyExchangeAlgorithm) {
-	case ECC:
-		digitall-signed struct {
-			opaque client_random[32];
-			opaque server_random[32];
-			opaque ASN1.Cert<1..2^24-1>;
-		} signed_params;
+常规采用ECC_, ECDHE_ 套件时，服务器证书是双证书证书链
 
-	case ECDHE:
-		ServerECDHEParams params;
-		digitally-signed struct {
-			opaque client_random[32];
-			opaque server_random[32];
-			ServerECDHEParams params;
+opaque ASN.1Cert<1..2^24-1>;
+
+struct {
+	ASN.1Cert certificate<0..2^24-1>;
+} Certificate;
+
+但是采用IBC_ 套件时，服务器证书消息变为
+
+opaque ASN1.1IBCParam<1..2^24-1>;
+
+struct {
+	opaque ibc_id<1..2^16-1>;
+	ASN1.1IBCParam ibc_parameter;
+} Certificate;
+
+其中ibc_id的负载数据为服务器的域名
+ibc_parameter 是SM9_ENC_MASTER_PUBLIC_KEY 的der编码
+	即sm9_enc_master_public_key_to_der的编码
+
+客户端密钥交换的方式和ECC_套件类似，用sm9_encrypt(ibc_parameter, ibc_id)加密pre_master_secret，然后把密文放到ClientKeyExchange中.
+
+
 
 
 

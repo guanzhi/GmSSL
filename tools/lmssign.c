@@ -15,6 +15,9 @@
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
 #include <gmssl/lms.h>
+#ifdef ENABLE_LMS_CL
+#include <gmssl/lms_cl.h>
+#endif
 
 static const char *usage = "-key file [-in file] [-out file] [-verbose]\n";
 
@@ -75,8 +78,15 @@ int lmssign_main(int argc, char **argv)
 	LMS_SIGN_CTX ctx;
 	uint8_t sig[LMS_SIGNATURE_MAX_SIZE];
 	size_t siglen;
+#ifdef ENABLE_LMS_CL
+	LMS_CL_CTX cl_ctx;
+	int cl_initialized = 0;
+#endif
 
 	memset(&key, 0, sizeof(key));
+#ifdef ENABLE_LMS_CL
+	memset(&cl_ctx, 0, sizeof(cl_ctx));
+#endif
 
 	argc--;
 	argv++;
@@ -136,10 +146,22 @@ bad:
 		fprintf(stderr, "%s: read private key failure\n", prog);
 		goto end;
 	}
+#ifdef ENABLE_LMS_CL
+	if (lms_cl_init(&cl_ctx) != 1) {
+		error_print();
+		goto end;
+	}
+	cl_initialized = 1;
+	if (lms_cl_private_key_from_bytes(&cl_ctx, &key, &cp, &keylen) != 1) {
+		error_print();
+		goto end;
+	}
+#else
 	if (lms_private_key_from_bytes(&key, &cp, &keylen) != 1) {
 		error_print();
 		goto end;
 	}
+#endif
 	if (keylen) {
 		error_print();
 		return -1;
@@ -185,6 +207,9 @@ bad:
 	ret = 0;
 
 end:
+#ifdef ENABLE_LMS_CL
+	if (cl_initialized) lms_cl_cleanup(&cl_ctx);
+#endif
 	lms_key_cleanup(&key);
 	gmssl_secure_clear(keybuf, sizeof(keybuf));
 	gmssl_secure_clear(&ctx, sizeof(ctx));

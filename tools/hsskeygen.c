@@ -15,6 +15,9 @@
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
 #include <gmssl/lms.h>
+#ifdef ENABLE_LMS_CL
+#include <gmssl/lms_cl.h>
+#endif
 
 
 static const char *usage = "-lms_types types -out file [-pubout file] [-verbose]\n";
@@ -55,8 +58,15 @@ int hsskeygen_main(int argc, char **argv)
 	uint8_t *pout = out;
 	uint8_t *ppubout = pubout;
 	size_t outlen = 0, puboutlen = 0;
+#ifdef ENABLE_LMS_CL
+	LMS_CL_CTX cl_ctx;
+	int cl_initialized = 0;
+#endif
 
 	memset(&key, 0, sizeof(key));
+#ifdef ENABLE_LMS_CL
+	memset(&cl_ctx, 0, sizeof(cl_ctx));
+#endif
 
 	argc--;
 	argv++;
@@ -129,10 +139,22 @@ bad:
 		goto end;
 	}
 
+#ifdef ENABLE_LMS_CL
+	if (lms_cl_init(&cl_ctx) != 1) {
+		error_print();
+		goto end;
+	}
+	cl_initialized = 1;
+	if (hss_cl_key_generate(&cl_ctx, &key, lms_types_val, levels) != 1) {
+		error_print();
+		goto end;
+	}
+#else
 	if (hss_key_generate(&key, lms_types_val, levels) != 1) {
 		error_print();
 		return -1;
 	}
+#endif
 	if (verbose) {
 		hss_public_key_print(stderr, 0, 0, "hss_public_key", &key);
 	}
@@ -157,6 +179,9 @@ bad:
 
 	ret = 0;
 end:
+#ifdef ENABLE_LMS_CL
+	if (cl_initialized) lms_cl_cleanup(&cl_ctx);
+#endif
 	hss_key_cleanup(&key);
 	gmssl_secure_clear(out, outlen);
 	if (outfile && outfp) fclose(outfp);

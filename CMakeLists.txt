@@ -112,6 +112,7 @@ option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" ${GMSSL_DEFAULT_E
 
 option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
 option(ENABLE_SM4_CL "Enable SM4 OpenCL" OFF)
+option(ENABLE_LMS_CL "Enable LMS OpenCL" OFF)
 
 
 option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
@@ -538,6 +539,19 @@ if (ENABLE_LMS)
 	list(APPEND tests lms)
 endif()
 
+if (ENABLE_LMS_CL)
+	if (NOT ENABLE_LMS)
+		message(FATAL_ERROR "ENABLE_LMS_CL requires ENABLE_LMS")
+	endif()
+	message(STATUS "ENABLE_LMS_CL is ON")
+	add_definitions(-DENABLE_LMS_CL)
+	if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+		add_definitions(-DMACOS) # to include <OpenCL/OpenCL.h>
+	endif()
+	list(APPEND src src/lms_cl.c)
+	list(APPEND tests lms_cl)
+endif()
+
 
 if (ENABLE_XMSS)
 	message(STATUS "ENABLE_XMSS is ON")
@@ -761,16 +775,22 @@ elseif (APPLE)
 		target_link_libraries(gmssl dl)
 	endif()
 	target_link_libraries(gmssl "-framework Security")
-	if (ENABLE_SM4_CL)
-		# FIXME: different rules for cl and OpenCL framework
-		target_link_libraries(gmssl "-framework OpenCL")
-	endif()
 	#target_link_libraries(gmssl "-framework CoreFoundation") # rand_apple.c CFRelease()
 elseif (MINGW)
 	target_link_libraries(gmssl PRIVATE wsock32)
 else()
 	if (ENABLE_SDF)
 		target_link_libraries(gmssl dl)
+	endif()
+endif()
+
+if (ENABLE_SM4_CL OR ENABLE_LMS_CL)
+	if (APPLE)
+		target_link_libraries(gmssl "-framework OpenCL")
+	else()
+		find_package(OpenCL REQUIRED)
+		target_include_directories(gmssl PRIVATE ${OpenCL_INCLUDE_DIRS})
+		target_link_libraries(gmssl ${OpenCL_LIBRARIES})
 	endif()
 endif()
 
@@ -947,7 +967,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1163")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1164")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
