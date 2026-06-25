@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <gmssl/asn1.h>
 #include <gmssl/digest.h>
+#include <gmssl/sha2.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include <gmssl/secp256r1_ecdsa.h>
@@ -47,7 +48,30 @@ int secp256r1_ecdsa_signature_print(FILE *fp, int fmt, int ind, const char *labe
 	return 1;
 }
 
-int secp256r1_ecdsa_do_sign_ex(const SECP256R1_KEY *key, const secp256r1_t k, const uint8_t dgst[32], SECP256R1_ECDSA_SIGNATURE *sig)
+static int secp256r1_ecdsa_digest_to_e(secp256r1_t e, const uint8_t *dgst, size_t dgstlen)
+{
+	uint8_t buf[SHA256_DIGEST_SIZE];
+
+	if (!dgst) {
+		error_print();
+		return -1;
+	}
+	if (dgstlen != SHA256_DIGEST_SIZE && dgstlen != SHA384_DIGEST_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	memcpy(buf, dgst, sizeof(buf));
+	if (secp256r1_from_32bytes(e, buf) != 1
+		|| secp256r1_modn(e, e) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int secp256r1_ecdsa_do_sign_ex(const SECP256R1_KEY *key, const secp256r1_t k,
+	const uint8_t *dgst, size_t dgstlen, SECP256R1_ECDSA_SIGNATURE *sig)
 {
 	secp256r1_t e;
 	secp256r1_t x1;
@@ -56,8 +80,7 @@ int secp256r1_ecdsa_do_sign_ex(const SECP256R1_KEY *key, const secp256r1_t k, co
 	SECP256R1_POINT P;
 
 	// e = hash(m)
-	if (secp256r1_from_32bytes(e, dgst) != 1
-		|| secp256r1_modn(e, e) != 1) {
+	if (secp256r1_ecdsa_digest_to_e(e, dgst, dgstlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -87,7 +110,8 @@ int secp256r1_ecdsa_do_sign_ex(const SECP256R1_KEY *key, const secp256r1_t k, co
 	return 1;
 }
 
-int secp256r1_ecdsa_do_sign(const SECP256R1_KEY *key, const uint8_t dgst[32], SECP256R1_ECDSA_SIGNATURE *sig)
+int secp256r1_ecdsa_do_sign(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, SECP256R1_ECDSA_SIGNATURE *sig)
 {
 	secp256r1_t k;
 
@@ -99,7 +123,7 @@ int secp256r1_ecdsa_do_sign(const SECP256R1_KEY *key, const uint8_t dgst[32], SE
 		}
 	} while (secp256r1_is_zero(k) || secp256r1_cmp(k, SECP256R1_N) >= 0);
 
-	if (secp256r1_ecdsa_do_sign_ex(key, k, dgst, sig) != 1) {
+	if (secp256r1_ecdsa_do_sign_ex(key, k, dgst, dgstlen, sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -107,7 +131,8 @@ int secp256r1_ecdsa_do_sign(const SECP256R1_KEY *key, const uint8_t dgst[32], SE
 }
 
 
-int secp256r1_ecdsa_do_verify(const SECP256R1_KEY *key, const uint8_t dgst[32], const SECP256R1_ECDSA_SIGNATURE *sig)
+int secp256r1_ecdsa_do_verify(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, const SECP256R1_ECDSA_SIGNATURE *sig)
 {
 	secp256r1_t e;
 	secp256r1_t w;
@@ -129,8 +154,7 @@ int secp256r1_ecdsa_do_verify(const SECP256R1_KEY *key, const uint8_t dgst[32], 
 	}
 
 	// e = hash(m)
-	if (secp256r1_from_32bytes(e, dgst) != 1
-		|| secp256r1_modn(e, e) != 1) {
+	if (secp256r1_ecdsa_digest_to_e(e, dgst, dgstlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -233,11 +257,12 @@ int secp256r1_ecdsa_signature_from_der(SECP256R1_ECDSA_SIGNATURE *sig, const uin
 	return 1;
 }
 
-int secp256r1_ecdsa_sign(const SECP256R1_KEY *key, const uint8_t dgst[32], uint8_t *sigbuf, size_t *siglen)
+int secp256r1_ecdsa_sign(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, uint8_t *sigbuf, size_t *siglen)
 {
 	SECP256R1_ECDSA_SIGNATURE sig;
 
-	if (secp256r1_ecdsa_do_sign(key, dgst, &sig) != 1) {
+	if (secp256r1_ecdsa_do_sign(key, dgst, dgstlen, &sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -249,7 +274,8 @@ int secp256r1_ecdsa_sign(const SECP256R1_KEY *key, const uint8_t dgst[32], uint8
 	return 1;
 }
 
-int secp256r1_ecdsa_sign_fixlen(const SECP256R1_KEY *key, const uint8_t dgst[32], size_t siglen, uint8_t *sig)
+int secp256r1_ecdsa_sign_fixlen(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, size_t siglen, uint8_t *sig)
 {
 	unsigned int trys = 200;
 	uint8_t buf[SECP256R1_ECDSA_SIGNATURE_MAX_SIZE];
@@ -266,7 +292,7 @@ int secp256r1_ecdsa_sign_fixlen(const SECP256R1_KEY *key, const uint8_t dgst[32]
 	}
 
 	while (trys--) {
-		if (secp256r1_ecdsa_sign(key, dgst, buf, &len) != 1) {
+		if (secp256r1_ecdsa_sign(key, dgst, dgstlen, buf, &len) != 1) {
 			error_print();
 			return -1;
 		}
@@ -282,7 +308,8 @@ int secp256r1_ecdsa_sign_fixlen(const SECP256R1_KEY *key, const uint8_t dgst[32]
 }
 
 
-int secp256r1_ecdsa_verify(const SECP256R1_KEY *key, const uint8_t dgst[32], const uint8_t *sigbuf, size_t siglen)
+int secp256r1_ecdsa_verify(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, const uint8_t *sigbuf, size_t siglen)
 {
 	int ret;
 	SECP256R1_ECDSA_SIGNATURE sig;
@@ -295,7 +322,7 @@ int secp256r1_ecdsa_verify(const SECP256R1_KEY *key, const uint8_t dgst[32], con
 		error_print();
 		return -1;
 	}
-	if ((ret = secp256r1_ecdsa_do_verify(key, dgst, &sig)) < 0) {
+	if ((ret = secp256r1_ecdsa_do_verify(key, dgst, dgstlen, &sig)) < 0) {
 		error_print();
 		return -1;
 	}
@@ -346,13 +373,12 @@ int secp256r1_ecdsa_sign_finish(SECP256R1_ECDSA_SIGN_CTX *ctx, uint8_t *sig, siz
 		return -1;
 	}
 
-	if (digest_finish(&ctx->digest_ctx, dgst, &dgstlen) != 1
-		|| dgstlen < 32) {
+	if (digest_finish(&ctx->digest_ctx, dgst, &dgstlen) != 1) {
 		error_print();
 		return -1;
 	}
 
-	if (secp256r1_ecdsa_sign(&ctx->key, dgst, sig, siglen) != 1) {
+	if (secp256r1_ecdsa_sign(&ctx->key, dgst, dgstlen, sig, siglen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -369,13 +395,12 @@ int secp256r1_ecdsa_sign_finish_fixlen(SECP256R1_ECDSA_SIGN_CTX *ctx, size_t sig
 		return -1;
 	}
 
-	if (digest_finish(&ctx->digest_ctx, dgst, &dgstlen) != 1
-		|| dgstlen < 32) {
+	if (digest_finish(&ctx->digest_ctx, dgst, &dgstlen) != 1) {
 		error_print();
 		return -1;
 	}
 
-	if (secp256r1_ecdsa_sign_fixlen(&ctx->key, dgst, siglen, sig) != 1) {
+	if (secp256r1_ecdsa_sign_fixlen(&ctx->key, dgst, dgstlen, siglen, sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -443,13 +468,12 @@ int secp256r1_ecdsa_verify_finish(SECP256R1_ECDSA_SIGN_CTX *ctx)
 		return -1;
 	}
 
-	if (digest_finish(&ctx->digest_ctx, dgst, &dgstlen) != 1
-		|| dgstlen < 32) {
+	if (digest_finish(&ctx->digest_ctx, dgst, &dgstlen) != 1) {
 		error_print();
 		return -1;
 	}
 
-	if ((ret = secp256r1_ecdsa_do_verify(&ctx->key, dgst, &ctx->sig)) < 0) {
+	if ((ret = secp256r1_ecdsa_do_verify(&ctx->key, dgst, dgstlen, &ctx->sig)) < 0) {
 		error_print();
 		return -1;
 	}

@@ -40,7 +40,7 @@ static int test_secp384r1_ecdsa_do_sign(void)
 	memset(dgst, 0, sizeof(dgst));
 	dgst[47] = 2;
 
-	if (secp384r1_ecdsa_do_sign_ex(&key, k, dgst, &sig) != 1) {
+	if (secp384r1_ecdsa_do_sign_ex(&key, k, dgst, sizeof(dgst), &sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -49,7 +49,7 @@ static int test_secp384r1_ecdsa_do_sign(void)
 	secp384r1_print(stderr, 0, 0, "s", sig.s);
 
 
-	if (secp384r1_ecdsa_do_verify(&key, dgst, &sig) != 1) {
+	if (secp384r1_ecdsa_do_verify(&key, dgst, sizeof(dgst), &sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -61,7 +61,9 @@ static int test_secp384r1_ecdsa_do_sign(void)
 static int test_secp384r1_ecdsa_sign(void)
 {
 	SECP384R1_KEY key;
-	uint8_t dgst[48];
+	uint8_t dgst32[32];
+	uint8_t dgst48[48];
+	uint8_t dgst31[31];
 	uint8_t sig[SECP384R1_ECDSA_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 
@@ -69,19 +71,34 @@ static int test_secp384r1_ecdsa_sign(void)
 		error_print();
 		return -1;
 	}
-	memset(dgst, 0x5a, sizeof(dgst));
+	memset(dgst32, 0x32, sizeof(dgst32));
+	memset(dgst48, 0x48, sizeof(dgst48));
+	memset(dgst31, 0x31, sizeof(dgst31));
 
-	if (secp384r1_ecdsa_sign(&key, dgst, sig, &siglen) != 1
+	if (secp384r1_ecdsa_sign(&key, dgst48, sizeof(dgst48), sig, &siglen) != 1
 		|| siglen > sizeof(sig)) {
 		error_print();
 		return -1;
 	}
-	if (secp384r1_ecdsa_verify(&key, dgst, sig, siglen) != 1) {
+	if (secp384r1_ecdsa_verify(&key, dgst48, sizeof(dgst48), sig, siglen) != 1) {
 		error_print();
 		return -1;
 	}
-	dgst[0] ^= 0x01;
-	if (secp384r1_ecdsa_verify(&key, dgst, sig, siglen) != 0) {
+	dgst48[0] ^= 0x01;
+	if (secp384r1_ecdsa_verify(&key, dgst48, sizeof(dgst48), sig, siglen) != 0) {
+		error_print();
+		return -1;
+	}
+	if (secp384r1_ecdsa_sign(&key, dgst32, sizeof(dgst32), sig, &siglen) != 1
+		|| siglen > sizeof(sig)
+		|| secp384r1_ecdsa_verify(&key, dgst32, sizeof(dgst32), sig, siglen) != 1
+		|| secp384r1_ecdsa_sign_fixlen(&key, dgst32, sizeof(dgst32), siglen, sig) != 1
+		|| secp384r1_ecdsa_verify(&key, dgst32, sizeof(dgst32), sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (secp384r1_ecdsa_sign(&key, dgst31, sizeof(dgst31), sig, &siglen) >= 0
+		|| secp384r1_ecdsa_verify(&key, dgst31, sizeof(dgst31), sig, siglen) >= 0) {
 		error_print();
 		return -1;
 	}
@@ -144,7 +161,7 @@ static int test_secp384r1_ecdsa_verify_infinity(void)
 		error_print();
 		return -1;
 	}
-	if (secp384r1_ecdsa_do_verify(&key, dgst, &sig) != 0) {
+	if (secp384r1_ecdsa_do_verify(&key, dgst, sizeof(dgst), &sig) != 0) {
 		error_print();
 		return -1;
 	}
@@ -189,6 +206,10 @@ static int test_secp384r1_ecdsa_generic(void)
 	}
 	if (ecdsa_sign_fixed_len(&key, dgst32, sizeof(dgst32), siglen, sig) != 1
 		|| ecdsa_verify(&key, dgst32, sizeof(dgst32), sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (ecdsa_sign(&key, dgst32, 31, sig, &siglen) >= 0) {
 		error_print();
 		return -1;
 	}

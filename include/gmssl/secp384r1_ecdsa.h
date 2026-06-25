@@ -44,15 +44,21 @@ int secp384r1_ecdsa_signature_print_ex(FILE *fp, int fmt, int ind, const char *l
 int secp384r1_ecdsa_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
 
 
-int secp384r1_ecdsa_do_sign_ex(const SECP384R1_KEY *key, const secp384r1_t k, const uint8_t dgst[48], SECP384R1_ECDSA_SIGNATURE *sig);
-int secp384r1_ecdsa_do_sign(const SECP384R1_KEY *key, const uint8_t dgst[48], SECP384R1_ECDSA_SIGNATURE *sig);
-int secp384r1_ecdsa_do_verify(const SECP384R1_KEY *key, const uint8_t dgst[48], const SECP384R1_ECDSA_SIGNATURE *sig);
+int secp384r1_ecdsa_do_sign_ex(const SECP384R1_KEY *key, const secp384r1_t k,
+	const uint8_t *dgst, size_t dgstlen, SECP384R1_ECDSA_SIGNATURE *sig);
+int secp384r1_ecdsa_do_sign(const SECP384R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, SECP384R1_ECDSA_SIGNATURE *sig);
+int secp384r1_ecdsa_do_verify(const SECP384R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, const SECP384R1_ECDSA_SIGNATURE *sig);
 
 
 // 这个函数应该改为将key的类型编程通用支持P256, P384的，摘要可以支持不同长度的
-int secp384r1_ecdsa_sign(const SECP384R1_KEY *key, const uint8_t dgst[48], uint8_t *sig, size_t *siglen);
-int secp384r1_ecdsa_sign_fixlen(const SECP384R1_KEY *key, const uint8_t dgst[48], size_t siglen, uint8_t *sig);
-int secp384r1_ecdsa_verify(const SECP384R1_KEY *key, const uint8_t dgst[48], const uint8_t *sig, size_t siglen);
+int secp384r1_ecdsa_sign(const SECP384R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, uint8_t *sig, size_t *siglen);
+int secp384r1_ecdsa_sign_fixlen(const SECP384R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, size_t siglen, uint8_t *sig);
+int secp384r1_ecdsa_verify(const SECP384R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, const uint8_t *sig, size_t siglen);
 
 
 // 后面的CTX就没有意义了

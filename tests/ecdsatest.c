@@ -55,13 +55,13 @@ static int test_ecdsa(void)
 	dgst[31] = 2;
 
 	/*
-	if (secp256r1_ecdsa_do_sign_ex(&key, k, dgst, &sig) != 1) {
+	if (secp256r1_ecdsa_do_sign_ex(&key, k, dgst, sizeof(dgst), &sig) != 1) {
 		error_print();
 		return -1;
 	}
 	*/
 
-	if (secp256r1_ecdsa_do_sign(&key, dgst, &sig) != 1) {
+	if (secp256r1_ecdsa_do_sign(&key, dgst, sizeof(dgst), &sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -72,7 +72,7 @@ static int test_ecdsa(void)
 	secp256r1_print(stderr, 0, 0, "s", sig.s);
 
 
-	if (secp256r1_ecdsa_do_verify(&key, dgst, &sig) != 1) {
+	if (secp256r1_ecdsa_do_verify(&key, dgst, sizeof(dgst), &sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -104,7 +104,48 @@ static int test_ecdsa_verify_infinity(void)
 		error_print();
 		return -1;
 	}
-	if (secp256r1_ecdsa_do_verify(&key, dgst, &sig) != 0) {
+	if (secp256r1_ecdsa_do_verify(&key, dgst, sizeof(dgst), &sig) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_ecdsa_digest_lengths(void)
+{
+	SECP256R1_KEY key;
+	uint8_t dgst32[32];
+	uint8_t dgst48[48];
+	uint8_t dgst31[31];
+	uint8_t sig[SECP256R1_ECDSA_SIGNATURE_MAX_SIZE];
+	size_t siglen;
+
+	if (secp256r1_key_generate(&key) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(dgst32, 0x32, sizeof(dgst32));
+	memset(dgst48, 0x48, sizeof(dgst48));
+	memset(dgst31, 0x31, sizeof(dgst31));
+
+	if (secp256r1_ecdsa_sign(&key, dgst32, sizeof(dgst32), sig, &siglen) != 1
+		|| siglen > sizeof(sig)
+		|| secp256r1_ecdsa_verify(&key, dgst32, sizeof(dgst32), sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_ecdsa_sign(&key, dgst48, sizeof(dgst48), sig, &siglen) != 1
+		|| siglen > sizeof(sig)
+		|| secp256r1_ecdsa_verify(&key, dgst48, sizeof(dgst48), sig, siglen) != 1
+		|| secp256r1_ecdsa_sign_fixlen(&key, dgst48, sizeof(dgst48), siglen, sig) != 1
+		|| secp256r1_ecdsa_verify(&key, dgst48, sizeof(dgst48), sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_ecdsa_sign(&key, dgst31, sizeof(dgst31), sig, &siglen) >= 0
+		|| secp256r1_ecdsa_verify(&key, dgst31, sizeof(dgst31), sig, siglen) >= 0) {
 		error_print();
 		return -1;
 	}
@@ -152,6 +193,10 @@ static int test_ecdsa_generic(void)
 		error_print();
 		return -1;
 	}
+	if (ecdsa_sign(&key, dgst32, 31, sig, &siglen) >= 0) {
+		error_print();
+		return -1;
+	}
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -161,6 +206,7 @@ int main(void)
 {
 	if (test_ecdsa() != 1) goto err;
 	if (test_ecdsa_verify_infinity() != 1) goto err;
+	if (test_ecdsa_digest_lengths() != 1) goto err;
 	if (test_ecdsa_generic() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
