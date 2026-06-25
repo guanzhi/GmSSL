@@ -25,7 +25,7 @@
 #endif
 #ifdef ENABLE_SECP256R1
 #include <gmssl/secp256r1_key.h>
-#include <gmssl/ecdsa.h>
+#include <gmssl/secp256r1_ecdsa.h>
 #endif
 #ifdef ENABLE_LMS
 #include <gmssl/lms.h>
@@ -187,7 +187,7 @@ int x509_private_keys_from_file(X509_KEY *keys, size_t *keys_cnt, size_t max_cnt
 // XMSS_SIGNATURE_MAX_SIZE = 2820
 // XMSSMT_SIGNATURE_MAX_SIZE = 8356?
 // SPHINCS_SIGNATURE_SIZE = 7856?
-// ECDSA_SIGNATURE_MAX_SIZE = 72
+// SECP256R1_ECDSA_SIGNATURE_MAX_SIZE = 72
 
 typedef union {
 	uint8_t sm2_sig[SM2_MAX_SIGNATURE_SIZE];
@@ -215,7 +215,7 @@ typedef struct {
 		SM2_SIGN_CTX sm2_sign_ctx;
 		SM2_VERIFY_CTX sm2_verify_ctx;
 #ifdef ENABLE_SECP256R1
-		ECDSA_SIGN_CTX ecdsa_sign_ctx;
+		SECP256R1_ECDSA_SIGN_CTX secp256r1_ecdsa_sign_ctx;
 #endif
 #ifdef ENABLE_SM9
 		SM9_SIGN_CTX sm9_sign_ctx;

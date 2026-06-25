@@ -18,6 +18,12 @@
 #include <gmssl/sm2.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
+#ifdef ENABLE_SECP256R1
+#include <gmssl/secp256r1_key.h>
+#endif
+#ifdef ENABLE_SECP384R1
+#include <gmssl/secp384r1_key.h>
+#endif
 #include <gmssl/x509_key.h>
 
 
@@ -39,10 +45,24 @@ int ec_named_curve_from_name(const char *name);
 int ec_named_curve_to_der(int curve, uint8_t **out, size_t *outlen);
 int ec_named_curve_from_der(int *curve, const uint8_t **in, size_t *inlen);
 
+typedef struct {
+	int oid;
+	union {
+#ifdef ENABLE_SECP256R1
+		SECP256R1_KEY secp256r1_key;
+#endif
+#ifdef ENABLE_SECP384R1
+		SECP384R1_KEY secp384r1_key;
+#endif
+		int unused;
+	} u;
+} EC_KEY;
+
 /*
 ECPoint ::= OCTET STRING -- uncompressed point
 */
 int ec_point_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
 
 /*
 ECPrivateKey ::= SEQUENCE {

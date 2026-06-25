@@ -17,6 +17,7 @@
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include <gmssl/ecdsa.h>
+#include <gmssl/secp256r1_ecdsa.h>
 
 /*
 d  0x5
@@ -33,7 +34,7 @@ v  0x5ecbe4d1a6330a44c8f7ef951d4bf165e6c6b721efada985fb41661bc6e7fd6c
 static int test_ecdsa(void)
 {
 	SECP256R1_KEY key;
-	ECDSA_SIGNATURE sig;
+	SECP256R1_ECDSA_SIGNATURE sig;
 	uint8_t dgst[32];
 	secp256r1_t d;
 	secp256r1_t k;
@@ -54,13 +55,13 @@ static int test_ecdsa(void)
 	dgst[31] = 2;
 
 	/*
-	if (ecdsa_do_sign_ex(&key, k, dgst, &sig) != 1) {
+	if (secp256r1_ecdsa_do_sign_ex(&key, k, dgst, &sig) != 1) {
 		error_print();
 		return -1;
 	}
 	*/
 
-	if (ecdsa_do_sign(&key, dgst, &sig) != 1) {
+	if (secp256r1_ecdsa_do_sign(&key, dgst, &sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -71,7 +72,7 @@ static int test_ecdsa(void)
 	secp256r1_print(stderr, 0, 0, "s", sig.s);
 
 
-	if (ecdsa_do_verify(&key, dgst, &sig) != 1) {
+	if (secp256r1_ecdsa_do_verify(&key, dgst, &sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -83,7 +84,7 @@ static int test_ecdsa(void)
 static int test_ecdsa_verify_infinity(void)
 {
 	SECP256R1_KEY key;
-	ECDSA_SIGNATURE sig;
+	SECP256R1_ECDSA_SIGNATURE sig;
 	secp256r1_t d;
 	uint8_t dgst[32];
 	size_t dgstlen;
@@ -103,7 +104,51 @@ static int test_ecdsa_verify_infinity(void)
 		error_print();
 		return -1;
 	}
-	if (ecdsa_do_verify(&key, dgst, &sig) != 0) {
+	if (secp256r1_ecdsa_do_verify(&key, dgst, &sig) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_ecdsa_generic(void)
+{
+	EC_KEY key;
+	uint8_t dgst32[32];
+	uint8_t dgst48[48];
+	uint8_t sig[SECP256R1_ECDSA_SIGNATURE_MAX_SIZE];
+	size_t siglen;
+
+	key.oid = OID_secp256r1;
+	if (secp256r1_key_generate(&key.u.secp256r1_key) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(dgst32, 0x11, sizeof(dgst32));
+	memset(dgst48, 0x22, sizeof(dgst48));
+
+	if (ecdsa_sign(&key, dgst32, sizeof(dgst32), sig, &siglen) != 1
+		|| siglen > sizeof(sig)
+		|| ecdsa_verify(&key, dgst32, sizeof(dgst32), sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	dgst32[0] ^= 0x01;
+	if (ecdsa_verify(&key, dgst32, sizeof(dgst32), sig, siglen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	if (ecdsa_sign(&key, dgst48, sizeof(dgst48), sig, &siglen) != 1
+		|| siglen > sizeof(sig)
+		|| ecdsa_verify(&key, dgst48, sizeof(dgst48), sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (ecdsa_sign_fixed_len(&key, dgst48, sizeof(dgst48), siglen, sig) != 1
+		|| ecdsa_verify(&key, dgst48, sizeof(dgst48), sig, siglen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -116,6 +161,7 @@ int main(void)
 {
 	if (test_ecdsa() != 1) goto err;
 	if (test_ecdsa_verify_infinity() != 1) goto err;
+	if (test_ecdsa_generic() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

@@ -1837,7 +1837,7 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, int sign_algor, const void
 			break;
 #ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
-			if (ecdsa_sign_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key,
+			if (secp256r1_ecdsa_sign_init(&ctx->u.secp256r1_ecdsa_sign_ctx, &key->u.secp256r1_key,
 				x509_ecdsa_sign_algor_digest(sign_algor)) != 1) {
 				error_print();
 				return -1;
@@ -1970,7 +1970,7 @@ int x509_sign_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 	case OID_ecdsa_with_sha256:
 	case OID_ecdsa_with_sha384:
 	case OID_ecdsa_with_sha512:
-		if (ecdsa_sign_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
+		if (secp256r1_ecdsa_sign_update(&ctx->u.secp256r1_ecdsa_sign_ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -2050,13 +2050,13 @@ int x509_sign_finish(X509_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 	case OID_ecdsa_with_sha384:
 	case OID_ecdsa_with_sha512:
 		if (ctx->fixed_siglen) {
-			if (ecdsa_sign_finish_fixlen(&ctx->u.ecdsa_sign_ctx, ctx->fixed_siglen, sig) != 1) {
+			if (secp256r1_ecdsa_sign_finish_fixlen(&ctx->u.secp256r1_ecdsa_sign_ctx, ctx->fixed_siglen, sig) != 1) {
 				error_print();
 				return -1;
 			}
 			*siglen = ctx->fixed_siglen;
 		} else {
-			if (ecdsa_sign_finish(&ctx->u.ecdsa_sign_ctx, sig, siglen) != 1) {
+			if (secp256r1_ecdsa_sign_finish(&ctx->u.secp256r1_ecdsa_sign_ctx, sig, siglen) != 1) {
 				error_print();
 				return -1;
 			}
@@ -2225,7 +2225,7 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, int sign_algor, co
 			break;
 #ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
-			if (ecdsa_verify_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key,
+			if (secp256r1_ecdsa_verify_init(&ctx->u.secp256r1_ecdsa_sign_ctx, &key->u.secp256r1_key,
 				x509_ecdsa_sign_algor_digest(sign_algor), sig, siglen) != 1) {
 				error_print();
 				return -1;
@@ -2317,7 +2317,7 @@ int x509_verify_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 	case OID_ecdsa_with_sha256:
 	case OID_ecdsa_with_sha384:
 	case OID_ecdsa_with_sha512:
-		if (ecdsa_verify_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
+		if (secp256r1_ecdsa_verify_update(&ctx->u.secp256r1_ecdsa_sign_ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -2389,7 +2389,7 @@ int x509_verify_finish(X509_SIGN_CTX *ctx)
 	case OID_ecdsa_with_sha256:
 	case OID_ecdsa_with_sha384:
 	case OID_ecdsa_with_sha512:
-		if ((ret = ecdsa_verify_finish(&ctx->u.ecdsa_sign_ctx)) < 0) {
+		if ((ret = secp256r1_ecdsa_verify_finish(&ctx->u.secp256r1_ecdsa_sign_ctx)) < 0) {
 			error_print();
 			return -1;
 		}
