@@ -97,18 +97,6 @@ void sha512_224_init(SHA512_CTX *ctx);
 void sha512_224_finish(SHA512_CTX *ctx, uint8_t dgst[SHA224_DIGEST_SIZE]);
 
 
-#define SHA256_HMAC_SIZE	(SHA256_DIGEST_SIZE)
-
-typedef struct {
-	SHA256_CTX sha256_ctx;
-	uint8_t key[SHA256_BLOCK_SIZE];
-} SHA256_HMAC_CTX;
-
-void sha256_hmac_init(SHA256_HMAC_CTX *ctx, const uint8_t *key, size_t keylen);
-void sha256_hmac_update(SHA256_HMAC_CTX *ctx, const uint8_t *data, size_t datalen);
-void sha256_hmac_finish(SHA256_HMAC_CTX *ctx, uint8_t mac[SHA256_HMAC_SIZE]);
-
-
 #ifdef __cplusplus
 }
 #endif
