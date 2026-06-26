@@ -17,6 +17,7 @@
 #include <gmssl/hex.h>
 #include <gmssl/pem.h>
 #include <gmssl/sm9.h>
+#include "passwd.h"
 
 
 #define SM9EXCH_R_SIZE 32
@@ -45,7 +46,7 @@ static const char *options =
 "                            SM9 key exchange stage\n"
 "    -pubmaster pem          SM9 exchange master public key in PEM format\n"
 "    -key pem                Local SM9 exchange private key in PEM format\n"
-"    -pass str               Password to open local private key\n"
+"    -pass str               Password to open local private key, prompt if not given\n"
 "    -id str                 Local SM9 identity\n"
 "    -id_hex hex             Local SM9 identity in hex\n"
 "    -peer_id str            Peer SM9 identity\n"
@@ -612,6 +613,7 @@ int sm9exch_main(int argc, char **argv)
 	char *mpkfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *id = NULL;
 	char *peer_id = NULL;
 	char *id_hex = NULL;
@@ -750,14 +752,26 @@ bad:
 		ret = sm9exch_stage_init(mpkfile, peer_id, peer_id_len,
 			exch_keyoutfile, outfile, format, prog);
 	} else if (!strcmp(stage, "respond")) {
+		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
+			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
 		ret = sm9exch_stage_respond(mpkfile, keyfile, pass, id, id_len,
 			peer_id, peer_id_len, infile, exch_keyoutfile,
 			outfile, keylen, format, prog);
 	} else if (!strcmp(stage, "confirm")) {
+		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
+			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
 		ret = sm9exch_stage_confirm(mpkfile, keyfile, pass, id, id_len,
 			peer_id, peer_id_len, exch_keyfile, infile,
 			keyoutfile, outfile, keylen, format, prog);
 	} else if (!strcmp(stage, "finish")) {
+		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
+			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
 		ret = sm9exch_stage_finish(mpkfile, keyfile, pass, id, id_len,
 			peer_id, peer_id_len, exch_keyfile, infile,
 			keyoutfile, keylen, format, prog);
@@ -767,5 +781,6 @@ bad:
 	}
 
 end:
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	return ret == 0 ? 0 : 1;
 }

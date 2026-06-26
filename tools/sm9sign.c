@@ -14,15 +14,16 @@
 #include <gmssl/mem.h>
 #include <gmssl/sm9.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 
-static const char *usage = "-key pem -pass str [-in file] [-out file]";
+static const char *usage = "-key pem [-pass str] [-in file] [-out file]";
 
 static const char *options =
 "Options\n"
 "\n"
 "    -key pem            Signing private key file in PEM format\n"
-"    -pass str           Password to open the private key\n"
+"    -pass str           Password to open the private key, prompt if not given\n"
 "    -in file | stdin    To be signed file or data\n"
 "    -out file | stdout  Output signature in binary DER encoding\n"
 "\n"
@@ -42,6 +43,7 @@ int sm9sign_main(int argc, char **argv)
 	char *infile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *outfile = NULL;
 	FILE *infp = stdin;
 	FILE *keyfp = NULL;
@@ -100,8 +102,12 @@ bad:
 		argv++;
 	}
 
-	if (!keyfile || !pass) {
+	if (!keyfile) {
 		error_print();
+		goto end;
+	}
+	if (gmssl_tool_get_password(prog, "Password to open private key", keyfile, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
 		goto end;
 	}
 
@@ -142,6 +148,7 @@ end:
 	gmssl_secure_clear(&key, sizeof(key));
 	gmssl_secure_clear(&ctx, sizeof(ctx));
 	gmssl_secure_clear(buf, sizeof(buf));
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
 	return ret;

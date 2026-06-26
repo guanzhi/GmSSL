@@ -11,16 +11,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/mem.h>
 #include <gmssl/tls.h>
 #include <gmssl/x509.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 
 #define TIMEOUT_SECONDS 1
 
 static const char *usage =
 	"-host str [-port num] [-cacert pem]"
-	" [-cert pem -key pem -pass str]"
+	" [-cert pem -key pem [-pass str]]"
 	" [-certout pem]"
 	" [-get path|-in file]"
 	" [-alpn str]"
@@ -39,7 +41,7 @@ static const char *help =
 "    -verify_depth num      Certificate verification depth\n"
 "    -cert pem              Client certificate(s) in PEM format, TLCP ECDHE requires a double certificate chain\n"
 "    -key pem               Private key of client certificate in PEM format, TLCP ECDHE requires signing and encryption keys\n"
-"    -pass password         Password of encrypted private key\n"
+"    -pass password         Password of encrypted private key, prompt if not given\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -get path              Send a GET request with given path of URI\n"
 "    -in file | stdin       Send input data and read response until close or timeout\n"
@@ -242,6 +244,7 @@ int tlcp_client_main(int argc, char *argv[])
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *server_name = NULL;
 	int trusted_ca_keys = 0;
 	char *alpn_protocols[4];
@@ -404,8 +407,8 @@ bad:
 		return -1;
 	}
 	has_ecdhe_cipher_suite = tlcp_cipher_suites_have_ecdhe(cipher_suites, cipher_suites_cnt);
-	if (has_ecdhe_cipher_suite && (!certfile || !keyfile || !pass)) {
-		fprintf(stderr, "%s: TLCP ECDHE cipher suites require '-cert', '-key' and '-pass' with a double certificate chain\n", prog);
+	if (has_ecdhe_cipher_suite && (!certfile || !keyfile)) {
+		fprintf(stderr, "%s: TLCP ECDHE cipher suites require '-cert' and '-key' with a double certificate chain\n", prog);
 		return -1;
 	}
 
@@ -472,8 +475,8 @@ bad:
 			fprintf(stderr, "%s: option '-key' missing\n", prog);
 			goto end;
 		}
-		if (!pass) {
-			fprintf(stderr, "%s: option '-pass' missing\n", prog);
+		if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
+			passbuf, sizeof(passbuf)) != 1) {
 			goto end;
 		}
 		if (has_ecdhe_cipher_suite) {
@@ -670,6 +673,7 @@ bad:
 
 end:
 	// FIXME: clean ctx and connection ASAP, as Ctrl-C is not handled
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (tls_socket_is_valid(sock)) tls_socket_close(sock);
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);

@@ -15,9 +15,10 @@
 #include <gmssl/oid.h>
 #include <gmssl/sm9.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 
-static const char *usage = "-alg (sm9sign|sm9encrypt|sm9keyagreement) -in master_key.pem -inpass str -id str [-out pem] -outpass str";
+static const char *usage = "-alg (sm9sign|sm9encrypt|sm9keyagreement) -in master_key.pem [-inpass str] -id str [-out pem] [-outpass str]";
 
 static const char *options =
 "Options\n"
@@ -25,10 +26,10 @@ static const char *options =
 "    -alg sm9sign|sm9encrypt|sm9keyagreement\n"
 "                                 Generate user's private key for sm9sign, sm9encrypt or sm9keyagreement\n"
 "    -in pem                     SM9 master private key in PEM format\n"
-"    -inpass pass                Password to decrypt the master private key\n"
+"    -inpass pass                Password to decrypt the master private key, prompt if not given\n"
 "    -id str                     User's identity\n"
 "    -out pem                    Output password-encrypted user's private key in PEM format\n"
-"    -outpass pass               Password to encrypt user's private key\n"
+"    -outpass pass               Password to encrypt user's private key, prompt if not given\n"
 "\n"
 "Examples\n"
 "\n"
@@ -47,9 +48,11 @@ int sm9keygen_main(int argc, char **argv)
 	char *alg = NULL;
 	char *infile = NULL;
 	char *inpass = NULL;
+	char inpassbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *id = NULL;
 	char *outfile = NULL;
 	char *outpass = NULL;
+	char outpassbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	int oid = 0;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
@@ -116,8 +119,10 @@ bad:
 		fprintf(stderr, "%s: option '-id' is required\n", prog);
 		goto end;
 	}
-	if (!inpass || !outpass) {
-		error_print();
+	if (gmssl_tool_get_password(prog, "Password to decrypt master private key", infile,
+		&inpass, inpassbuf, sizeof(inpassbuf)) != 1
+		|| gmssl_tool_get_password(prog, "Password to encrypt user private key", outfile,
+		&outpass, outpassbuf, sizeof(outpassbuf)) != 1) {
 		goto end;
 	}
 
@@ -156,6 +161,8 @@ end:
 	gmssl_secure_clear(&enc_msk, sizeof(enc_msk));
 	gmssl_secure_clear(&sign_key, sizeof(sign_key));
 	gmssl_secure_clear(&enc_key, sizeof(enc_key));
+	gmssl_secure_clear(inpassbuf, sizeof(inpassbuf));
+	gmssl_secure_clear(outpassbuf, sizeof(outpassbuf));
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
 	return ret;

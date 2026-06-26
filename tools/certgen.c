@@ -20,6 +20,7 @@
 #include <gmssl/x509.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_alg.h>
+#include "passwd.h"
 
 
 static const char *options =
@@ -48,7 +49,7 @@ static char *usage =
 "    -days num                    Validity peroid in days\n"
 "    -key file                    Private key file in PEM format\n"
 "    -algor str                   Public key algorithm\n"
-"    -pass pass                   Password for decrypting private key file\n"
+"    -pass pass                   Password for decrypting private key file, prompt if not given\n"
 "    -sig_alg str                 Signature algorithm OID name, default sm2sign-with-sm3\n"
 "    -sm2_id str                  Signer's ID in SM2 signature algorithm\n"
 "    -sm2_id_hex hex              Signer's ID in hex format\n"
@@ -157,7 +158,9 @@ int certgen_main(int argc, char **argv)
 
 	// Private Key
 	FILE *keyfp = NULL;
+	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	X509_KEY x509_key;
 	int algor = OID_ec_public_key;
 	int sign_algor = OID_sm2sign_with_sm3;
@@ -265,6 +268,7 @@ int certgen_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			str = *(++argv);
+			keyfile = str;
 			if (!(keyfp = fopen(str, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, str, strerror(errno));
 				goto end;
@@ -410,9 +414,10 @@ bad:
 		goto end;
 	}
 	if (!pass && algor != OID_ec_public_key) {
-		fprintf(stderr, "%s: option `-pass` required\n", prog);
-		printf("usage: gmssl %s %s\n\n", prog, options);
-		goto end;
+		if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
+			passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
 	}
 	if (x509_private_key_from_file(&x509_key, algor, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: load private key failed\n", prog);
@@ -566,6 +571,7 @@ bad:
 
 end:
 	x509_key_cleanup(&x509_key);
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (cert) free(cert);
 	if (keyfp) fclose(keyfp);
 	if (outfile && outfp) fclose(outfp);

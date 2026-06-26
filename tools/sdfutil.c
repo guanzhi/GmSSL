@@ -17,6 +17,7 @@
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sdf.h>
+#include "passwd.h"
 
 
 #define OP_NONE			0
@@ -30,8 +31,8 @@ static void print_usage(FILE *fp, const char *prog)
 {
 	fprintf(fp, "usage:\n");
 	fprintf(fp, "  %s -lib so_path -devinfo\n", prog);
-	fprintf(fp, "  %s -lib so_path -exportpubkey -key index [-out file]\n", prog);
-	fprintf(fp, "  %s -lib so_path -sign [-in file] [-out file]\n", prog);
+	fprintf(fp, "  %s -lib so_path -exportpubkey -key index [-pass str] [-out file]\n", prog);
+	fprintf(fp, "  %s -lib so_path -sign -key index [-pass str] [-in file] [-out file]\n", prog);
 	fprintf(fp, "  %s -lib so_path -rand num [-out file]\n", prog);
 }
 
@@ -43,6 +44,7 @@ int sdfutil_main(int argc, char **argv)
 	int op = 0;
 	int keyindex = -1;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *id = SM2_DEFAULT_ID;
 	int num = 0;
 	char *infile = NULL;
@@ -143,6 +145,10 @@ bad:
 			fprintf(stderr, "%s: invalid key index\n", prog);
 			goto end;
 		}
+		if (gmssl_tool_get_password(prog, "Password to access SDF private key", NULL, &pass,
+			passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
 		if (sdf_load_sign_key(&dev, &key, keyindex, pass) != 1) {
 			fprintf(stderr, "%s: load sign key failed\n", prog);
 			goto end;
@@ -161,6 +167,14 @@ bad:
 		uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 		size_t siglen;
 
+		if (keyindex < 0) {
+			fprintf(stderr, "%s: invalid key index\n", prog);
+			goto end;
+		}
+		if (gmssl_tool_get_password(prog, "Password to access SDF private key", NULL, &pass,
+			passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
 		if (sdf_load_sign_key(&dev, &key, keyindex, pass) != 1) {
 			fprintf(stderr, "%s: load sign key failed\n", prog);
 			goto end;
@@ -211,6 +225,7 @@ bad:
 
 end:
 	gmssl_secure_clear(buf, sizeof(buf));
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (key_opened) sdf_destroy_key(&key);
 	if (dev_opened) sdf_close_device(&dev);
 	if (lib) sdf_unload_library();

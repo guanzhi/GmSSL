@@ -11,13 +11,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/mem.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 
 static int client_ciphers[] = { TLS_cipher_ecdhe_sm4_cbc_sm3 };
 
-static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str] [-get path|-in file] [-trusted_ca_keys] [-verbose]";
+static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem [-pass str]] [-get path|-in file] [-trusted_ca_keys] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -31,7 +33,7 @@ static const char *help =
 "    -verify_depth num      Certificate verification depth\n"
 "    -cert pem              Client's certificate chain in PEM format\n"
 "    -key pem               Client's encrypted private key in PEM format\n"
-"    -pass str              Password to decrypt private key\n"
+"    -pass str              Password to decrypt private key, prompt if not given\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -server_name str       Send server_name (SNI) request\n"
 "    -trusted_ca_keys       Send trusted_ca_keys request\n"
@@ -210,6 +212,7 @@ int tls12_client_main(int argc, char *argv[])
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	int client_cert_optional = 0;
 	char *server_name = NULL;
 	int trusted_ca_keys = 0;
@@ -437,8 +440,8 @@ bad:
 			fprintf(stderr, "%s: option '-key' missing\n", prog);
 			goto end;
 		}
-		if (!pass) {
-			fprintf(stderr, "%s: option '-pass' missing\n", prog);
+		if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
+			passbuf, sizeof(passbuf)) != 1) {
 			goto end;
 		}
 		if (tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
@@ -604,6 +607,7 @@ bad:
 
 
 end:
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (tls_socket_is_valid(sock)) tls_socket_close(sock);
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);

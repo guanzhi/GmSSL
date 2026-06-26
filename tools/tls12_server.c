@@ -15,9 +15,10 @@
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 
-static const char *options = "[-port num] -cert pem -key pem -pass str [-cacert pem] [-verbose]";
+static const char *options = "[-port num] -cert pem -key pem [-pass str] [-cacert pem] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -28,7 +29,7 @@ static const char *help =
 "    -sig_alg str           Supported signature algorithms\n"
 "    -cert pem              Server's certificate chain in PEM format\n"
 "    -key pem               Server's encrypted private key in PEM format\n"
-"    -pass str              Password to decrypt private key\n"
+"    -pass str              Password to decrypt private key, prompt if not given\n"
 "    -cert_request          Client certificate request\n"
 "    -cacert pem            CA certificate for client certificate verification\n"
 "    -verify_depth num      Certificate verification depth\n"
@@ -145,6 +146,7 @@ int tls12_server_main(int argc , char **argv)
 	char *keyfiles[sizeof(certfiles)/sizeof(certfiles[0])];
 	size_t keyfiles_cnt = 0;
 	char *passes[sizeof(certfiles)/sizeof(certfiles[0])];
+	char passbufs[sizeof(certfiles)/sizeof(certfiles[0])][GMSSL_PASSWORD_MAX_SIZE] = {{0}};
 	size_t passes_cnt = 0;
 	int cert_request = 0;
 	char *cacertfile = NULL;
@@ -282,14 +284,22 @@ bad:
 		fprintf(stderr, "%s: '-key' option required\n", prog);
 		return 1;
 	}
-	if (!passes_cnt) {
-		fprintf(stderr, "%s: '-pass' option required\n", prog);
+	if (passes_cnt > keyfiles_cnt) {
+		fprintf(stderr, "%s: too many -pass options\n", prog);
 		return 1;
 	}
-	if (certfiles_cnt != keyfiles_cnt || keyfiles_cnt != passes_cnt) {
+	if (certfiles_cnt != keyfiles_cnt) {
 		error_print();
 		return -1;
 	}
+	for (i = passes_cnt; i < keyfiles_cnt; i++) {
+		if (gmssl_tool_read_password(prog, "Password to decrypt private key",
+			keyfiles[i], passbufs[i], sizeof(passbufs[i])) != 1) {
+			goto end;
+		}
+		passes[i] = passbufs[i];
+	}
+	passes_cnt = keyfiles_cnt;
 
 	if (tls_socket_lib_init() != 1) {
 		error_print();
@@ -454,5 +464,6 @@ restart:
 
 
 end:
+	gmssl_secure_clear(passbufs, sizeof(passbufs));
 	return ret;
 }

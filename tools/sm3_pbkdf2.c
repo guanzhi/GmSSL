@@ -15,15 +15,16 @@
 #include <gmssl/mem.h>
 #include <gmssl/hex.h>
 #include <gmssl/sm3.h>
+#include "passwd.h"
 
 
-static const char *usage = "-pass str -salt hex -iter num -outlen num [-bin|-hex] [-out file]";
+static const char *usage = "[-pass str] -salt hex -iter num -outlen num [-bin|-hex] [-out file]";
 
 static const char *options =
 "\n"
 "Options\n"
 "\n"
-"    -pass str           Password to be converted into key\n"
+"    -pass str           Password to be converted into key, prompt if not given\n"
 "    -salt hex           Salt value, 8 to 64 bytes\n"
 "    -iter num           Iteration count, larger iter make it more secure but slower\n"
 "    -outlen num         Generate key bytes\n"
@@ -43,6 +44,7 @@ int sm3_pbkdf2_main(int argc, char **argv)
 	int ret = 1;
 	char *prog = argv[0];
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *salthex = NULL;
 	uint8_t salt[SM3_PBKDF2_MAX_SALT_SIZE];
 	size_t saltlen;
@@ -122,8 +124,8 @@ bad:
 		argv++;
 	}
 
-	if (!pass) {
-		fprintf(stderr, "gmssl %s: option '-pass' required\n", prog);
+	if (gmssl_tool_get_password(prog, "Password", NULL, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
 		goto end;
 	}
 	if (!salthex) {
@@ -160,6 +162,7 @@ bad:
 end:
 	gmssl_secure_clear(outbuf, sizeof(outbuf));
 	gmssl_secure_clear(salt, sizeof(salt));
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (outfile && outfp) fclose(outfp);
 	return ret;
 }

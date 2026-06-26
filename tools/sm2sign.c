@@ -14,16 +14,17 @@
 #include <stdlib.h>
 #include <gmssl/sm2.h>
 #include <gmssl/mem.h>
+#include "passwd.h"
 
 
-static const char *usage = "-key pem -pass str [-id str] [-in file] [-out file]";
+static const char *usage = "-key pem [-pass str] [-id str] [-in file] [-out file]";
 
 static const char *options =
 "\n"
 "Options\n"
 "\n"
 "    -key pem            Signing private key file in PEM format\n"
-"    -pass str           Password to open the private key\n"
+"    -pass str           Password to open the private key, prompt if not given\n"
 "    -id str             Signer's identity string, '1234567812345678' by default\n"
 "    -in file | stdin    To be signed file or data\n"
 "    -out file | stdout  Output signature in binary DER encoding\n"
@@ -42,6 +43,7 @@ int sm2sign_main(int argc, char **argv)
 	char *prog = argv[0];
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *id = SM2_DEFAULT_ID;
 	char *infile = NULL;
 	char *outfile = NULL;
@@ -112,8 +114,8 @@ bad:
 		fprintf(stderr, "gmssl %s: '-key' option required\n", prog);
 		goto end;
 	}
-	if (!pass) {
-		fprintf(stderr, "gmssl %s: '-pass' option required\n", prog);
+	if (gmssl_tool_get_password(prog, "Password to open private key", keyfile, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
 		goto end;
 	}
 	if (sm2_private_key_info_decrypt_from_pem(&key, pass, keyfp) != 1) {
@@ -147,6 +149,7 @@ bad:
 end:
 	gmssl_secure_clear(&key, sizeof(key));
 	gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (keyfp) fclose(keyfp);
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);

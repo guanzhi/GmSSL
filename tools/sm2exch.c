@@ -19,6 +19,7 @@
 #include <gmssl/sm2.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_ext.h>
+#include "passwd.h"
 
 
 #define SM2EXCH_RA_SIZE 65
@@ -46,7 +47,7 @@ static const char *options =
 "    -cert pem               Optional local SM2 certificate for checking against -key\n"
 "    -pubkey pem             Optional local SM2 public key for checking against -key\n"
 "    -key pem                Local SM2 private key in PEM format\n"
-"    -pass str               Password to open local private key\n"
+"    -pass str               Password to open local private key, prompt if not given\n"
 "    -peer_cert pem          Peer SM2 key exchange/encryption certificate in PEM format\n"
 "    -peer_pubkey pem        Peer SM2 public key in PEM format\n"
 "    -id str                 Local SM2 identity, '1234567812345678' by default\n"
@@ -63,7 +64,7 @@ static const char *options =
 "                            confirm: SA, 32 bytes\n"
 "    -exch_keyout pem        Output local ephemeral private key\n"
 "    -exch_key pem           Input local ephemeral private key\n"
-"    -exch_pass str          Password for local ephemeral private key\n"
+"    -exch_pass str          Password for local ephemeral private key, prompt if not given\n"
 "    -secret_state_out file\n"
 "                            Output 65-byte secret_state point\n"
 "    -secret_state file      Input 65-byte secret_state point\n"
@@ -729,6 +730,7 @@ int sm2exch_main(int argc, char **argv)
 	char *pubkeyfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *peer_certfile = NULL;
 	char *peer_pubkeyfile = NULL;
 	char *id = NULL;
@@ -744,6 +746,7 @@ int sm2exch_main(int argc, char **argv)
 	char *exch_keyfile = NULL;
 	char *exch_keyoutfile = NULL;
 	char *exch_pass = NULL;
+	char exch_passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *secret_statefile = NULL;
 	char *secret_stateoutfile = NULL;
 	char *keyoutfile = NULL;
@@ -903,18 +906,50 @@ bad:
 	}
 
 	if (!strcmp(stage, "init")) {
+		if (exch_keyoutfile && gmssl_tool_get_password(prog,
+			"Password to encrypt exchange private key", exch_keyoutfile,
+			&exch_pass, exch_passbuf, sizeof(exch_passbuf)) != 1) {
+			goto end;
+		}
 		ret = sm2exch_stage_init(exch_keyoutfile, exch_pass, outfile, format, prog);
 	} else if (!strcmp(stage, "respond")) {
+		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
+			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
+		if (exch_keyoutfile && gmssl_tool_get_password(prog,
+			"Password to encrypt exchange private key", exch_keyoutfile,
+			&exch_pass, exch_passbuf, sizeof(exch_passbuf)) != 1) {
+			goto end;
+		}
 		ret = sm2exch_stage_respond(keyfile, pass, pubkeyfile, certfile,
 			peer_pubkeyfile, peer_certfile, id, id_len, peer_id, peer_id_len,
 			infile, exch_keyoutfile, exch_pass, secret_stateoutfile,
 			outfile, keylen, format, prog);
 	} else if (!strcmp(stage, "confirm")) {
+		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
+			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
+		if (exch_keyfile && gmssl_tool_get_password(prog,
+			"Password to open exchange private key", exch_keyfile,
+			&exch_pass, exch_passbuf, sizeof(exch_passbuf)) != 1) {
+			goto end;
+		}
 		ret = sm2exch_stage_confirm(keyfile, pass, pubkeyfile, certfile,
 			peer_pubkeyfile, peer_certfile, id, id_len, peer_id, peer_id_len,
 			exch_keyfile, exch_pass, infile, secret_stateoutfile,
 			keyoutfile, outfile, keylen, format, prog);
 	} else if (!strcmp(stage, "finish")) {
+		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
+			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
+		if (exch_keyfile && gmssl_tool_get_password(prog,
+			"Password to open exchange private key", exch_keyfile,
+			&exch_pass, exch_passbuf, sizeof(exch_passbuf)) != 1) {
+			goto end;
+		}
 		ret = sm2exch_stage_finish(keyfile, pass, pubkeyfile, certfile,
 			peer_pubkeyfile, peer_certfile, id, id_len, peer_id, peer_id_len,
 			exch_keyfile, exch_pass, secret_statefile, infile,
@@ -925,5 +960,7 @@ bad:
 	}
 
 end:
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
+	gmssl_secure_clear(exch_passbuf, sizeof(exch_passbuf));
 	return ret == 0 ? 0 : 1;
 }

@@ -11,9 +11,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/mem.h>
 #include <gmssl/hex.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 #ifdef _WIN32
 #define tls_stdio_fileno(fp) _fileno(fp)
@@ -169,7 +171,7 @@ static int do_send_file_select(TLS_CONNECT *conn, FILE *fp)
 	return 1;
 }
 
-static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str] [-get path|-in file] [-verbose]";
+static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem [-pass str]] [-get path|-in file] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -184,7 +186,7 @@ static const char *help =
 "    -verify_depth num         Certificate verification depth\n"
 "    -cert pem                 Client's certificate chain in PEM format\n"
 "    -key pem                  Client's encrypted private key in PEM format\n"
-"    -pass str                 Password to decrypt private key\n"
+"    -pass str                 Password to decrypt private key, prompt if not given\n"
 "    -server_name str          Send server_name (SNI) request\n"
 "    -signature_algorithms_cert Send signature_algorithms_cert extension\n"
 "    -certificate_authorities  Send certificate_authorities extension\n"
@@ -242,6 +244,7 @@ int tls13_client_main(int argc, char *argv[])
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	int client_cert_optional = 0;
 
 	// supported_groups
@@ -568,8 +571,8 @@ bad:
 			fprintf(stderr, "%s: option -key is required\n", prog);
 			goto end;
 		}
-		if (!pass) {
-			fprintf(stderr, "%s: option -pass is requried\n", prog);
+		if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
+			passbuf, sizeof(passbuf)) != 1) {
 			goto end;
 		}
 		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass) != 1) {
@@ -938,6 +941,7 @@ bad:
 	}
 
 end:
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (tls_socket_is_valid(sock)) tls_socket_close(sock);
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);

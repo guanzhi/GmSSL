@@ -13,12 +13,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/file.h>
+#include <gmssl/mem.h>
 #include <gmssl/x509.h>
 #include <gmssl/cms.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 
-static const char *options = "-key file -pass str -cert file -in file [-out file]";
+static const char *options = "-key file [-pass str] -cert file -in file [-out file]";
 
 int cmsdecrypt_main(int argc, char **argv)
 {
@@ -26,6 +28,7 @@ int cmsdecrypt_main(int argc, char **argv)
 	char *prog = argv[0];
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *certfile = NULL;
 	char *infile = NULL;
 	char *outfile = NULL;
@@ -109,8 +112,8 @@ bad:
 		fprintf(stderr, "%s: '-key' option required\n", prog);
 		goto end;
 	}
-	if (!pass) {
-		fprintf(stderr, "%s: '-pass' option required\n", prog);
+	if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
 		goto end;
 	}
 	if (!certfile) {
@@ -177,6 +180,7 @@ bad:
 	ret = 0;
 
 end:
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
 	if (keyfile && keyfp) fclose(keyfp);

@@ -7,21 +7,18 @@
  *  http://www.apache.org/licenses/LICENSE-2.0
  */
 
+#ifndef GMSSL_PASSWD_H
+#define GMSSL_PASSWD_H
 
-
-#ifndef GMSSL_VERSION_H
-#define GMSSL_VERSION_H
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-#define GMSSL_VERSION_NUM	30300
-#define GMSSL_VERSION_STR	"GmSSL 3.3.0-dev.1173"
+int gmssl_read_password(const char *prompt, char *pass, size_t passlen);
 
-int gmssl_version_num(void);
-const char *gmssl_version_str(void);
 
 #ifdef __cplusplus
 }

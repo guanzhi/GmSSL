@@ -14,16 +14,17 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm2.h>
+#include "passwd.h"
 
 
-static const char *usage = "-key pem -pass str [-in file] [-out file]";
+static const char *usage = "-key pem [-pass str] [-in file] [-out file]";
 
 static const char *options =
 "\n"
 "Options\n"
 "\n"
 "    -key pem            Decryption private key file in PEM format\n"
-"    -pass str           Password to open the private key\n"
+"    -pass str           Password to open the private key, prompt if not given\n"
 "    -in file | stdin    Input ciphertext in binary DER-encoding\n"
 "    -in file | stdout   Output decrypted data\n"
 "\n"
@@ -40,6 +41,7 @@ int sm2decrypt_main(int argc, char **argv)
 	char *prog = argv[0];
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *infile = NULL;
 	char *outfile = NULL;
 	FILE *keyfp = NULL;
@@ -105,8 +107,8 @@ bad:
 		fprintf(stderr, "gmssl %s: '-key' option required\n", prog);
 		goto end;
 	}
-	if (!pass) {
-		fprintf(stderr, "gmssl %s: '-pass' option required\n", prog);
+	if (gmssl_tool_get_password(prog, "Password to open private key", keyfile, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
 		goto end;
 	}
 
@@ -141,6 +143,7 @@ end:
 	gmssl_secure_clear(&key, sizeof(key));
 	gmssl_secure_clear(&ctx, sizeof(ctx));
 	gmssl_secure_clear(outbuf, sizeof(outbuf));
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (keyfp) fclose(keyfp);
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);

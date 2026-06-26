@@ -17,13 +17,15 @@
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sm4.h>
+#include <gmssl/mem.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 #include "../src/sdf/sdf.h"
 #include "../src/sdf/sdf_ext.h"
 
 
-static const char *usage = "-lib so_path -kek num -key num -pass str";
+static const char *usage = "-lib so_path -kek num -key num [-pass str]";
 
 static const char *options =
 "\n"
@@ -32,7 +34,7 @@ static const char *options =
 "    -lib so_path        Path to vendor's SDF dynamic lib (.so or .dylib)\n"
 "    -kek num            KEK index\n"
 "    -key num            Private key index\n"
-"    -pass str           Password for accessing the private key\n"
+"    -pass str           Password for accessing the private key, prompt if not given\n"
 "\n"
 "Examples\n"
 "\n"
@@ -2150,6 +2152,7 @@ int sdftest_main(int argc, char **argv)
 	int kek = 1;
 	int key = 1;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 
 	argc--;
 	argv++;
@@ -2201,8 +2204,8 @@ bad:
 		fprintf(stderr, "gmssl %s: option `-lib` missing\n", prog);
 		goto end;
 	}
-	if (!pass) {
-		fprintf(stderr, "gmssl %s: option `-pass` missing\n", prog);
+	if (gmssl_tool_get_password(prog, "Password to access SDF private key", NULL, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
 		goto end;
 	}
 
@@ -2251,7 +2254,9 @@ bad:
 
 err:
 	error_print();
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	return 1;
 end:
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	return ret;
 }

@@ -18,6 +18,7 @@
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
 #include <gmssl/skf.h>
+#include "passwd.h"
 
 
 #define OP_NONE			0
@@ -48,6 +49,7 @@ int skfutil_main(int argc, char **argv)
 	char *appname = NULL;
 	char *container_name = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *id = SM2_DEFAULT_ID;
 	int num = 0;
 	char *infile = NULL;
@@ -194,8 +196,8 @@ bad:
 		fprintf(stderr, "%s: option '-container' required\n", prog);
 		goto end;
 	}
-	if (!pass) {
-		fprintf(stderr, "%s: option '-pass' required\n", prog);
+	if (gmssl_tool_get_password(prog, "Password to access SKF container", container_name, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
 		goto end;
 	}
 
@@ -255,6 +257,7 @@ bad:
 
 end:
 	gmssl_secure_clear(buf, sizeof(buf));
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (key_opened) skf_release_key(&key);
 	if (dev_opened) skf_close_device(&dev);
 	if (lib) skf_unload_library();

@@ -30,9 +30,10 @@
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 
-static const char *options = "[-port num] -cert pem -key pem -pass str [-cipher_suite str] [-alpn str] [-cert_request] [-cacert pem] [-verbose]";
+static const char *options = "[-port num] -cert pem -key pem [-pass str] [-cipher_suite str] [-alpn str] [-cert_request] [-cacert pem] [-verbose]";
 
 
 static const char *help =
@@ -41,7 +42,7 @@ static const char *help =
 "    -port num              Listening port number, default 443\n"
 "    -cert pem              Server's certificate chain in PEM format, may appear multiple times\n"
 "    -key pem               Server's signing and encryption private keys in PEM format: signing key first, encryption key second, may appear multiple times\n"
-"    -pass str              Password to decrypt both private keys in the same -key PEM, may appear multiple times\n"
+"    -pass str              Password to decrypt both private keys in the same -key PEM, may appear multiple times, prompt if not given\n"
 "    -cipher_suite str      Supported cipher suites, may appear multiple times, higher priority first\n"
 "    -alpn str              Application protocol name, may appear multiple times, higher priority first\n"
 "    -cert_request          Client certificate request\n"
@@ -152,6 +153,7 @@ int tlcp_server_main(int argc , char **argv)
 	char *signkeyfiles[sizeof(certfiles)/sizeof(certfiles[0])];
 	size_t signkeyfiles_cnt = 0;
 	char *signpasses[sizeof(certfiles)/sizeof(certfiles[0])];
+	char passbufs[sizeof(certfiles)/sizeof(certfiles[0])][GMSSL_PASSWORD_MAX_SIZE] = {{0}};
 	size_t signpasses_cnt = 0;
 	char *alpn_protocols[4];
 	size_t alpn_protocols_cnt = 0;
@@ -255,14 +257,22 @@ bad:
 		fprintf(stderr, "%s: '-key' option required\n", prog);
 		return 1;
 	}
-	if (!signpasses_cnt) {
-		fprintf(stderr, "%s: '-pass' option required\n", prog);
+	if (signpasses_cnt > signkeyfiles_cnt) {
+		fprintf(stderr, "%s: too many -pass options\n", prog);
 		return 1;
 	}
-	if (certfiles_cnt != signkeyfiles_cnt || signkeyfiles_cnt != signpasses_cnt) {
-		fprintf(stderr, "%s: -cert/-key/-pass counts mismatch\n", prog);
+	if (certfiles_cnt != signkeyfiles_cnt) {
+		fprintf(stderr, "%s: -cert/-key counts mismatch\n", prog);
 		return 1;
 	}
+	for (i = signpasses_cnt; i < signkeyfiles_cnt; i++) {
+		if (gmssl_tool_read_password(prog, "Password to decrypt private key",
+			signkeyfiles[i], passbufs[i], sizeof(passbufs[i])) != 1) {
+			goto end;
+		}
+		signpasses[i] = passbufs[i];
+	}
+	signpasses_cnt = signkeyfiles_cnt;
 
 	if (!cipher_suites_cnt) {
 		fprintf(stderr, "%s: '-cipher_suite' option required\n", prog);
@@ -409,5 +419,6 @@ restart:
 
 
 end:
+	gmssl_secure_clear(passbufs, sizeof(passbufs));
 	return ret;
 }

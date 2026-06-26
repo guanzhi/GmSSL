@@ -14,14 +14,15 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/x509_key.h>
+#include "passwd.h"
 
 
-static const char *usage = "-pass str [-out pem] [-pubout pem]\n";
+static const char *usage = "[-pass str] [-out pem] [-pubout pem]\n";
 
 static const char *options =
 "Options\n"
 "\n"
-"    -pass pass                  Password to encrypt the private key\n"
+"    -pass pass                  Password to encrypt the private key, prompt if not given\n"
 "    -out pem                    Output password-encrypted PKCS #8 private key in PEM format\n"
 "    -pubout pem                 Output public key in PEM format\n"
 "    -export pem                 Output non-encrypted PKCS#8 private key in PEM format\n"
@@ -37,6 +38,7 @@ int p256keygen_main(int argc, char **argv)
 	int ret = 1;
 	char *prog = argv[0];
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *outfile = NULL;
 	char *puboutfile = NULL;
 	char *exportfile = NULL;
@@ -96,8 +98,8 @@ bad:
 		argv++;
 	}
 
-	if (!pass) {
-		fprintf(stderr, "gmssl %s: `-pass` option required\n", prog);
+	if (gmssl_tool_get_password(prog, "Password to encrypt private key", outfile, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
 		goto end;
 	}
 
@@ -124,6 +126,7 @@ bad:
 
 end:
 	gmssl_secure_clear(&key, sizeof(key));
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (outfile && outfp) fclose(outfp);
 	if (puboutfile && puboutfp) fclose(puboutfp);
 	return ret;

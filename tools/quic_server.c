@@ -10,10 +10,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/mem.h>
 #include <gmssl/quic.h>
 #include <gmssl/tls.h>
 #include <gmssl/socket.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 int tls13_generate_application_secrets(TLS_CONNECT *conn);
 int tls13_generate_client_application_keys(TLS_CONNECT *conn);
@@ -28,7 +30,7 @@ static const char *help =
 "    -port num                 Listening UDP port number, default 443\n"
 "    -cert pem                 Server's certificate chain in PEM format\n"
 "    -key pem                  Server's encrypted private key in PEM format\n"
-"    -pass str                 Password to decrypt private key\n"
+"    -pass str                 Password to decrypt private key, prompt if not given\n"
 "    -cipher_suite str         TLS 1.3 cipher suite, default TLS_AES_128_GCM_SHA256 and TLS_AES_128_CCM_SHA256\n"
 "    -supported_group str      Supported elliptic curve, default prime256v1\n"
 "    -sig_alg str              Supported signature algorithm, default ecdsa_secp256r1_sha256\n"
@@ -655,6 +657,7 @@ int quic_server_main(int argc, char **argv)
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	int verbose = 0;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
@@ -770,6 +773,10 @@ bad:
 		fprintf(stderr, "%s: -cert and -key required\n", prog);
 		return 1;
 	}
+	if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
+		return 1;
+	}
 
 	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
@@ -779,7 +786,7 @@ bad:
 		|| tls_ctx_set_supported_groups(&ctx, &supported_group, 1) != 1
 		|| tls_ctx_set_signature_algorithms(&ctx, &sig_alg, 1) != 1
 		|| tls_ctx_set_application_layer_protocol_negotiation(&ctx, &alpn, 1) != 1
-		|| tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass ? pass : "") != 1
+		|| tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass) != 1
 		|| tls_init(&conn, &ctx) != 1) {
 		error_print();
 		goto end;
@@ -1001,6 +1008,7 @@ bad:
 	}
 
 end:
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (tls_socket_is_valid(sock)) {
 		tls_socket_close(sock);
 	}

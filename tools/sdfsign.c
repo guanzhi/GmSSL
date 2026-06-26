@@ -14,9 +14,10 @@
 #include <stdlib.h>
 #include <gmssl/sdf.h>
 #include <gmssl/mem.h>
+#include "passwd.h"
 
 
-static const char *usage = "-lib so_path -key num -pass str [-id str] [-in file] [-out file]";
+static const char *usage = "-lib so_path -key num [-pass str] [-id str] [-in file] [-out file]";
 
 static const char *options =
 "\n"
@@ -24,7 +25,7 @@ static const char *options =
 "\n"
 "    -lib so_path        Vendor's SDF dynamic library\n"
 "    -key num            Signing private key index number\n"
-"    -pass str           Password to get the private key access right\n"
+"    -pass str           Password to get the private key access right, prompt if not given\n"
 "    -id str             Signer's identity string, '1234567812345678' by default\n"
 "    -in file | stdin    To be signed file or data\n"
 "    -out file | stdout  Output signature in binary DER encoding\n"
@@ -44,6 +45,7 @@ int sdfsign_main(int argc, char **argv)
 	char *lib = NULL;
 	int key_index = -1;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *id = SM2_DEFAULT_ID;
 	char *infile = NULL;
 	char *outfile = NULL;
@@ -125,8 +127,8 @@ bad:
 		fprintf(stderr, "gmssl %s: '-key' option required\n", prog);
 		goto end;
 	}
-	if (!pass) {
-		fprintf(stderr, "gmssl %s: '-pass' option required\n", prog);
+	if (gmssl_tool_get_password(prog, "Password to access SDF private key", NULL, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
 		goto end;
 	}
 
@@ -171,6 +173,7 @@ bad:
 
 end:
 	gmssl_secure_clear(&ctx, sizeof(ctx));
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	(void)sdf_release_private_key(&key);
 	(void)sdf_close_device(&dev);
 	sdf_unload_library();

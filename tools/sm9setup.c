@@ -15,6 +15,7 @@
 #include <gmssl/mem.h>
 #include <gmssl/sm9.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 static const char *usage = "-alg (sm9sign|sm9encrypt) [-pass password] [-out pem] [-pubout pem] [-verbose]";
 
@@ -22,7 +23,7 @@ static const char *options =
 "Options\n"
 "\n"
 "    -alg sm9sign|sm9encrypt     Generate maeter key for sm9sign or sm9encrypt\n"
-"    -pass pass                  Password to encrypt the master private key\n"
+"    -pass pass                  Password to encrypt the master private key, prompt if not given\n"
 "    -out pem                    Output password-encrypted master private key in PEM format\n"
 "    -pubout pem                 Output master public key in PEM format\n"
 "    -verbose                    Print details\n"
@@ -39,6 +40,7 @@ int sm9setup_main(int argc, char **argv)
 	char *prog = argv[0];
 	char *alg = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *outfile = NULL;
 	char *puboutfile = NULL;
 	int oid;
@@ -99,11 +101,11 @@ bad:
 
 	if (!alg) {
 		error_print();
-		return -1;
+		goto end;
 	}
-	if (!pass) {
-		error_print();
-		return -1;
+	if (gmssl_tool_get_password(prog, "Password to encrypt master private key", outfile, &pass,
+		passbuf, sizeof(passbuf)) != 1) {
+		goto end;
 	}
 
 	switch (oid) {
@@ -140,12 +142,11 @@ bad:
 end:
 	gmssl_secure_clear(&sign_msk, sizeof(sign_msk));
 	gmssl_secure_clear(&enc_msk, sizeof(enc_msk));
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (outfile && outfp) fclose(outfp);
 	if (puboutfile && puboutfp) fclose(puboutfp);
 	return ret;
 }
-
-
 
 
 

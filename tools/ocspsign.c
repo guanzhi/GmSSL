@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/hex.h>
+#include <gmssl/mem.h>
 #include <gmssl/asn1.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_alg.h>
@@ -20,6 +21,7 @@
 #include <gmssl/x509_key.h>
 #include <gmssl/ocsp.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 
 #define OCSP_RESPONSE_MAX_SIZE		131072
@@ -42,7 +44,7 @@ static const char *help =
 "    -cacert pem             Issuer CA certificate of the requested certificate\n"
 "    -signer pem             OCSPResponse signer certificate\n"
 "    -key pem                OCSPResponse signer private key\n"
-"    -pass pass              Password for decrypting private key file\n"
+"    -pass pass              Password for decrypting private key file, prompt if not given\n"
 "    -status status          Certificate status: good, revoked or unknown, default good\n"
 "    -sig_alg str            Signature algorithm OID name, default sm2sign-with-sm3\n"
 "    -revocation_time time   Revocation time, required when status is revoked\n"
@@ -166,6 +168,7 @@ int ocspsign_main(int argc, char **argv)
 	FILE *cacertfp = NULL;
 	FILE *signerfp = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *str;
 	int verbose = 0;
 
@@ -403,8 +406,10 @@ bad:
 		goto end;
 	}
 	if (!pass && signer_pub.algor == OID_ec_public_key) {
-		fprintf(stderr, "%s: `-pass` option required\n", prog);
-		goto end;
+		if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
+			passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
 	}
 	if (x509_private_key_from_file(&sign_key, signer_pub.algor, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: load signer private key failure\n", prog);
@@ -490,6 +495,7 @@ bad:
 	ret = 0;
 
 end:
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (keyfp) fclose(keyfp);
 	if (cacertfp) fclose(cacertfp);
 	if (signerfp) fclose(signerfp);

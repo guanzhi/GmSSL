@@ -21,6 +21,7 @@
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_key.h>
 #include <gmssl/error.h>
+#include "passwd.h"
 
 
 static const char *options =
@@ -64,7 +65,7 @@ static char *usage =
 "                                   must use the same ID in other commands explicitly.\n"
 "                                 If neither `-sm2_id` nor `-sm2_id_hex` is specified,\n"
 "                                   the default string '1234567812345678' is used\n"
-"    -pass pass                   Password for decrypting private key file\n"
+"    -pass pass                   Password for decrypting private key file, prompt if not given\n"
 "    -out pem                     Output certificate file in PEM format\n"
 "\n"
 "  Extension options\n"
@@ -176,7 +177,9 @@ int reqsign_main(int argc, char **argv)
 	uint8_t *cacert = NULL;
 	size_t cacertlen;
 	FILE *keyfp = NULL;
+	char *keyfile = NULL;
 	char *pass = NULL;
+	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	X509_KEY x509_key;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
@@ -312,6 +315,7 @@ int reqsign_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			str = *(++argv);
+			keyfile = str;
 			if (!(keyfp = fopen(str, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, str, strerror(errno));
 				goto end;
@@ -469,9 +473,10 @@ bad:
 		goto end;
 	}
 	if (!pass && issuer_public_key.algor == OID_ec_public_key) {
-		fprintf(stderr, "%s: '-pass' option required\n", prog);
-		printf("usage: gmssl %s %s\n\n", prog, options);
-		goto end;
+		if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
+			passbuf, sizeof(passbuf)) != 1) {
+			goto end;
+		}
 	}
 
 	if (x509_private_key_from_file(&x509_key, issuer_public_key.algor, pass, keyfp) != 1) {
@@ -622,6 +627,7 @@ bad:
 	ret = 0;
 end:
 	x509_key_cleanup(&x509_key);
+	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (cert) free(cert);
 	if (keyfp) fclose(keyfp);
 	if (infile && infp) fclose(infp);
