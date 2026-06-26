@@ -34,23 +34,24 @@ static const char *help =
 "\n"
 "Examples\n"
 "\n"
-"    KEY_HEX=`gmssl rand -outlen 16 -hex`\n"
-"    gmssl sm3hmac -key $KEY_HEX -in_str abc\n"
+"    KEY=`gmssl rand -outlen 16 -hex`\n"
+"    gmssl sm3_hmac -key $KEY -in_str abc\n"
 "\n"
-"    gmssl sm3hmac -key $KEY_HEX -in_str abc -bin\n"
+"    gmssl sm3_hmac -key $KEY -in_str abc -bin\n"
 "\n"
-"    gmssl sm3hmac -key $KEY_HEX -in /path/to/file\n"
+"    gmssl sm3_hmac -key $KEY -in /path/to/file\n"
 "\n"
 "    When reading from stdin, make sure the trailing newline character is removed\n"
 "\n"
 "    Linux/Mac:\n"
-"    echo -n abc | gmssl sm3hmac -key $KEY_HEX\n"
+"    echo -n abc | gmssl sm3_hmac -key $KEY\n"
 "\n"
 "    Windows:\n"
-"    echo |set/p=\"abc\" | gmssl sm3hmac -key 11223344556677881122334455667788\n"
+"    for /f %i in ('gmssl rand -outlen 16 -hex') do set KEY=%i\n"
+"    echo |set/p=\"abc\" | gmssl sm3_hmac -key %KEY%\n"
 "\n";
 
-int sm3hmac_main(int argc, char **argv)
+int sm3_hmac_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];

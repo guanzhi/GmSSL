@@ -37,7 +37,7 @@ extern int sm2encrypt_main(int argc, char **argv);
 extern int sm2decrypt_main(int argc, char **argv);
 extern int sm2exch_main(int argc, char **argv);
 extern int sm3_main(int argc, char **argv);
-extern int sm3hmac_main(int argc, char **argv);
+extern int sm3_hmac_main(int argc, char **argv);
 extern int sm3_pbkdf2_main(int argc, char **argv);
 #ifdef ENABLE_SM4_ECB
 extern int sm4_ecb_main(int argc, char **argv);
@@ -158,7 +158,7 @@ static const char *options =
 	"  sm2decrypt        Decrypt with SM2 private key\n"
 	"  sm2exch           SM2 key exchange\n"
 	"  sm3               Generate SM3 hash\n"
-	"  sm3hmac           Generate SM3 HMAC tag\n"
+	"  sm3_hmac          Generate SM3 HMAC tag\n"
 	"  sm3_pbkdf2        Hash password into key using PBKDF2 algoritm\n"
 #ifdef ENABLE_SM4_ECB
 	"  sm4_ecb           Encrypt or decrypt with SM4 ECB\n"
@@ -348,8 +348,8 @@ int main(int argc, char **argv)
 			return sm2exch_main(argc, argv);
 		} else if (!strcmp(*argv, "sm3")) {
 			return sm3_main(argc, argv);
-		} else if (!strcmp(*argv, "sm3hmac")) {
-			return sm3hmac_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3_hmac")) {
+			return sm3_hmac_main(argc, argv);
 		} else if (!strcmp(*argv, "sm3_pbkdf2")) {
 			return sm3_pbkdf2_main(argc, argv);
 #if ENABLE_SM4_ECB

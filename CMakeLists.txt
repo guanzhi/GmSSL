@@ -228,7 +228,7 @@ set(tools
 	tools/sm4_ctr.c
 	tools/sm4_gcm.c
 	tools/sm3.c
-	tools/sm3hmac.c
+	tools/sm3_hmac.c
 	tools/sm3_pbkdf2.c
 	tools/sm2keygen.c
 	tools/sm2sign.c
@@ -1026,7 +1026,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1176")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1177")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
