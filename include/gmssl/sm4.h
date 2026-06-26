@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -257,6 +257,21 @@ int sm4_xts_decrypt_init(SM4_XTS_CTX *ctx, const uint8_t key[32], const uint8_t 
 int sm4_xts_decrypt_update(SM4_XTS_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sm4_xts_decrypt_finish(SM4_XTS_CTX *ctx, uint8_t *out, size_t *outlen);
 #endif // ENABLE_SM4_XTS
+
+
+#ifdef ENABLE_SM4_FF1
+#define SM4_FF1_MIN_DIGITS		8
+#define SM4_FF1_MAX_DIGITS		18
+#define SM4_FF1_MIN_TWEAK_SIZE		0
+#define SM4_FF1_MAX_TWEAK_SIZE		11
+#define SM4_FF1_NUM_ROUNDS		10
+
+int sm4_ff1_init(SM4_KEY *key, const uint8_t raw_key[SM4_KEY_SIZE]);
+int sm4_ff1_encrypt(const SM4_KEY *key, const char *in, size_t inlen,
+	const uint8_t *tweak, size_t tweaklen, char *out);
+int sm4_ff1_decrypt(const SM4_KEY *key, const char *in, size_t inlen,
+	const uint8_t *tweak, size_t tweaklen, char *out);
+#endif // ENABLE_SM4_FF1
 
 
 #ifdef __cplusplus

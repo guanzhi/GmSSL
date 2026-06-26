@@ -12,13 +12,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <gmssl/ff1.h>
+#include <gmssl/sm4.h>
 #include <gmssl/hex.h>
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
 
 
-#define SM4_FF1_MAX_TWEAK_SIZE	FF1_MAX_TWEAK_SIZE
 #define ID_CARD_DIGITS		18
 #define ID_CARD_BODY_DIGITS	17
 
@@ -152,7 +151,7 @@ static int bankcard_check(const char *s, size_t len)
 {
 	int ch;
 
-	if (!s || len < FF1_MIN_DIGITS + 1 || len > FF1_MAX_DIGITS + 1 || !is_digits(s, len)) {
+	if (!s || len < SM4_FF1_MIN_DIGITS + 1 || len > SM4_FF1_MAX_DIGITS + 1 || !is_digits(s, len)) {
 		return -1;
 	}
 	ch = luhn_check_digit(s, len - 1);
@@ -179,9 +178,9 @@ int sm4_ff1_main(int argc, char **argv)
 	uint8_t *inbuf = NULL;
 	int inbuf_alloc = 0;
 	size_t inlen;
-	char outbuf[FF1_MAX_DIGITS + 2];
+	char outbuf[SM4_FF1_MAX_DIGITS + 2];
 	size_t bodylen;
-	BLOCK_CIPHER_KEY block_key;
+	SM4_KEY sm4_key;
 
 	argc--;
 	argv++;
@@ -272,7 +271,7 @@ bad:
 		fprintf(stderr, "gmssl %s: option `-key` missing\n", prog);
 		goto end;
 	}
-	if (tweakhex && tweaklen > FF1_MAX_TWEAK_SIZE) {
+	if (tweakhex && tweaklen > SM4_FF1_MAX_TWEAK_SIZE) {
 		fprintf(stderr, "gmssl %s: invalid tweak length\n", prog);
 		goto end;
 	}
@@ -303,24 +302,24 @@ bad:
 		}
 		bodylen = inlen - 1;
 	} else {
-		if (inlen < FF1_MIN_DIGITS || inlen > FF1_MAX_DIGITS || !is_digits((char *)inbuf, inlen)) {
+		if (inlen < SM4_FF1_MIN_DIGITS || inlen > SM4_FF1_MAX_DIGITS || !is_digits((char *)inbuf, inlen)) {
 			fprintf(stderr, "gmssl %s: invalid input digits\n", prog);
 			goto end;
 		}
 		bodylen = inlen;
 	}
 
-	if (ff1_init(&block_key, BLOCK_CIPHER_sm4(), key) != 1) {
+	if (sm4_ff1_init(&sm4_key, key) != 1) {
 		error_print();
 		goto end;
 	}
 	if (enc) {
-		if (ff1_encrypt(&block_key, (char *)inbuf, bodylen, tweak, tweaklen, outbuf) != 1) {
+		if (sm4_ff1_encrypt(&sm4_key, (char *)inbuf, bodylen, tweak, tweaklen, outbuf) != 1) {
 			error_print();
 			goto end;
 		}
 	} else {
-		if (ff1_decrypt(&block_key, (char *)inbuf, bodylen, tweak, tweaklen, outbuf) != 1) {
+		if (sm4_ff1_decrypt(&sm4_key, (char *)inbuf, bodylen, tweak, tweaklen, outbuf) != 1) {
 			error_print();
 			goto end;
 		}
@@ -361,6 +360,6 @@ end:
 	if (inbuf_alloc) free(inbuf);
 	gmssl_secure_clear(key, sizeof(key));
 	gmssl_secure_clear(tweak, sizeof(tweak));
-	gmssl_secure_clear(&block_key, sizeof(block_key));
+	gmssl_secure_clear(&sm4_key, sizeof(sm4_key));
 	return ret;
 }

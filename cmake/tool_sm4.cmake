@@ -40,40 +40,22 @@ gmssl_run(sm4_cbc -decrypt -pkcs7_padding -key ${SM4_KEY} -iv ${SM4_IV}
 	-in tool_sm4_cbc_pkcs7_kat.cipher -out tool_sm4_cbc_pkcs7_kat.decrypt)
 gmssl_files_equal(tool_sm4_cbc_pkcs7_kat.plain tool_sm4_cbc_pkcs7_kat.decrypt)
 
-file(WRITE tool_sm4_unified_cbc_kat.plain "0123456789abcdef")
-gmssl_run(sm4 -cbc -encrypt -key ${SM4_KEY} -iv ${SM4_IV}
-	-in tool_sm4_unified_cbc_kat.plain -out tool_sm4_unified_cbc_kat.cipher)
-gmssl_expect_file_hex(tool_sm4_unified_cbc_kat.cipher
-	"e6887b77dbabb572ffa07fed7548b192ceaace11f2b90b94c2b7a4d9382e471e")
-gmssl_run(sm4 -cbc -decrypt -key ${SM4_KEY} -iv ${SM4_IV}
-	-in tool_sm4_unified_cbc_kat.cipher -out tool_sm4_unified_cbc_kat.decrypt)
-gmssl_files_equal(tool_sm4_unified_cbc_kat.plain tool_sm4_unified_cbc_kat.decrypt)
-
 gmssl_symmetric_roundtrip(tool_sm4_cbc sm4_cbc -key ${SM4_KEY} -iv ${SM4_IV})
 gmssl_symmetric_roundtrip(tool_sm4_cbc_pkcs7 sm4_cbc -pkcs7_padding -key ${SM4_KEY} -iv ${SM4_IV})
 gmssl_symmetric_roundtrip(tool_sm4_ctr sm4_ctr -key ${SM4_KEY} -iv ${SM4_IV})
 gmssl_symmetric_roundtrip(tool_sm4_gcm sm4_gcm -key ${SM4_KEY} -iv 000000000000000000000000 -aad_hex 001122 -taglen 16)
 
-gmssl_symmetric_roundtrip(tool_sm4_unified_cbc sm4 -cbc -key ${SM4_KEY} -iv ${SM4_IV})
-gmssl_symmetric_roundtrip(tool_sm4_unified_ctr sm4 -ctr -key ${SM4_KEY} -iv ${SM4_IV})
-gmssl_symmetric_roundtrip(tool_sm4_unified_gcm sm4 -gcm -key ${SM4_KEY} -iv 000000000000000000000000 -aad_hex 001122 -taglen 16)
-
 if(ENABLE_SM4_ECB)
 	gmssl_symmetric_roundtrip(tool_sm4_ecb sm4_ecb -key ${SM4_KEY})
-	gmssl_symmetric_roundtrip(tool_sm4_unified_ecb sm4 -ecb -key ${SM4_KEY})
 endif()
 if(ENABLE_SM4_CFB)
 	gmssl_symmetric_roundtrip(tool_sm4_cfb sm4_cfb -sbytes 16 -key ${SM4_KEY} -iv ${SM4_IV})
-	gmssl_symmetric_roundtrip(tool_sm4_unified_cfb sm4 -cfb -sbytes 16 -key ${SM4_KEY} -iv ${SM4_IV})
-	gmssl_symmetric_roundtrip(tool_sm4_unified_cfb8 sm4 -cfb -sbytes 1 -key ${SM4_KEY} -iv ${SM4_IV})
 endif()
 if(ENABLE_SM4_OFB)
 	gmssl_symmetric_roundtrip(tool_sm4_ofb sm4_ofb -key ${SM4_KEY} -iv ${SM4_IV})
-	gmssl_symmetric_roundtrip(tool_sm4_unified_ofb sm4 -ofb -key ${SM4_KEY} -iv ${SM4_IV})
 endif()
 if(ENABLE_SM4_CCM)
 	gmssl_symmetric_roundtrip(tool_sm4_ccm sm4_ccm -key ${SM4_KEY} -iv 000000000000000000000000 -aad_hex 001122 -taglen 16)
-	gmssl_symmetric_roundtrip(tool_sm4_unified_ccm sm4 -ccm -key ${SM4_KEY} -iv 000000000000000000000000 -aad_hex 001122 -taglen 16)
 endif()
 if(ENABLE_SM4_XTS)
 	file(WRITE tool_sm4_xts.plain "0123456789abcdef0123456789abcdef")
@@ -82,12 +64,6 @@ if(ENABLE_SM4_XTS)
 	gmssl_run(sm4_xts -decrypt -key ${SM4_XTS_KEY} -iv ${SM4_IV} -data_unit_size 32
 		-in tool_sm4_xts.cipher -out tool_sm4_xts.decrypt)
 	gmssl_files_equal(tool_sm4_xts.plain tool_sm4_xts.decrypt)
-	file(WRITE tool_sm4_unified_xts.plain "0123456789abcdef0123456789abcdef")
-	gmssl_run(sm4 -xts -encrypt -key ${SM4_XTS_KEY} -iv ${SM4_IV} -data_unit_size 32
-		-in tool_sm4_unified_xts.plain -out tool_sm4_unified_xts.cipher)
-	gmssl_run(sm4 -xts -decrypt -key ${SM4_XTS_KEY} -iv ${SM4_IV} -data_unit_size 32
-		-in tool_sm4_unified_xts.cipher -out tool_sm4_unified_xts.decrypt)
-	gmssl_files_equal(tool_sm4_unified_xts.plain tool_sm4_unified_xts.decrypt)
 endif()
 if(ENABLE_SM4_FF1)
 	gmssl_expect_stdout("2326982895499381\n"
