@@ -17,10 +17,11 @@
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 #include "passwd.h"
+#include "tls_server_http.h"
 
 
 
-static const char *options = "[-port num] -cert pem -key pem [-pass str] [-cacert pem] [-verbose]";
+static const char *options = "[-port num] -cert pem -key pem [-pass str] [-cacert pem] [-www] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -47,6 +48,7 @@ static const char *help =
 "    -ticket_key hex           Session ticket encrypt/decrypt key in HEX format\n"
 "    -key_update_seq_num num   Send KeyUpdate handshake after sending/receiving <num> records\n"
 "    -tls13_change_cipher_spec  Support ChangeCipherSpec in TLS 1.3 to be compatible with middlebox\n"
+"    -www                      Return HTTP 200 OK and echo client request data as text\n"
 "    -verbose                  Print TLS handshake messages\n"
 "\n"
 #include "tls13_help.h"
@@ -133,6 +135,9 @@ int tls13_server_main(int argc , char **argv)
 
 	char buf[1600] = {0};
 	size_t len = sizeof(buf);
+	uint8_t *www_request = NULL;
+	size_t www_request_len = 0;
+	size_t www_request_cap = 0;
 
 	int cipher_suites[TLS_MAX_CIPHER_SUITES];
 	size_t cipher_suites_cnt = 0;
@@ -175,6 +180,7 @@ int tls13_server_main(int argc , char **argv)
 
 	// ChangeCipherSpec
 	int tls13_change_cipher_spec = 0;
+	int www = 0;
 	int verbose = 0;
 
 
@@ -330,6 +336,8 @@ int tls13_server_main(int argc , char **argv)
 			client_cert_optional = 1;
 		} else if (!strcmp(*argv, "-tls13_change_cipher_spec")) {
 			tls13_change_cipher_spec = 1;
+		} else if (!strcmp(*argv, "-www")) {
+			www = 1;
 		} else if (!strcmp(*argv, "-verbose")) {
 			verbose = TLS_verbose;
 		} else {
@@ -599,6 +607,22 @@ bad:
 
 	if (conn.early_data && conn.early_data_len) {
 		format_string(stderr, 0, 0, "EarlyData", conn.early_data_buf, conn.early_data_len);
+		if (www) {
+			if (tls_server_www_append(&www_request, &www_request_len, &www_request_cap,
+				conn.early_data_buf, conn.early_data_len) != 1) {
+				fprintf(stderr, "%s: append HTTP request failure\n", prog);
+				goto end;
+			}
+			if (tls_server_www_request_complete(www_request, www_request_len)) {
+				if (tls_server_www_send_response(&conn, www_request, www_request_len) != 1) {
+					fprintf(stderr, "%s: send HTTP response failure\n", prog);
+					goto end;
+				}
+				do_shutdown_select(&conn);
+				ret = 0;
+				goto end;
+			}
+		}
 	}
 
 	size_t send_len = 0;
@@ -663,6 +687,24 @@ bad:
 			fwrite(buf, 1, len, stdout);
 			fflush(stdout);
 
+			if (www) {
+				if (tls_server_www_append(&www_request, &www_request_len, &www_request_cap,
+					(uint8_t *)buf, len) != 1) {
+					fprintf(stderr, "%s: append HTTP request failure\n", prog);
+					goto end;
+				}
+				if (tls_server_www_request_complete(www_request, www_request_len)) {
+					if (tls_server_www_send_response(&conn, www_request, www_request_len) != 1) {
+						fprintf(stderr, "%s: send HTTP response failure\n", prog);
+						goto end;
+					}
+					do_shutdown_select(&conn);
+					ret = 0;
+					goto end;
+				}
+				continue;
+			}
+
 			send_len = len;
 			send_offset = 0;
 			/*
@@ -680,6 +722,7 @@ bad:
 
 
 end:
+	free(www_request);
 	gmssl_secure_clear(passbufs, sizeof(passbufs));
 	return ret;
 }

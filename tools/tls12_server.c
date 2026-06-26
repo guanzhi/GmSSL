@@ -16,9 +16,10 @@
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 #include "passwd.h"
+#include "tls_server_http.h"
 
 
-static const char *options = "[-port num] -cert pem -key pem [-pass str] [-cacert pem] [-verbose]";
+static const char *options = "[-port num] -cert pem -key pem [-pass str] [-cacert pem] [-www] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -35,6 +36,7 @@ static const char *help =
 "    -verify_depth num      Certificate verification depth\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -renegotiation_info    Enable RFC 5746 renegotiation_info response\n"
+"    -www                   Return HTTP 200 OK and echo client request data as text\n"
 "    -verbose               Print TLS handshake messages\n"
 "\n"
 #include "tls12_help.h"
@@ -153,11 +155,15 @@ int tls12_server_main(int argc , char **argv)
 	int verify_depth = TLS_DEFAULT_VERIFY_DEPTH;
 	int client_cert_optional = 0;
 	int renegotiation_info = 0;
+	int www = 0;
 	int verbose = 0;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
 	size_t len = sizeof(buf);
+	uint8_t *www_request = NULL;
+	size_t www_request_len = 0;
+	size_t www_request_cap = 0;
 	tls_socket_t sock;
 	tls_socket_t conn_sock;
 	struct sockaddr_in server_addr;
@@ -263,6 +269,8 @@ int tls12_server_main(int argc , char **argv)
 			client_cert_optional = 1;
 		} else if (!strcmp(*argv, "-renegotiation_info")) {
 			renegotiation_info = 1;
+		} else if (!strcmp(*argv, "-www")) {
+			www = 1;
 		} else if (!strcmp(*argv, "-verbose")) {
 			verbose = TLS_verbose;
 		} else {
@@ -391,6 +399,7 @@ bad:
 	tls_socket_listen(sock, 1);
 
 restart:
+	www_request_len = 0;
 
 	//client_addrlen = sizeof(client_addr);
 
@@ -455,6 +464,31 @@ restart:
 			}
 		} while (!len);
 
+		if (www) {
+			fwrite(buf, 1, len, stdout);
+			fflush(stdout);
+			if (tls_server_www_append(&www_request, &www_request_len, &www_request_cap,
+				(uint8_t *)buf, len) != 1) {
+				fprintf(stderr, "%s: append HTTP request failure\n", prog);
+				tls_socket_close(conn.sock);
+				goto end;
+			}
+			if (tls_server_www_request_complete(www_request, www_request_len)) {
+				if (tls_server_www_send_response(&conn, www_request, www_request_len) != 1) {
+					fprintf(stderr, "%s: send HTTP response failure\n", prog);
+					tls_socket_close(conn.sock);
+					goto end;
+				}
+				if (do_shutdown_select(&conn) != 1) {
+					fprintf(stderr, "%s: shutdown failure\n", prog);
+				}
+				tls_socket_close(conn.sock);
+				tls_cleanup(&conn);
+				goto restart;
+			}
+			continue;
+		}
+
 		if (do_send_select(&conn, (uint8_t *)buf, len) != 1) {
 			fprintf(stderr, "%s: send failure, close connection\n", prog);
 			tls_socket_close(conn.sock);
@@ -464,6 +498,7 @@ restart:
 
 
 end:
+	free(www_request);
 	gmssl_secure_clear(passbufs, sizeof(passbufs));
 	return ret;
 }
