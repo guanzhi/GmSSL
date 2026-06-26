@@ -35,11 +35,11 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"  KEY=`gmssl rand -outlen 32 -hex`\n"
-"  IV=`gmssl rand -outlen 16 -hex`\n"
-"  gmssl rand -outlen 512 -out sm4_xts_plaintext.bin\n"
-"  gmssl sm4_xts -encrypt -key $KEY -iv $IV -data_unit_size 512 -in sm4_xts_plaintext.bin -out sm4_xts_ciphertext.bin\n"
-"  gmssl sm4_xts -decrypt -key $KEY -iv $IV -data_unit_size 512 -in sm4_xts_ciphertext.bin -out sm4_xts_decrypted.bin\n"
+"    KEY=`gmssl rand -outlen 32 -hex`\n"
+"    IV=`gmssl rand -outlen 16 -hex`\n"
+"    gmssl rand -outlen 512 -out sm4_xts_plaintext.bin\n"
+"    gmssl sm4_xts -encrypt -key $KEY -iv $IV -data_unit_size 512 -in sm4_xts_plaintext.bin -out sm4_xts_ciphertext.bin\n"
+"    gmssl sm4_xts -decrypt -key $KEY -iv $IV -data_unit_size 512 -in sm4_xts_ciphertext.bin -out sm4_xts_decrypted.bin\n"
 "\n";
 
 int sm4_xts_main(int argc, char **argv)

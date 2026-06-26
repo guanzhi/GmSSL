@@ -32,9 +32,9 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"  KEY=`gmssl rand -outlen 16 -hex`\n"
-"  echo -n 0123456789abcdef | gmssl sm4_ecb -encrypt -key $KEY -out sm4_ecb_ciphertext.bin\n"
-"  gmssl sm4_ecb -decrypt -key $KEY -in sm4_ecb_ciphertext.bin\n"
+"    KEY=`gmssl rand -outlen 16 -hex`\n"
+"    echo -n 0123456789abcdef | gmssl sm4_ecb -encrypt -key $KEY -out sm4_ecb_ciphertext.bin\n"
+"    gmssl sm4_ecb -decrypt -key $KEY -in sm4_ecb_ciphertext.bin\n"
 "\n";
 
 int sm4_ecb_main(int argc, char **argv)

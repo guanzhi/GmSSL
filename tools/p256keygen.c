@@ -29,8 +29,8 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ gmssl p256keygen -pass P@ssw0rd -out p256.pem\n"
-"    $ gmssl p256keygen -pass P@ssw0rd -out p256.pem -pubout p256pub.pem\n"
+"    gmssl p256keygen -pass P@ssw0rd -out p256.pem\n"
+"    gmssl p256keygen -pass P@ssw0rd -out p256.pem -pubout p256pub.pem\n"
 "\n";
 
 int p256keygen_main(int argc, char **argv)

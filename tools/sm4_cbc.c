@@ -35,13 +35,13 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"  KEY=`gmssl rand -outlen 16 -hex`\n"
-"  IV=`gmssl rand -outlen 16 -hex`\n"
-"  echo -n 0123456789abcdef | gmssl sm4_cbc -encrypt -key $KEY -iv $IV -out sm4_cbc_ciphertext.bin\n"
-"  gmssl sm4_cbc -decrypt -key $KEY -iv $IV -in sm4_cbc_ciphertext.bin\n"
+"    KEY=`gmssl rand -outlen 16 -hex`\n"
+"    IV=`gmssl rand -outlen 16 -hex`\n"
+"    echo -n 0123456789abcdef | gmssl sm4_cbc -encrypt -key $KEY -iv $IV -out sm4_cbc_ciphertext.bin\n"
+"    gmssl sm4_cbc -decrypt -key $KEY -iv $IV -in sm4_cbc_ciphertext.bin\n"
 "\n"
-"  echo -n abc | gmssl sm4_cbc -encrypt -pkcs7_padding -key $KEY -iv $IV -out sm4_cbc_ciphertext.bin\n"
-"  gmssl sm4_cbc -decrypt -pkcs7_padding -key $KEY -iv $IV -in sm4_cbc_ciphertext.bin\n"
+"    echo -n abc | gmssl sm4_cbc -encrypt -pkcs7_padding -key $KEY -iv $IV -out sm4_cbc_ciphertext.bin\n"
+"    gmssl sm4_cbc -decrypt -pkcs7_padding -key $KEY -iv $IV -in sm4_cbc_ciphertext.bin\n"
 "\n";
 
 int sm4_cbc_main(int argc, char **argv)

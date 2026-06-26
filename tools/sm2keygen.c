@@ -28,8 +28,8 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ gmssl sm2keygen -pass P@ssw0rd -out sm2.pem\n"
-"    $ gmssl sm2keygen -pass P@ssw0rd -out sm2.pem -pubout sm2pub.pem\n"
+"    gmssl sm2keygen -pass P@ssw0rd -out sm2.pem\n"
+"    gmssl sm2keygen -pass P@ssw0rd -out sm2.pem -pubout sm2pub.pem\n"
 "\n";
 
 int sm2keygen_main(int argc, char **argv)

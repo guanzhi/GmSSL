@@ -33,10 +33,10 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"  KEY=`gmssl rand -outlen 16 -hex`\n"
-"  IV=`gmssl rand -outlen 16 -hex`\n"
-"  echo -n abc | gmssl sm4_ofb -encrypt -key $KEY -iv $IV -out sm4_ofb_ciphertext.bin\n"
-"  gmssl sm4_ofb -decrypt -key $KEY -iv $IV -in sm4_ofb_ciphertext.bin\n"
+"    KEY=`gmssl rand -outlen 16 -hex`\n"
+"    IV=`gmssl rand -outlen 16 -hex`\n"
+"    echo -n abc | gmssl sm4_ofb -encrypt -key $KEY -iv $IV -out sm4_ofb_ciphertext.bin\n"
+"    gmssl sm4_ofb -decrypt -key $KEY -iv $IV -in sm4_ofb_ciphertext.bin\n"
 "\n";
 
 int sm4_ofb_main(int argc, char **argv)

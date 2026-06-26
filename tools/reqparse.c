@@ -35,6 +35,7 @@ int reqparse_main(int argc, char **argv)
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, options);
+			ret = 0;
 			goto end;
 		} else if(!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;

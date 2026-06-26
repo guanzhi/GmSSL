@@ -35,10 +35,10 @@ static const char *help =
 "\n"
 "Examples\n"
 "\n"
-"  $ TEXT=`gmssl rand -outlen 20 -hex`\n"
-"  $ KEY=`gmssl rand -outlen 16 -hex`\n"
-"  $ AAD=\"The AAD Data\"\n"
-"  $ gmssl ghash -h $KEY -aad $AAD -in_str $TEXT\n"
+"    TEXT=`gmssl rand -outlen 20 -hex`\n"
+"    KEY=`gmssl rand -outlen 16 -hex`\n"
+"    AAD=\"The AAD Data\"\n"
+"    gmssl ghash -h $KEY -aad $AAD -in_str $TEXT\n"
 "\n";
 
 

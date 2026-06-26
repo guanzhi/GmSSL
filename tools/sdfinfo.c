@@ -26,7 +26,7 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ gmssl sdfinfo\n"
+"    gmssl sdfinfo\n"
 "\n";
 
 

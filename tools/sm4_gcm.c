@@ -37,10 +37,10 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"  KEY=`gmssl rand -outlen 16 -hex`\n"
-"  IV=`gmssl rand -outlen 12 -hex`\n"
-"  echo -n abc | gmssl sm4_gcm -encrypt -key $KEY -iv $IV -aad_hex 001122 -out sm4_gcm_ciphertext.bin\n"
-"  gmssl sm4_gcm -decrypt -key $KEY -iv $IV -aad_hex 001122 -in sm4_gcm_ciphertext.bin\n"
+"    KEY=`gmssl rand -outlen 16 -hex`\n"
+"    IV=`gmssl rand -outlen 12 -hex`\n"
+"    echo -n abc | gmssl sm4_gcm -encrypt -key $KEY -iv $IV -aad_hex 001122 -out sm4_gcm_ciphertext.bin\n"
+"    gmssl sm4_gcm -decrypt -key $KEY -iv $IV -aad_hex 001122 -in sm4_gcm_ciphertext.bin\n"
 "\n";
 
 int sm4_gcm_main(int argc, char **argv)

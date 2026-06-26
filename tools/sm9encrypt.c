@@ -27,11 +27,11 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ gmssl sm9setup -alg sm9encrypt -pass P@ssw0rd -out sm9enc_msk.pem -pubout sm9enc_mpk.pem\n"
-"    $ gmssl sm9keygen -alg sm9encrypt -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9enc.pem -outpass 123456\n"
+"    gmssl sm9setup -alg sm9encrypt -pass P@ssw0rd -out sm9enc_msk.pem -pubout sm9enc_mpk.pem\n"
+"    gmssl sm9keygen -alg sm9encrypt -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9enc.pem -outpass 123456\n"
 "\n"
-"    $ echo 'Secret text' | gmssl sm9encrypt -pubmaster sm9enc_mpk.pem -id Alice -out sm9_ciphertext.der\n"
-"    $ gmssl sm9decrypt -key sm9enc.pem -pass 123456 -id Alice -in sm9_ciphertext.der\n"
+"    echo 'Secret text' | gmssl sm9encrypt -pubmaster sm9enc_mpk.pem -id Alice -out sm9_ciphertext.der\n"
+"    gmssl sm9decrypt -key sm9enc.pem -pass 123456 -id Alice -in sm9_ciphertext.der\n"
 "\n";
 
 int sm9encrypt_main(int argc, char **argv)

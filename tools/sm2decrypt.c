@@ -30,9 +30,9 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ gmssl sm2keygen -pass P@ssw0rd -out sm2.pem -pubout sm2pub.pem\n"
-"    $ echo 'Secret message' | gmssl sm2encrypt -pubkey sm2pub.pem -out sm2.der\n"
-"    $ gmssl sm2decrypt -key sm2.pem -pass P@ssw0rd -in sm2.der\n"
+"    gmssl sm2keygen -pass P@ssw0rd -out sm2.pem -pubout sm2pub.pem\n"
+"    echo 'Secret message' | gmssl sm2encrypt -pubkey sm2pub.pem -out sm2.der\n"
+"    gmssl sm2decrypt -key sm2.pem -pass P@ssw0rd -in sm2.der\n"
 "\n";
 
 int sm2decrypt_main(int argc, char **argv)

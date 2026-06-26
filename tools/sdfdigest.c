@@ -50,13 +50,13 @@ static const char *help =
 "\n"
 "    gmssl sdfdigest -pubkey sm2pubkey.pem -id alice -in /path/to/file -bin\n"
 "\n"
-"  When reading from stdin, make sure the trailing newline character is removed\n"
+"    When reading from stdin, make sure the trailing newline character is removed\n"
 "\n"
-"  Linux/Mac:\n"
+"    Linux/Mac:\n"
 "    echo -n abc | gmssl sdfdigest\n"
 "\n"
-"  Windows:\n"
-"    C:\\> echo |set/p=\"abc\" | gmssl sdfdigest\n"
+"    Windows:\n"
+"    echo |set/p=\"abc\" | gmssl sdfdigest\n"
 "\n";
 
 

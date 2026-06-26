@@ -38,7 +38,7 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"  $ gmssl sdftest -lib soft_sdf.so -kek 1 -key 1 -pass P@ssw0rd\n"
+"    gmssl sdftest -lib soft_sdf.so -kek 1 -key 1 -pass P@ssw0rd\n"
 "\n";
 
 

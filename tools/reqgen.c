@@ -50,7 +50,7 @@ static char *usage =
 "                                   the default string '1234567812345678' is used\n"
 "    -out file                    Output Certificate Request (CSR) file in PEM format\n"
 "\n"
-"  Subject options\n"
+"    Subject options\n"
 "\n"
 "    -C  str                      Country\n"
 "    -ST str                      State or province name\n"

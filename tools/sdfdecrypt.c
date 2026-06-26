@@ -36,9 +36,9 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ gmssl sdfexport -encrypt -key 1 -lib libsoftsdf.so -out sm2encpub.pem\n"
-"    $ echo 'Secret message' | gmssl sdfencrypt -lib libsoftsdf.so -pubkey sm2encpub.pem -out sdf_ciphertext.bin\n"
-"    $ gmssl sdfdecrypt -lib libsoftsdf.so -key 1 -pass P@ssw0rd -in sdf_ciphertext.bin\n"
+"    gmssl sdfexport -encrypt -key 1 -lib libsoftsdf.so -out sm2encpub.pem\n"
+"    echo 'Secret message' | gmssl sdfencrypt -lib libsoftsdf.so -pubkey sm2encpub.pem -out sdf_ciphertext.bin\n"
+"    gmssl sdfdecrypt -lib libsoftsdf.so -key 1 -pass P@ssw0rd -in sdf_ciphertext.bin\n"
 "\n";
 
 int sdfdecrypt_main(int argc, char **argv)

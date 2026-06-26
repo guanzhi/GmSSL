@@ -177,7 +177,7 @@ static const char *usage =
 static const char *options =
 "Options\n"
 "\n"
-"  Modes\n"
+"    Modes\n"
 "\n"
 "    -ecb                ECB mode\n"
 "    -cbc                CBC mode with padding, need 16-byte key and 16-byte iv\n"
@@ -197,10 +197,9 @@ static const char *options =
 "    -in file | stdin    Input data\n"
 "    -out file | stdout  Output data\n"
 "\n"
-"Examples"
-"\n"
-"  echo \"hello\" | gmssl sm4 -gcm -encrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -out ciphertext.bin\n"
-"  gmssl sm4 -gcm -decrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -in ciphertext.bin\n"
+"Examples\n"
+"    echo \"hello\" | gmssl sm4 -gcm -encrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -out ciphertext.bin\n"
+"    gmssl sm4 -gcm -decrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -in ciphertext.bin\n"
 "\n";
 
 int sm4_main(int argc, char **argv)

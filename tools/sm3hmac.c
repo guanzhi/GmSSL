@@ -41,13 +41,13 @@ static const char *help =
 "\n"
 "    gmssl sm3hmac -key $KEY_HEX -in /path/to/file\n"
 "\n"
-"  When reading from stdin, make sure the trailing newline character is removed\n"
+"    When reading from stdin, make sure the trailing newline character is removed\n"
 "\n"
-"  Linux/Mac:\n"
+"    Linux/Mac:\n"
 "    echo -n abc | gmssl sm3hmac -key $KEY_HEX\n"
 "\n"
-"  Windows:\n"
-"    C:\\> echo |set/p=\"abc\" | gmssl sm3hmac -key 11223344556677881122334455667788\n"
+"    Windows:\n"
+"    echo |set/p=\"abc\" | gmssl sm3hmac -key 11223344556677881122334455667788\n"
 "\n";
 
 int sm3hmac_main(int argc, char **argv)

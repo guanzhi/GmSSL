@@ -34,8 +34,8 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"  $ SALT=`gmssl rand -outlen 8 -hex`\n"
-"  $ gmssl sm3_pbkdf2 -pass P@ssw0rd -salt $SALT -iter 10000 -outlen 16 -hex\n"
+"    SALT=`gmssl rand -outlen 8 -hex`\n"
+"    gmssl sm3_pbkdf2 -pass P@ssw0rd -salt $SALT -iter 10000 -outlen 16 -hex\n"
 "\n";
 
 

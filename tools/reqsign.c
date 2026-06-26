@@ -68,7 +68,7 @@ static char *usage =
 "    -pass pass                   Password for decrypting private key file, prompt if not given\n"
 "    -out pem                     Output certificate file in PEM format\n"
 "\n"
-"  Extension options\n"
+"    Extension options\n"
 "\n"
 "    -gen_authority_key_id        Generate AuthorityKeyIdentifier extension use SM3\n"
 "    -gen_subject_key_id          Generate SubjectKeyIdentifier extension use SM3\n"

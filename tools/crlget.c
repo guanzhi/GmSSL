@@ -53,6 +53,7 @@ int crlget_main(int argc, char **argv)
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: gmssl %s %s\n\n", prog, usage);
 			printf("%s\n", options);
+			ret = 0;
 			goto end;
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
@@ -156,4 +157,3 @@ end:
 	if (outfile && outfp) fclose(outfp);
 	return ret;
 }
-

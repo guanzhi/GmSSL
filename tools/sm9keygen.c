@@ -33,12 +33,12 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ gmssl sm9setup -alg sm9sign -pass P@ssw0rd -out sm9sign_msk.pem\n"
-"    $ gmssl sm9keygen -alg sm9sign -in sm9sign_msk.pem -inpass P@ssw0rd -id Alice -out sm9sign.pem -outpass 123456\n"
+"    gmssl sm9setup -alg sm9sign -pass P@ssw0rd -out sm9sign_msk.pem\n"
+"    gmssl sm9keygen -alg sm9sign -in sm9sign_msk.pem -inpass P@ssw0rd -id Alice -out sm9sign.pem -outpass 123456\n"
 "\n"
-"    $ gmssl sm9setup -alg sm9encrypt -pass P@ssw0rd -out sm9enc_msk.pem\n"
-"    $ gmssl sm9keygen -alg sm9encrypt -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9enc.pem -outpass 123456\n"
-"    $ gmssl sm9keygen -alg sm9keyagreement -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9exch.pem -outpass 123456\n"
+"    gmssl sm9setup -alg sm9encrypt -pass P@ssw0rd -out sm9enc_msk.pem\n"
+"    gmssl sm9keygen -alg sm9encrypt -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9enc.pem -outpass 123456\n"
+"    gmssl sm9keygen -alg sm9keyagreement -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9exch.pem -outpass 123456\n"
 "\n";
 
 int sm9keygen_main(int argc, char **argv)

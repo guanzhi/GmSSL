@@ -30,8 +30,8 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ gmssl sdfexport -sign -key 1 -out sm2signpub.pem\n"
-"    $ gmssl sdfexport -encrypt -key 1 -out sm2signpub.pem\n"
+"    gmssl sdfexport -sign -key 1 -out sm2signpub.pem\n"
+"    gmssl sdfexport -encrypt -key 1 -out sm2signpub.pem\n"
 "\n";
 
 

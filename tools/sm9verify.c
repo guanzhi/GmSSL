@@ -27,11 +27,11 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ gmssl sm9setup -alg sm9sign -pass P@ssw0rd -out sm9sign_msk.pem -pubout sm9sign_mpk.pem\n"
-"    $ gmssl sm9keygen -alg sm9sign -in sm9sign_msk.pem -inpass P@ssw0rd -id Alice -out sm9sign.pem -outpass 123456\n"
+"    gmssl sm9setup -alg sm9sign -pass P@ssw0rd -out sm9sign_msk.pem -pubout sm9sign_mpk.pem\n"
+"    gmssl sm9keygen -alg sm9sign -in sm9sign_msk.pem -inpass P@ssw0rd -id Alice -out sm9sign.pem -outpass 123456\n"
 "\n"
-"    $ echo -n 'message to be signed' | gmssl sm9sign -key sm9sign.pem -pass 123456 -out sm9.sig\n"
-"    $ echo -n 'message to be signed' | gmssl sm9verify -pubmaster sm9sign_mpk.pem -id Alice -sig sm9.sig\n"
+"    echo -n 'message to be signed' | gmssl sm9sign -key sm9sign.pem -pass 123456 -out sm9.sig\n"
+"    echo -n 'message to be signed' | gmssl sm9verify -pubmaster sm9sign_mpk.pem -id Alice -sig sm9.sig\n"
 "\n";
 
 int sm9verify_main(int argc, char **argv)

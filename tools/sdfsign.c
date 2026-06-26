@@ -32,9 +32,9 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"    $ echo -n 'message to be signed' | gmssl sdfsign -lib libsoftsdf.so -key 1 -pass P@ssw0rd -out sm2.sig\n"
-"    $ gmssl sdfexport -lib libsoftsdf.so -sign -key 1 -out sm2pub.pem\n"
-"    $ echo -n 'message to be signed' | gmssl sm2verify -pubkey sm2pub.pem -sig sm2.sig\n"
+"    echo -n 'message to be signed' | gmssl sdfsign -lib libsoftsdf.so -key 1 -pass P@ssw0rd -out sm2.sig\n"
+"    gmssl sdfexport -lib libsoftsdf.so -sign -key 1 -out sm2pub.pem\n"
+"    echo -n 'message to be signed' | gmssl sm2verify -pubkey sm2pub.pem -sig sm2.sig\n"
 "\n";
 
 

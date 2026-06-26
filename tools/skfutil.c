@@ -80,6 +80,7 @@ int skfutil_main(int argc, char **argv)
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
 			print_usage(stdout, prog);
+			ret = 0;
 			goto end;
 		} else if (!strcmp(*argv, "-lib")) {
 			if (--argc < 1) goto bad;

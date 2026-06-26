@@ -40,9 +40,9 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"  KEY=`gmssl rand -outlen 16 -hex`\n"
-"  CIPHERTEXT=`gmssl sm4_ff1 -encrypt -key $KEY -digits 0123456789012345`\n"
-"  gmssl sm4_ff1 -decrypt -key $KEY -digits $CIPHERTEXT\n"
+"    KEY=`gmssl rand -outlen 16 -hex`\n"
+"    CIPHERTEXT=`gmssl sm4_ff1 -encrypt -key $KEY -digits 0123456789012345`\n"
+"    gmssl sm4_ff1 -decrypt -key $KEY -digits $CIPHERTEXT\n"
 "\n";
 
 static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)

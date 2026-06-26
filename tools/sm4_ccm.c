@@ -37,10 +37,10 @@ static const char *options =
 "\n"
 "Examples\n"
 "\n"
-"  KEY=`gmssl rand -outlen 16 -hex`\n"
-"  IV=`gmssl rand -outlen 12 -hex`\n"
-"  echo -n abc | gmssl sm4_ccm -encrypt -key $KEY -iv $IV -aad_hex 001122 -out sm4_ccm_ciphertext.bin\n"
-"  gmssl sm4_ccm -decrypt -key $KEY -iv $IV -aad_hex 001122 -in sm4_ccm_ciphertext.bin\n"
+"    KEY=`gmssl rand -outlen 16 -hex`\n"
+"    IV=`gmssl rand -outlen 12 -hex`\n"
+"    echo -n abc | gmssl sm4_ccm -encrypt -key $KEY -iv $IV -aad_hex 001122 -out sm4_ccm_ciphertext.bin\n"
+"    gmssl sm4_ccm -decrypt -key $KEY -iv $IV -aad_hex 001122 -in sm4_ccm_ciphertext.bin\n"
 "\n";
 
 static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)

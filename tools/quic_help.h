@@ -1,14 +1,14 @@
 "\n"
 "Supported cipher suites:\n"
 #if defined(ENABLE_AES) && defined(ENABLE_SHA2)
-"      TLS_AES_128_GCM_SHA256\n"
+"    TLS_AES_128_GCM_SHA256\n"
 #ifdef ENABLE_AES_CCM
-"      TLS_AES_128_CCM_SHA256\n"
+"    TLS_AES_128_CCM_SHA256\n"
 #endif
 #endif
-"      TLS_SM4_GCM_SM3\n"
+"    TLS_SM4_GCM_SM3\n"
 #ifdef ENABLE_SM4_CCM
-"      TLS_SM4_CCM_SM3\n"
+"    TLS_SM4_CCM_SM3\n"
 #endif
 "\n"
 "Examples\n"

@@ -76,6 +76,7 @@ int certrevoke_main(int argc, char **argv)
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: gmssl %s %s\n\n", prog, options);
 			printf("%s", usage);
+			ret = 0;
 			goto end;
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
