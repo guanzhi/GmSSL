@@ -12,13 +12,13 @@ gmssl_files_equal(tool_zuc.plain tool_zuc.decrypt)
 gmssl_run(zuc_128_eea3
 	-key 173d14ba5003731d7a60049470f00a29
 	-count 0x66035492 -bearer 15 -direction 0
-	-in_hex 6cf65340735552ab0c9752fa6f9025fe0bd675d9005875b2
+	-in tool_zuc.plain
 	-out tool_zuc_128_eea3.cipher)
 gmssl_expect_file_hex(tool_zuc_128_eea3.cipher
-	"a6c85fc66afb8533aafc2518dfe784940ee1e4b030238cc8")
-gmssl_expect_stdout("390a91b7\n" zuc_128_eia3
+	"fa0f3eb52d9be1af9e521680d313c40c")
+gmssl_expect_stdout("b0361765\n" zuc_128_eia3
 	-key 00000000000000000000000000000000
-	-count 0 -bearer 0 -direction 0 -in_hex 00)
+	-count 0 -bearer 0 -direction 0 -in tool_zuc.plain)
 
 gmssl_run(zuc256
 	-key 0000000000000000000000000000000000000000000000000000000000000000

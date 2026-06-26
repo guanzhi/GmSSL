@@ -28,16 +28,15 @@ static const char *options =
 "    -decrypt            Decrypt\n"
 "    -key hex            Symmetric key in HEX format\n"
 "    -iv hex             IV in HEX format\n"
-"    -in file | stdin    Input data\n"
+"    -in file | stdin    Input data, any byte length is accepted\n"
 "    -out file | stdout  Output data\n"
 "\n"
 "Examples\n"
 "\n"
-"  $ TEXT=`gmssl rand -outlen 20 -hex`\n"
-"  $ KEY=`gmssl rand -outlen 16 -hex`\n"
-"  $ IV=`gmssl rand -outlen 16 -hex`\n"
-"  $ echo -n $TEXT | gmssl sm4_ctr -key $KEY -iv $IV -out sm4_ctr_ciphertext.bin\n"
-"  $ gmssl sm4_ctr -key $KEY -iv $IV -in sm4_ctr_ciphertext.bin\n"
+"  KEY=`gmssl rand -outlen 16 -hex`\n"
+"  IV=`gmssl rand -outlen 16 -hex`\n"
+"  echo -n abc | gmssl sm4_ctr -encrypt -key $KEY -iv $IV -out sm4_ctr_ciphertext.bin\n"
+"  gmssl sm4_ctr -decrypt -key $KEY -iv $IV -in sm4_ctr_ciphertext.bin\n"
 "\n";
 
 int sm4_ctr_main(int argc, char **argv)

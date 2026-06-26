@@ -20,11 +20,12 @@
 static const char *usage = "-key hex [-in file | -in_str str] [-bin|-hex] [-out file]";
 
 static const char *help =
+"\n"
 "Options\n"
 "\n"
 "    -key hex               Hex string of the MAC key, 16 bytes\n"
-"    -in_str str            Input as text string\n"
-"    -in file | stdin       Input file path\n"
+"    -in_str str            Input as text string, any byte length is accepted\n"
+"    -in file | stdin       Input file path, any byte length is accepted\n"
 "                           `-in_str` and `-in` should not be used together\n"
 "                           If neither `-in` nor `-in_str` specified, read from stdin\n"
 "    -hex                   Output MAC-tag as hex string (by default)\n"
@@ -34,20 +35,20 @@ static const char *help =
 "\n"
 "Examples\n"
 "\n"
-"    KEY_HEX=`gmssl rand -outlen 16 -hex`\n"
-"    gmssl sm4_cbc_mac -key $KEY_HEX -in_str abc\n"
+"  KEY=`gmssl rand -outlen 16 -hex`\n"
+"  gmssl sm4_cbc_mac -key $KEY -in_str abc\n"
 "\n"
-"    gmssl sm4_cbc_mac -key $KEY_HEX -in_str abc -bin\n"
+"  gmssl sm4_cbc_mac -key $KEY -in_str abc -bin\n"
 "\n"
-"    gmssl sm4_cbc_mac -key $KEY_HEX -in /path/to/file\n"
+"  gmssl sm4_cbc_mac -key $KEY -in /path/to/file\n"
 "\n"
 "  When reading from stdin, make sure the trailing newline character is removed\n"
 "\n"
 "  Linux/Mac:\n"
-"    echo -n abc | gmssl sm4_cbc_mac -key $KEY_HEX\n"
+"  echo -n abc | gmssl sm4_cbc_mac -key $KEY\n"
 "\n"
 "  Windows:\n"
-"    C:\\> echo |set/p=\"abc\" | gmssl sm4_cbc_mac -key 11223344556677881122334455667788\n"
+"  echo |set/p=\"abc\" | gmssl sm4_cbc_mac -key 11223344556677881122334455667788\n"
 "\n";
 
 int sm4_cbc_mac_main(int argc, char **argv)

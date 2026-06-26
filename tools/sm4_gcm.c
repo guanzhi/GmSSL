@@ -21,6 +21,7 @@
 static const char *usage = "{-encrypt|-decrypt} -key hex -iv hex [-aad str| -aad_hex hex] [-taglen num] [-in file] [-out file]";
 
 static const char *options =
+"\n"
 "Options\n"
 "\n"
 "    -encrypt            Encrypt\n"
@@ -30,17 +31,16 @@ static const char *options =
 "    -aad str            Authenticated-only message\n"
 "    -aad_hex hex        Authenticated-only data in HEX format\n"
 "    -taglen num         MAC tag length, default 16 bytes\n"
-"    -in file | stdin    Input data\n"
+"    -in file | stdin    Input data. Encrypt input can be any byte length\n"
+"                        Decrypt input is ciphertext || tag and must be at least taglen bytes\n"
 "    -out file | stdout  Output data\n"
 "\n"
 "Examples\n"
 "\n"
-"  $ TEXT=`gmssl rand -outlen 20 -hex`\n"
-"  $ KEY=`gmssl rand -outlen 16 -hex`\n"
-"  $ IV=`gmssl rand -outlen 12 -hex`\n"
-"  $ AAD=\"The AAD Data\"\n"
-"  $ echo -n $TEXT | gmssl sm4_gcm -encrypt -key $KEY -iv $IV -aad $AAD -out sm4_gcm_ciphertext.bin\n"
-"  $ gmssl sm4_gcm -decrypt -key $KEY -iv $IV -aad $AAD -in sm4_gcm_ciphertext.bin\n"
+"  KEY=`gmssl rand -outlen 16 -hex`\n"
+"  IV=`gmssl rand -outlen 12 -hex`\n"
+"  echo -n abc | gmssl sm4_gcm -encrypt -key $KEY -iv $IV -aad_hex 001122 -out sm4_gcm_ciphertext.bin\n"
+"  gmssl sm4_gcm -decrypt -key $KEY -iv $IV -aad_hex 001122 -in sm4_gcm_ciphertext.bin\n"
 "\n";
 
 int sm4_gcm_main(int argc, char **argv)

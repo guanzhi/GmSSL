@@ -46,7 +46,7 @@ static const char *help =
 "    -new_session_ticket num   Send NewSessionTicket <num> times\n"
 "    -ticket_key hex           Session ticket encrypt/decrypt key in HEX format\n"
 "    -key_update_seq_num num   Send KeyUpdate handshake after sending/receiving <num> records\n"
-"    -tls13_change_cipher_spec Support ChangeCipherSpec in TLS 1.3 to be compatible with middlebox\n"
+"    -tls13_change_cipher_spec  Support ChangeCipherSpec in TLS 1.3 to be compatible with middlebox\n"
 "    -verbose                  Print TLS handshake messages\n"
 "\n"
 #include "tls13_help.h"

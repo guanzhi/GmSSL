@@ -21,6 +21,7 @@
 static const char *usage = "{-encrypt|-decrypt} -key hex -iv hex -data_unit_size num [-in file] [-out file]";
 
 static const char *options =
+"\n"
 "Options\n"
 "\n"
 "    -encrypt              Encrypt\n"
@@ -28,16 +29,17 @@ static const char *options =
 "    -key hex              Symmetric key in HEX format, 32 bytes\n"
 "    -iv hex               IV (tweak in XTS), 16 bytes\n"
 "    -data_unit_size num   Encrypted disk sector size, typically 512 or 4096 bytes\n"
-"    -in file | stdin      Input data\n"
+"                          Input and output lengths must be multiples of this size\n"
+"    -in file | stdin      Input data, length must be a multiple of data_unit_size\n"
 "    -out file | stdout    Output data\n"
 "\n"
 "Examples\n"
 "\n"
-"  $ DATA=`gmssl rand -outlen 2048`\n"
-"  $ KEY=`gmssl rand -outlen 32 -hex`\n"
-"  $ IV=`gmssl rand -outlen 16 -hex`\n"
-"  $ echo -n $DATA | gmssl sm4_xts -encrypt -key $KEY -iv $IV -data_unit_size 512 -out sm4_xts_ciphertext.bin\n"
-"  $ gmssl sm4_xts -decrypt -key $KEY -iv $IV -data_unit_size 512 -in sm4_xts_ciphertext.bin\n"
+"  KEY=`gmssl rand -outlen 32 -hex`\n"
+"  IV=`gmssl rand -outlen 16 -hex`\n"
+"  gmssl rand -outlen 512 -out sm4_xts_plaintext.bin\n"
+"  gmssl sm4_xts -encrypt -key $KEY -iv $IV -data_unit_size 512 -in sm4_xts_plaintext.bin -out sm4_xts_ciphertext.bin\n"
+"  gmssl sm4_xts -decrypt -key $KEY -iv $IV -data_unit_size 512 -in sm4_xts_ciphertext.bin -out sm4_xts_decrypted.bin\n"
 "\n";
 
 int sm4_xts_main(int argc, char **argv)

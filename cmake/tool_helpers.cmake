@@ -25,6 +25,18 @@ function(gmssl_run_capture out_var)
 	set(${out_var} "${TEST_STDOUT}" PARENT_SCOPE)
 endfunction()
 
+function(gmssl_expect_fail)
+	execute_process(
+		COMMAND ${GMSSL_BIN} ${ARGN}
+		RESULT_VARIABLE TEST_RESULT
+		ERROR_VARIABLE TEST_STDERR
+		OUTPUT_VARIABLE TEST_STDOUT
+	)
+	if(TEST_RESULT EQUAL 0)
+		message(FATAL_ERROR "command unexpectedly succeeded: ${GMSSL_BIN} ${ARGN}\nstderr: ${TEST_STDERR}\nstdout: ${TEST_STDOUT}")
+	endif()
+endfunction()
+
 function(gmssl_expect_stdout expected)
 	gmssl_run_capture(TEST_STDOUT ${ARGN})
 	if(NOT TEST_STDOUT STREQUAL "${expected}")

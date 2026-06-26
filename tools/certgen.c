@@ -111,12 +111,12 @@ static char *usage =
 "    gmssl sm2keygen -pass P@ssw0rd -out rootcakey.pem\n"
 "\n"
 "    gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 \\\n"
-"          -key rootcakey.pem -pass P@ssw0rd \\\n"
-"          -ca -path_len_constraint 6 \\\n"
-"          -key_usage keyCertSign -key_usage cRLSign \\\n"
-"          -crl_http_uri http://pku.edu.cn/ca.crl \\\n"
-"          -ca_issuers_uri http://pku.edu.cn/ca.crt -ocsp_uri http://ocsp.pku.edu.cn \\\n"
-"          -out rootcacert.pem\n"
+"        -key rootcakey.pem -pass P@ssw0rd \\\n"
+"        -ca -path_len_constraint 6 \\\n"
+"        -key_usage keyCertSign -key_usage cRLSign \\\n"
+"        -crl_http_uri http://pku.edu.cn/ca.crl \\\n"
+"        -ca_issuers_uri http://pku.edu.cn/ca.crt -ocsp_uri http://ocsp.pku.edu.cn \\\n"
+"        -out rootcacert.pem\n"
 "\n";
 
 

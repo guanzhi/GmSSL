@@ -27,15 +27,14 @@ static const char *options =
 "    -encrypt            Encrypt\n"
 "    -decrypt            Decrypt\n"
 "    -key hex            Symmetric key in HEX format\n"
-"    -in file | stdin    Input data\n"
+"    -in file | stdin    Input data, length must be a multiple of 16 bytes\n"
 "    -out file | stdout  Output data\n"
 "\n"
 "Examples\n"
 "\n"
-"  $ TEXT=`gmssl rand -outlen 32 -hex`\n"
-"  $ KEY=`gmssl rand -outlen 16 -hex`\n"
-"  $ echo -n $TEXT | gmssl sm4_ecb -encrypt -key $KEY -out sm4_ecb_ciphertext.bin\n"
-"  $ gmssl sm4_ecb -decrypt -key $KEY -in sm4_ecb_ciphertext.bin\n"
+"  KEY=`gmssl rand -outlen 16 -hex`\n"
+"  echo -n 0123456789abcdef | gmssl sm4_ecb -encrypt -key $KEY -out sm4_ecb_ciphertext.bin\n"
+"  gmssl sm4_ecb -decrypt -key $KEY -in sm4_ecb_ciphertext.bin\n"
 "\n";
 
 int sm4_ecb_main(int argc, char **argv)

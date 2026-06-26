@@ -17,10 +17,28 @@ file(WRITE tool_sm4_cbc_kat.plain "0123456789abcdef")
 gmssl_run(sm4_cbc -encrypt -key ${SM4_KEY} -iv ${SM4_IV}
 	-in tool_sm4_cbc_kat.plain -out tool_sm4_cbc_kat.cipher)
 gmssl_expect_file_hex(tool_sm4_cbc_kat.cipher
-	"e6887b77dbabb572ffa07fed7548b192ceaace11f2b90b94c2b7a4d9382e471e")
+	"e6887b77dbabb572ffa07fed7548b192")
 gmssl_run(sm4_cbc -decrypt -key ${SM4_KEY} -iv ${SM4_IV}
 	-in tool_sm4_cbc_kat.cipher -out tool_sm4_cbc_kat.decrypt)
 gmssl_files_equal(tool_sm4_cbc_kat.plain tool_sm4_cbc_kat.decrypt)
+
+file(WRITE tool_sm4_cbc_short.plain "abc")
+gmssl_expect_fail(sm4_cbc -encrypt -key ${SM4_KEY} -iv ${SM4_IV}
+	-in tool_sm4_cbc_short.plain -out tool_sm4_cbc_short.cipher)
+gmssl_run(sm4_cbc -encrypt -pkcs7_padding -key ${SM4_KEY} -iv ${SM4_IV}
+	-in tool_sm4_cbc_short.plain -out tool_sm4_cbc_short_pkcs7.cipher)
+gmssl_run(sm4_cbc -decrypt -pkcs7_padding -key ${SM4_KEY} -iv ${SM4_IV}
+	-in tool_sm4_cbc_short_pkcs7.cipher -out tool_sm4_cbc_short_pkcs7.decrypt)
+gmssl_files_equal(tool_sm4_cbc_short.plain tool_sm4_cbc_short_pkcs7.decrypt)
+
+file(WRITE tool_sm4_cbc_pkcs7_kat.plain "0123456789abcdef")
+gmssl_run(sm4_cbc -encrypt -pkcs7_padding -key ${SM4_KEY} -iv ${SM4_IV}
+	-in tool_sm4_cbc_pkcs7_kat.plain -out tool_sm4_cbc_pkcs7_kat.cipher)
+gmssl_expect_file_hex(tool_sm4_cbc_pkcs7_kat.cipher
+	"e6887b77dbabb572ffa07fed7548b192ceaace11f2b90b94c2b7a4d9382e471e")
+gmssl_run(sm4_cbc -decrypt -pkcs7_padding -key ${SM4_KEY} -iv ${SM4_IV}
+	-in tool_sm4_cbc_pkcs7_kat.cipher -out tool_sm4_cbc_pkcs7_kat.decrypt)
+gmssl_files_equal(tool_sm4_cbc_pkcs7_kat.plain tool_sm4_cbc_pkcs7_kat.decrypt)
 
 file(WRITE tool_sm4_unified_cbc_kat.plain "0123456789abcdef")
 gmssl_run(sm4 -cbc -encrypt -key ${SM4_KEY} -iv ${SM4_IV}
@@ -32,6 +50,7 @@ gmssl_run(sm4 -cbc -decrypt -key ${SM4_KEY} -iv ${SM4_IV}
 gmssl_files_equal(tool_sm4_unified_cbc_kat.plain tool_sm4_unified_cbc_kat.decrypt)
 
 gmssl_symmetric_roundtrip(tool_sm4_cbc sm4_cbc -key ${SM4_KEY} -iv ${SM4_IV})
+gmssl_symmetric_roundtrip(tool_sm4_cbc_pkcs7 sm4_cbc -pkcs7_padding -key ${SM4_KEY} -iv ${SM4_IV})
 gmssl_symmetric_roundtrip(tool_sm4_ctr sm4_ctr -key ${SM4_KEY} -iv ${SM4_IV})
 gmssl_symmetric_roundtrip(tool_sm4_gcm sm4_gcm -key ${SM4_KEY} -iv 000000000000000000000000 -aad_hex 001122 -taglen 16)
 

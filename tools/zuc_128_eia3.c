@@ -21,7 +21,7 @@
 
 
 static const char *usage =
-	"-key hex -count num -bearer num -direction num [-in file|-in_hex hex] [-hex|-bin] [-out file]";
+	"-key hex -count num -bearer num -direction num [-in file] [-hex|-bin] [-out file]";
 
 static const char *help =
 "Options\n"
@@ -30,10 +30,7 @@ static const char *help =
 "    -count num           COUNT parameter, 32-bit integer, decimal or 0x-prefixed hex\n"
 "    -bearer num          BEARER parameter, 5-bit integer in [0, 31]\n"
 "    -direction num       DIRECTION parameter, 0 or 1\n"
-"    -in_hex hex          Input message bytes in HEX format\n"
-"    -in file | stdin     Input file path\n"
-"                         `-in_hex` and `-in` should not be used together\n"
-"                         If neither `-in_hex` nor `-in` specified, read from stdin\n"
+"    -in file | stdin     Input file path. If not specified, read from stdin\n"
 "    -hex                 Output MAC as hex string (by default)\n"
 "    -bin                 Output MAC as binary\n"
 "                         `-hex` and `-bin` should not be used together\n"
@@ -42,7 +39,7 @@ static const char *help =
 "Examples\n"
 "\n"
 "    gmssl zuc_128_eia3 -key 00000000000000000000000000000000 \\\n"
-"        -count 0 -bearer 0 -direction 0 -in_hex 00\n"
+"        -count 0 -bearer 0 -direction 0 -in message.bin\n"
 "\n";
 
 static int parse_uint64(const char *s, uint64_t max, uint64_t *out)
@@ -119,7 +116,6 @@ int zuc_128_eia3_main(int argc, char **argv)
 	int ret = 1;
 	char *prog = argv[0];
 	char *keyhex = NULL;
-	char *inhex = NULL;
 	char *infile = NULL;
 	char *outfile = NULL;
 	int outformat = 0;
@@ -128,7 +124,6 @@ int zuc_128_eia3_main(int argc, char **argv)
 	uint8_t *in = NULL;
 	size_t inlen = 0;
 	size_t nbits;
-	size_t nbytes = 0;
 	uint64_t v;
 	ZUC_UINT32 count = 0;
 	ZUC_UINT5 bearer = 0;
@@ -191,18 +186,7 @@ int zuc_128_eia3_main(int argc, char **argv)
 			}
 			direction = (ZUC_BIT)v;
 			direction_set = 1;
-		} else if (!strcmp(*argv, "-in_hex")) {
-			if (infile) {
-				fprintf(stderr, "gmssl %s: `-in` and `-in_hex` should not be used together\n", prog);
-				goto end;
-			}
-			if (--argc < 1) goto bad;
-			inhex = *(++argv);
 		} else if (!strcmp(*argv, "-in")) {
-			if (inhex) {
-				fprintf(stderr, "gmssl %s: `-in` and `-in_hex` should not be used together\n", prog);
-				goto end;
-			}
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
 			if (!(infp = fopen(infile, "rb"))) {
@@ -249,24 +233,9 @@ bad:
 		goto end;
 	}
 
-	if (inhex) {
-		if (strlen(inhex) % 2) {
-			fprintf(stderr, "gmssl %s: invalid input hex length\n", prog);
-			goto end;
-		}
-		nbytes = strlen(inhex) / 2;
-		if (!(in = (uint8_t *)malloc(nbytes ? nbytes : 1))) {
-			fprintf(stderr, "gmssl %s: malloc failure\n", prog);
-			goto end;
-		}
-		if (hex_to_bytes(inhex, strlen(inhex), in, &inlen) != 1) {
-			fprintf(stderr, "gmssl %s: invalid input hex digits\n", prog);
-			goto end;
-		}
-	} else if (!(in = read_content(infp, &inlen, prog))) {
+	if (!(in = read_content(infp, &inlen, prog))) {
 		goto end;
 	}
-	nbytes = inlen;
 	nbits = inlen * 8;
 
 	macword = zuc_eia_generate_mac((ZUC_UINT32 *)in, nbits, key, count, bearer, direction);

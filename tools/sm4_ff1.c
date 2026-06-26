@@ -34,9 +34,15 @@ static const char *options =
 "    -decrypt            Decrypt\n"
 "    -key hex            SM4 key in HEX format\n"
 "    -tweak hex          FF1 tweak in HEX format\n"
-"    -digits digits      Input digits, default from stdin\n"
-"    -idcard             Input is a Chinese resident identity card number\n"
-"    -bankcard           Input is a bank card number with Luhn check digit\n"
+"    -digits digits      Input digits, default from stdin. Length must be 8 to 18 digits\n"
+"    -idcard             Input is a Chinese resident identity card number, 18 characters\n"
+"    -bankcard           Input is a bank card number with Luhn check digit, 9 to 19 digits\n"
+"\n"
+"Examples\n"
+"\n"
+"  KEY=`gmssl rand -outlen 16 -hex`\n"
+"  CIPHERTEXT=`gmssl sm4_ff1 -encrypt -key $KEY -digits 0123456789012345`\n"
+"  gmssl sm4_ff1 -decrypt -key $KEY -digits $CIPHERTEXT\n"
 "\n";
 
 static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)

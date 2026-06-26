@@ -18,7 +18,7 @@
 #include <gmssl/error.h>
 
 
-static const char *usage = "{-encrypt|-decrypt} -key hex -iv hex [-in file] [-out file]";
+static const char *usage = "{-encrypt|-decrypt} -key hex -iv hex [-pkcs7_padding] [-in file] [-out file]";
 
 static const char *options =
 "\n"
@@ -28,16 +28,20 @@ static const char *options =
 "    -decrypt            Decrypt\n"
 "    -key hex            Symmetric key in HEX format\n"
 "    -iv hex             IV in HEX format\n"
-"    -in file | stdin    Input data\n"
+"    -pkcs7_padding      Enable PKCS#7 padding\n"
+"                        Encrypt input can be any byte length; decrypt input must be a multiple of 16 bytes\n"
+"    -in file | stdin    Input data. Without `-pkcs7_padding`, input length must be a multiple of 16 bytes\n"
 "    -out file | stdout  Output data\n"
 "\n"
 "Examples\n"
 "\n"
-"  $ TEXT=`gmssl rand -outlen 20 -hex`\n"
-"  $ KEY=`gmssl rand -outlen 16 -hex`\n"
-"  $ IV=`gmssl rand -outlen 16 -hex`\n"
-"  $ echo -n $TEXT | gmssl sm4_cbc -encrypt -key $KEY -iv $IV -out sm4_cbc_ciphertext.bin\n"
-"  $ gmssl sm4_cbc -decrypt -key $KEY -iv $IV -in sm4_cbc_ciphertext.bin\n"
+"  KEY=`gmssl rand -outlen 16 -hex`\n"
+"  IV=`gmssl rand -outlen 16 -hex`\n"
+"  echo -n 0123456789abcdef | gmssl sm4_cbc -encrypt -key $KEY -iv $IV -out sm4_cbc_ciphertext.bin\n"
+"  gmssl sm4_cbc -decrypt -key $KEY -iv $IV -in sm4_cbc_ciphertext.bin\n"
+"\n"
+"  echo -n abc | gmssl sm4_cbc -encrypt -pkcs7_padding -key $KEY -iv $IV -out sm4_cbc_ciphertext.bin\n"
+"  gmssl sm4_cbc -decrypt -pkcs7_padding -key $KEY -iv $IV -in sm4_cbc_ciphertext.bin\n"
 "\n";
 
 int sm4_cbc_main(int argc, char **argv)
@@ -49,16 +53,25 @@ int sm4_cbc_main(int argc, char **argv)
 	char *ivhex = NULL;
 	char *infile = NULL;
 	char *outfile = NULL;
+	int pkcs7_padding = 0;
 	uint8_t key[16];
 	size_t keylen;
 	uint8_t iv[16];
 	size_t ivlen;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
+	SM4_KEY sm4_key;
 	SM4_CBC_CTX ctx;
 	uint8_t buf[4096];
+	uint8_t outbuf[4096];
+	uint8_t block[16];
+	size_t block_nbytes = 0;
 	size_t inlen;
 	size_t outlen;
+	size_t nblocks;
+	size_t len;
+	size_t left;
+	size_t inpos;
 
 	argc--;
 	argv++;
@@ -108,6 +121,8 @@ int sm4_cbc_main(int argc, char **argv)
 				fprintf(stderr, "gmssl %s: invalid IV hex digits\n", prog);
 				goto end;
 			}
+		} else if (!strcmp(*argv, "-pkcs7_padding")) {
+			pkcs7_padding = 1;
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
@@ -147,33 +162,74 @@ bad:
 		goto end;
 	}
 
-	if (enc) {
+	if (pkcs7_padding && enc) {
 		if (sm4_cbc_encrypt_init(&ctx, key, iv) != 1) {
 			error_print();
 			goto end;
 		}
-	} else {
+	} else if (pkcs7_padding) {
 		if (sm4_cbc_decrypt_init(&ctx, key, iv) != 1) {
 			error_print();
 			goto end;
 		}
+	} else if (enc) {
+		sm4_set_encrypt_key(&sm4_key, key);
+	} else {
+		sm4_set_decrypt_key(&sm4_key, key);
 	}
 
 	while ((inlen = fread(buf, 1, sizeof(buf), infp)) > 0) {
 
-		if (enc) {
+		if (pkcs7_padding && enc) {
 			if (sm4_cbc_encrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
 				error_print();
 				goto end;
 			}
-		} else {
+		} else if (pkcs7_padding) {
 			if (sm4_cbc_decrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
 				error_print();
 				goto end;
 			}
+		} else {
+			outlen = 0;
+			inpos = 0;
+
+			if (block_nbytes) {
+				left = sizeof(block) - block_nbytes;
+				if (inlen < left) {
+					memcpy(block + block_nbytes, buf, inlen);
+					block_nbytes += inlen;
+					continue;
+				}
+				memcpy(block + block_nbytes, buf, left);
+				if (enc) {
+					sm4_cbc_encrypt_blocks(&sm4_key, iv, block, 1, outbuf);
+				} else {
+					sm4_cbc_decrypt_blocks(&sm4_key, iv, block, 1, outbuf);
+				}
+				outlen = sizeof(block);
+				inpos = left;
+				block_nbytes = 0;
+			}
+
+			nblocks = (inlen - inpos) / sizeof(block);
+			len = nblocks * sizeof(block);
+			if (len) {
+				if (enc) {
+					sm4_cbc_encrypt_blocks(&sm4_key, iv, buf + inpos, nblocks, outbuf + outlen);
+				} else {
+					sm4_cbc_decrypt_blocks(&sm4_key, iv, buf + inpos, nblocks, outbuf + outlen);
+				}
+				outlen += len;
+				inpos += len;
+			}
+			if (inlen > inpos) {
+				block_nbytes = inlen - inpos;
+				memcpy(block, buf + inpos, block_nbytes);
+			}
 		}
 
-		if (fwrite(buf, 1, outlen, outfp) != outlen) {
+		if (fwrite(pkcs7_padding ? buf : outbuf, 1, outlen, outfp) != outlen) {
 			fprintf(stderr, "gmssl %s: output failure : %s\n", prog, strerror(errno));
 			goto end;
 		}
@@ -183,16 +239,22 @@ bad:
 		goto end;
 	}
 
-	if (enc) {
+	if (pkcs7_padding && enc) {
 		if (sm4_cbc_encrypt_finish(&ctx, buf, &outlen) != 1) {
 			error_print();
 			goto end;
 		}
-	} else {
+	} else if (pkcs7_padding) {
 		if (sm4_cbc_decrypt_finish(&ctx, buf, &outlen) != 1) {
 			error_print();
 			goto end;
 		}
+	} else {
+		if (block_nbytes) {
+			fprintf(stderr, "gmssl %s: input length must be multiple of 16 bytes when PKCS#7 padding is not enabled\n", prog);
+			goto end;
+		}
+		outlen = 0;
 	}
 	if (fwrite(buf, 1, outlen, outfp) != outlen) {
 		fprintf(stderr, "gmssl %s: output failure : %s\n", prog, strerror(errno));
@@ -204,7 +266,10 @@ bad:
 end:
 	gmssl_secure_clear(key, sizeof(key));
 	gmssl_secure_clear(iv, sizeof(iv));
+	gmssl_secure_clear(&sm4_key, sizeof(sm4_key));
 	gmssl_secure_clear(&ctx, sizeof(ctx));
+	gmssl_secure_clear(outbuf, sizeof(outbuf));
+	gmssl_secure_clear(block, sizeof(block));
 	gmssl_secure_clear(buf, sizeof(buf));
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);

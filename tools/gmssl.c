@@ -160,10 +160,18 @@ static const char *options =
 	"  sm3               Generate SM3 hash\n"
 	"  sm3hmac           Generate SM3 HMAC tag\n"
 	"  sm3_pbkdf2        Hash password into key using PBKDF2 algoritm\n"
-	"  sm4               Encrypt or decrypt with SM4\n"
-	"  sm4_gcm           Encrypt or decrypt with SM4 GCM\n"
+#ifdef ENABLE_SM4_ECB
+	"  sm4_ecb           Encrypt or decrypt with SM4 ECB\n"
+#endif
 	"  sm4_cbc           Encrypt or decrypt with SM4 CBC\n"
+#ifdef ENABLE_SM4_CFB
+	"  sm4_cfb           Encrypt or decrypt with SM4 CFB\n"
+#endif
+#ifdef ENABLE_SM4_OFB
+	"  sm4_ofb           Encrypt or decrypt with SM4 OFB\n"
+#endif
 	"  sm4_ctr           Encrypt or decrypt with SM4 CTR\n"
+	"  sm4_gcm           Encrypt or decrypt with SM4 GCM\n"
 #ifdef ENABLE_SM4_CCM
 	"  sm4_ccm           Encrypt or decrypt with SM4 CCM\n"
 #endif
@@ -172,15 +180,6 @@ static const char *options =
 #endif
 #ifdef ENABLE_SM4_FF1
 	"  sm4_ff1           Encrypt or decrypt digits with SM4 FF1\n"
-#endif
-#ifdef ENABLE_SM4_ECB
-	"  sm4_ecb           Encrypt or decrypt with SM4 ECB\n"
-#endif
-#ifdef ENABLE_SM4_CFB
-	"  sm4_cfb           Encrypt or decrypt with SM4 CFB\n"
-#endif
-#ifdef ENABLE_SM4_OFB
-	"  sm4_ofb           Encrypt or decrypt with SM4 OFB\n"
 #endif
 #ifdef ENABLE_SM4_CBC_MAC
 	"  sm4_cbc_mac       Generate SM4 CBC-MAC\n"
