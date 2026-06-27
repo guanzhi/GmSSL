@@ -70,19 +70,6 @@ int sm3_pbkdf2(const char *pass, size_t passlen,
 	size_t outlen, uint8_t *out);
 
 
-typedef struct {
-	union {
-		SM3_CTX sm3_ctx;
-		SM3_HMAC_CTX hmac_ctx;
-	};
-	int state;
-} SM3_DIGEST_CTX;
-
-int sm3_digest_init(SM3_DIGEST_CTX *ctx, const uint8_t *key, size_t keylen);
-int sm3_digest_update(SM3_DIGEST_CTX *ctx, const uint8_t *data, size_t datalen);
-int sm3_digest_finish(SM3_DIGEST_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE]);
-
-
 #ifdef __cplusplus
 }
 #endif

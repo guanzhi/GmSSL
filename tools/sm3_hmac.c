@@ -64,7 +64,7 @@ int sm3_hmac_main(int argc, char **argv)
 	size_t keylen;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	SM3_DIGEST_CTX ctx;
+	SM3_HMAC_CTX ctx;
 	uint8_t mac[SM3_HMAC_SIZE];
 	size_t i;
 
@@ -91,6 +91,10 @@ int sm3_hmac_main(int argc, char **argv)
 			}
 			if (hex_to_bytes(keyhex, strlen(keyhex), key, &keylen) != 1) {
 				fprintf(stderr, "%s: invalid HEX digits\n", prog);
+				goto end;
+			}
+			if (keylen < 12) {
+				fprintf(stderr, "%s: key should be at least 24 digits (12 bytes)\n", prog);
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-hex")) {
@@ -143,24 +147,15 @@ bad:
 		goto end;
 	}
 
-	if (sm3_digest_init(&ctx, key, keylen) != 1) {
-		fprintf(stderr, "%s: inner error\n", prog);
-		goto end;
-	}
+	sm3_hmac_init(&ctx, key, keylen);
 
 	if (in_str) {
-		if (sm3_digest_update(&ctx, (uint8_t *)in_str, strlen(in_str)) != 1) {
-			fprintf(stderr, "%s: inner error\n", prog);
-			goto end;
-		}
+		sm3_hmac_update(&ctx, (uint8_t *)in_str, strlen(in_str));
 	} else {
 		uint8_t buf[4096];
 		size_t len;
 		while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
-			if (sm3_digest_update(&ctx, buf, len) != 1) {
-				fprintf(stderr, "%s: inner error\n", prog);
-				goto end;
-			}
+			sm3_hmac_update(&ctx, buf, len);
 		}
 		if (ferror(infp)) {
 			fprintf(stderr, "%s: read failure\n", prog);
@@ -168,10 +163,7 @@ bad:
 		}
 		memset(buf, 0, sizeof(buf));
 	}
-	if (sm3_digest_finish(&ctx, mac) != 1) {
-		fprintf(stderr, "%s: inner error\n", prog);
-		goto end;
-	}
+	sm3_hmac_finish(&ctx, mac);
 
 	if (outformat > 1) {
 		if (fwrite(mac, 1, sizeof(mac), outfp) != sizeof(mac)) {

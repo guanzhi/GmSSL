@@ -184,7 +184,6 @@ set(src
 	src/sm3_hmac.c
 	src/sm3_kdf.c
 	src/sm3_pbkdf2.c
-	src/sm3_digest.c
 	src/sm2_z256.c
 	src/sm2_z256_table.c
 	src/sm2_key.c
@@ -1020,7 +1019,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1181")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1182")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
