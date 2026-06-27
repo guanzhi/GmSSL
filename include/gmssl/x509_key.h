@@ -12,6 +12,7 @@
 #define GMSSL_X509_KEY_H
 
 
+#include <stdio.h>
 #include <time.h>
 #include <string.h>
 #include <stdint.h>
@@ -24,8 +25,10 @@
 #include <gmssl/sm9.h>
 #endif
 #ifdef ENABLE_SECP256R1
-#include <gmssl/secp256r1_key.h>
-#include <gmssl/secp256r1_ecdsa.h>
+#include <gmssl/secp256r1.h>
+#endif
+#ifdef ENABLE_SECP384R1
+#include <gmssl/secp384r1.h>
 #endif
 #ifdef ENABLE_LMS
 #include <gmssl/lms.h>
@@ -54,6 +57,9 @@ typedef struct {
 #ifdef ENABLE_SECP256R1
 		SECP256R1_KEY secp256r1_key;
 #endif
+#ifdef ENABLE_SECP384R1
+		SECP384R1_KEY secp384r1_key;
+#endif
 #ifdef ENABLE_LMS
 		LMS_KEY lms_key;
 		HSS_KEY hss_key;
@@ -78,6 +84,9 @@ typedef struct {
 int x509_key_set_sm2_key(X509_KEY *x509_key, const SM2_KEY *sm2_key);
 #ifdef ENABLE_SECP256R1
 int x509_key_set_secp256r1_key(X509_KEY *x509_key, const SECP256R1_KEY *secp256r1_key);
+#endif
+#ifdef ENABLE_SECP384R1
+int x509_key_set_secp384r1_key(X509_KEY *x509_key, const SECP384R1_KEY *secp384r1_key);
 #endif
 #ifdef ENABLE_LMS
 int x509_key_set_lms_key(X509_KEY *x509_key, const LMS_KEY *lms_key);
@@ -148,13 +157,6 @@ int x509_public_key_info_from_der(X509_KEY *key, const uint8_t **in, size_t *inl
 int x509_public_key_info_to_pem(const X509_KEY *a, FILE *fp);
 int x509_public_key_info_from_pem(X509_KEY *a, FILE *fp);
 int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-
-
-// ECPrivateKey when key->algor == OID_ec_public_key
-int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pubkey, uint8_t **out, size_t *outlen);
-int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, size_t *inlen);
-int ec_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen); // from <gmssl/ec.h>
-// X509_KEY lost some information of ECPrivateKey. so no ec_private_key_print_ex(X509_KEY)
 
 
 // PKCS #8 PrivateKeyInfo

@@ -25,15 +25,6 @@
 #include <gmssl/x509_key.h>
 
 
-/*
-TODO:
-	x509_sign_init/update/finish
-	x509_verify_init/update/finish
-	当使用ECDSA算法时，需要可选多个哈希函数
-	特别是很多CA证书，如icloud.com的证书链，其中CA证书使用的是ecdsa_secp256r1_sha384
-	因此需要x509_sign/verify_init接口中增加一个表示算法的参数
-*/
-
 int x509_key_set_sm2_key(X509_KEY *x509_key, const SM2_KEY *sm2_key)
 {
 	if (!x509_key || !sm2_key) {
@@ -58,6 +49,21 @@ int x509_key_set_secp256r1_key(X509_KEY *x509_key, const SECP256R1_KEY *secp256r
 	x509_key->algor = OID_ec_public_key;
 	x509_key->algor_param = OID_secp256r1;
 	x509_key->u.secp256r1_key = *secp256r1_key;
+	return 1;
+}
+#endif
+
+#ifdef ENABLE_SECP384R1
+int x509_key_set_secp384r1_key(X509_KEY *x509_key, const SECP384R1_KEY *secp384r1_key)
+{
+	if (!x509_key || !secp384r1_key) {
+		error_print();
+		return -1;
+	}
+	memset(x509_key, 0, sizeof(X509_KEY));
+	x509_key->algor = OID_ec_public_key;
+	x509_key->algor_param = OID_secp384r1;
+	x509_key->u.secp384r1_key = *secp384r1_key;
 	return 1;
 }
 #endif
@@ -262,6 +268,14 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 			}
 			break;
 #endif
+#ifdef ENABLE_SECP384R1
+		case OID_secp384r1:
+			if (secp384r1_key_generate(&key->u.secp384r1_key) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+#endif
 		default:
 			error_print();
 			return -1;
@@ -337,6 +351,11 @@ void x509_key_cleanup(X509_KEY *key)
 				gmssl_secure_clear(&key->u.secp256r1_key, sizeof(SECP256R1_KEY));
 				break;
 #endif
+#ifdef ENABLE_SECP384R1
+			case OID_secp384r1:
+				gmssl_secure_clear(&key->u.secp384r1_key, sizeof(SECP384R1_KEY));
+				break;
+#endif
 			default:
 				error_print();
 				return;
@@ -410,6 +429,14 @@ int x509_public_key_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen)
 #ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
 			if (secp256r1_public_key_to_bytes(&key->u.secp256r1_key, out, outlen) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+#endif
+#ifdef ENABLE_SECP384R1
+		case OID_secp384r1:
+			if (secp384r1_public_key_to_bytes(&key->u.secp384r1_key, out, outlen) != 1) {
 				error_print();
 				return -1;
 			}
@@ -518,6 +545,14 @@ int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const 
 #ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
 			if (secp256r1_public_key_from_bytes(&key->u.secp256r1_key, in, inlen) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+#endif
+#ifdef ENABLE_SECP384R1
+		case OID_secp384r1:
+			if (secp384r1_public_key_from_bytes(&key->u.secp384r1_key, in, inlen) != 1) {
 				error_print();
 				return -1;
 			}
@@ -664,6 +699,13 @@ int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub)
 				return ret;
 			}
 #endif
+#ifdef ENABLE_SECP384R1
+		} else if (key->algor_param == OID_secp384r1) {
+			if ((ret = secp384r1_public_key_equ(&key->u.secp384r1_key, &pub->u.secp384r1_key)) != 1) {
+				error_print();
+				return ret;
+			}
+#endif
 		} else {
 			error_print();
 			return -1;
@@ -759,6 +801,13 @@ int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X
 #ifdef ENABLE_SECP256R1
 		} else if (key->algor_param == OID_secp256r1) {
 			if (secp256r1_public_key_print(fp, fmt, ind, label, &key->u.secp256r1_key) != 1) {
+				error_print();
+				return -1;
+			}
+#endif
+#ifdef ENABLE_SECP384R1
+		} else if (key->algor_param == OID_secp384r1) {
+			if (secp384r1_public_key_print(fp, fmt, ind, label, &key->u.secp384r1_key) != 1) {
 				error_print();
 				return -1;
 			}
@@ -989,212 +1038,13 @@ err:
 	return -1;
 }
 
+#define X509_EC_PRIVATE_KEY_VERSION 1
+
 int x509_private_key_print_ex(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key)
 {
 	// TODO: change lms_private_key_print to lms_private_key_print_ex and xmss ...
 	error_print();
 	return -1;
-}
-
-#define SM2_PRIVATE_KEY_DER_SIZE 121
-int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pubkey,
-	uint8_t **out, size_t *outlen)
-{
-	uint8_t params_buf[16]; // = 10 for sm2, p256
-	uint8_t pubkey_buf[68]; // = 68 for sm2, p256
-	uint8_t *params = NULL;
-	uint8_t *pubkey = NULL;
-	size_t params_len = 0;
-	size_t pubkey_len = 0;
-	uint8_t prikey[32];
-	size_t len = 0;
-
-	if (!key) {
-		error_print();
-		return -1;
-	}
-	if (key->algor != OID_ec_public_key) {
-		error_print();
-		return -1;
-	}
-
-	if (encode_params) {
-		params = params_buf;
-		if (ec_named_curve_to_der(key->algor_param, &params, &params_len) != 1) {
-			gmssl_secure_clear(prikey, 32);
-			error_print();
-			return -1;
-		}
-		params = params_buf;
-	}
-	switch (key->algor_param) {
-	case OID_sm2:
-		if (encode_pubkey) {
-			pubkey = pubkey_buf;
-			if (sm2_public_key_to_der(&key->u.sm2_key, &pubkey, &pubkey_len) != 1) {
-				error_print();
-				return -1;
-			}
-			pubkey = pubkey_buf;
-		}
-		sm2_z256_to_bytes(key->u.sm2_key.private_key, prikey);
-		break;
-#ifdef ENABLE_SECP256R1
-	case OID_secp256r1:
-		if (encode_pubkey) {
-			pubkey = pubkey_buf;
-			if (secp256r1_public_key_to_der(&key->u.secp256r1_key, &pubkey, &pubkey_len) != 1) {
-				error_print();
-				return -1;
-			}
-			pubkey = pubkey_buf;
-		}
-		if (secp256r1_to_32bytes(key->u.secp256r1_key.private_key, prikey) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-#endif
-	default:
-		error_print();
-		return -1;
-	}
-
-	if (asn1_int_to_der(EC_private_key_version, NULL, &len) != 1
-		|| asn1_octet_string_to_der(prikey, 32, NULL, &len) != 1
-		|| asn1_explicit_to_der(0, params, params_len, NULL, &len) < 0
-		|| asn1_explicit_to_der(1, pubkey, pubkey_len, NULL, &len) < 0
-		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_int_to_der(EC_private_key_version, out, outlen) != 1
-		|| asn1_octet_string_to_der(prikey, 32, out, outlen) != 1
-		|| asn1_explicit_to_der(0, params, params_len, out, outlen) < 0
-		|| asn1_explicit_to_der(1, pubkey, pubkey_len, out, outlen) < 0) {
-		gmssl_secure_clear(prikey, 32);
-		error_print();
-		return -1;
-	}
-	gmssl_secure_clear(prikey, 32);
-	return 1;
-}
-
-// when params(curve) is omitted in ECPrivateKey, curve should be given explicitly
-int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, size_t *inlen)
-{
-	int ret;
-	const uint8_t *d;
-	size_t dlen;
-	int ver;
-	const uint8_t *prikey;
-	const uint8_t *params;
-	const uint8_t *pubkey;
-	size_t prikey_len, params_len, pubkey_len;
-	int curve;
-
-	if (!key || !in || !(*in) || !inlen) {
-		error_print();
-		return -1;
-	}
-
-	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	if (asn1_int_from_der(&ver, &d, &dlen) != 1
-		|| asn1_octet_string_from_der(&prikey, &prikey_len, &d, &dlen) != 1
-		|| asn1_explicit_from_der(0, &params, &params_len, &d, &dlen) < 0
-		|| asn1_explicit_from_der(1, &pubkey, &pubkey_len, &d, &dlen) < 0
-		|| asn1_check(ver == EC_private_key_version) != 1
-		|| asn1_length_is_zero(dlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (!prikey || prikey_len != 32) {
-		error_print();
-		return -1;
-	}
-
-	if (params) {
-		if (ec_named_curve_from_der(&curve, &params, &params_len) != 1
-			|| asn1_length_is_zero(params_len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (curve != opt_curve && opt_curve != OID_undef) {
-			error_print();
-			return -1;
-		}
-	} else {
-		curve = opt_curve;
-	}
-
-	memset(key, 0, sizeof(X509_KEY));
-
-	if (curve == OID_sm2) {
-
-		sm2_z256_t sm2_private;
-		SM2_KEY sm2_pub;
-
-		sm2_z256_from_bytes(sm2_private, prikey);
-		if (sm2_key_set_private_key(&key->u.sm2_key, sm2_private) != 1) {
-			gmssl_secure_clear(sm2_private, sizeof(sm2_z256_t));
-			error_print();
-			return -1;
-		}
-		gmssl_secure_clear(sm2_private, sizeof(sm2_z256_t));
-
-		if (pubkey) {
-			if (sm2_public_key_from_der(&sm2_pub, &pubkey, &pubkey_len) != 1
-				|| asn1_length_is_zero(pubkey_len) != 1) {
-				error_print();
-				return -1;
-			}
-			if (sm2_public_key_equ(&key->u.sm2_key, &sm2_pub) != 1) {
-				gmssl_secure_clear(&key->u.sm2_key, sizeof(SM2_KEY)); // sm2_key_cleanup?
-				error_print();
-				return -1;
-			}
-		}
-
-	}
-#ifdef ENABLE_SECP256R1
-	else if (curve == OID_secp256r1) {
-
-		secp256r1_t p256_private;
-		SECP256R1_KEY p256_pub;
-
-		if (secp256r1_from_32bytes(p256_private, prikey) != 1) {
-			error_print();
-			return -1;
-		}
-		if (secp256r1_key_set_private_key(&key->u.secp256r1_key, p256_private) != 1) {
-			gmssl_secure_clear(p256_private, sizeof(secp256r1_t));
-			error_print();
-			return -1;
-		}
-		gmssl_secure_clear(p256_private, sizeof(secp256r1_t));
-
-		if (pubkey) {
-			if (secp256r1_public_key_from_der(&p256_pub, &pubkey, &pubkey_len) != 1
-				|| asn1_length_is_zero(pubkey_len) != 1) {
-				error_print();
-				return -1;
-			}
-			if (secp256r1_public_key_equ(&key->u.secp256r1_key, &p256_pub) != 1) {
-				gmssl_secure_clear(&key->u.secp256r1_key, sizeof(SECP256R1_KEY));
-				error_print();
-				return -1;
-			}
-		}
-	}
-#endif
-	else {
-		error_print();
-		return -1;
-	}
-
-	key->algor = OID_ec_public_key;
-	key->algor_param = curve;
-	return 1;
 }
 
 int x509_private_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
@@ -1208,7 +1058,7 @@ int x509_private_key_info_print(FILE *fp, int fmt, int ind, const char *label, c
 
 int x509_private_key_info_to_der(const X509_KEY *key, uint8_t **out, size_t *outlen)
 {
-	uint8_t private_key[128]; // 121
+	uint8_t private_key[512];
 	uint8_t *p = private_key;
 	size_t private_key_len = 0;
 	size_t len = 0;
@@ -1220,11 +1070,74 @@ int x509_private_key_info_to_der(const X509_KEY *key, uint8_t **out, size_t *out
 
 	switch (key->algor) {
 	case OID_ec_public_key:
-		if (ec_private_key_to_der(key,
-			X509_ENCODE_EC_PRIVATE_KEY_PARAMS, X509_ENCODE_EC_PRIVATE_KEY_PUBKEY,
-			&p, &private_key_len) != 1) {
-			error_print();
-			return -1;
+		{
+			uint8_t ec_private_key[64];
+			uint8_t ec_public_key[129];
+			uint8_t params[64];
+			uint8_t pubkey[256];
+			uint8_t *q = ec_private_key;
+			uint8_t *params_ptr = params;
+			uint8_t *pubkey_ptr = pubkey;
+			size_t ec_private_key_len = 0;
+			size_t ec_public_key_len = 0;
+			size_t params_len = 0;
+			size_t pubkey_len = 0;
+			size_t ec_len = 0;
+
+			switch (key->algor_param) {
+			case OID_sm2:
+				sm2_z256_to_bytes(key->u.sm2_key.private_key, q);
+				ec_private_key_len = 32;
+				break;
+#ifdef ENABLE_SECP256R1
+			case OID_secp256r1:
+				if (secp256r1_private_key_to_bytes(&key->u.secp256r1_key, &q, &ec_private_key_len) != 1) {
+					error_print();
+					return -1;
+				}
+				break;
+#endif
+#ifdef ENABLE_SECP384R1
+			case OID_secp384r1:
+				if (secp384r1_private_key_to_bytes(&key->u.secp384r1_key, &q, &ec_private_key_len) != 1) {
+					error_print();
+					return -1;
+				}
+				break;
+#endif
+			default:
+				error_print();
+				return -1;
+			}
+			if (X509_ENCODE_EC_PRIVATE_KEY_PARAMS
+				&& ec_named_curve_to_der(key->algor_param, &params_ptr, &params_len) != 1) {
+				gmssl_secure_clear(ec_private_key, sizeof(ec_private_key));
+				error_print();
+				return -1;
+			}
+			if (X509_ENCODE_EC_PRIVATE_KEY_PUBKEY) {
+				q = ec_public_key;
+				if (x509_public_key_to_bytes(key, &q, &ec_public_key_len) != 1
+					|| asn1_bit_octets_to_der(ec_public_key, ec_public_key_len, &pubkey_ptr, &pubkey_len) != 1) {
+					gmssl_secure_clear(ec_private_key, sizeof(ec_private_key));
+					error_print();
+					return -1;
+				}
+			}
+			if (asn1_int_to_der(X509_EC_PRIVATE_KEY_VERSION, NULL, &ec_len) != 1
+				|| asn1_octet_string_to_der(ec_private_key, ec_private_key_len, NULL, &ec_len) != 1
+				|| asn1_explicit_to_der(0, params_len ? params : NULL, params_len, NULL, &ec_len) < 0
+				|| asn1_explicit_to_der(1, pubkey_len ? pubkey : NULL, pubkey_len, NULL, &ec_len) < 0
+				|| asn1_sequence_header_to_der(ec_len, &p, &private_key_len) != 1
+				|| asn1_int_to_der(X509_EC_PRIVATE_KEY_VERSION, &p, &private_key_len) != 1
+				|| asn1_octet_string_to_der(ec_private_key, ec_private_key_len, &p, &private_key_len) != 1
+				|| asn1_explicit_to_der(0, params_len ? params : NULL, params_len, &p, &private_key_len) < 0
+				|| asn1_explicit_to_der(1, pubkey_len ? pubkey : NULL, pubkey_len, &p, &private_key_len) < 0) {
+				gmssl_secure_clear(ec_private_key, sizeof(ec_private_key));
+				error_print();
+				return -1;
+			}
+			gmssl_secure_clear(ec_private_key, sizeof(ec_private_key));
 		}
 		break;
 	case OID_lms_hashsig:
@@ -1289,10 +1202,135 @@ int x509_private_key_info_from_der(X509_KEY *key, const uint8_t **attrs, size_t 
 	}
 	switch (algor) {
 	case OID_ec_public_key:
-		if (ec_private_key_from_der(key, algor_param, &private_key, &private_key_len) != 1
-			|| asn1_length_is_zero(private_key_len) != 1) {
-			error_print();
-			return -1;
+		{
+			const uint8_t *ec_key_der;
+			size_t ec_key_der_len;
+			int ver;
+			const uint8_t *prikey;
+			size_t prikey_len;
+			const uint8_t *params = NULL;
+			size_t params_len = 0;
+			const uint8_t *pubkey = NULL;
+			size_t pubkey_len = 0;
+			int curve;
+
+			if (asn1_sequence_from_der(&ec_key_der, &ec_key_der_len, &private_key, &private_key_len) != 1
+				|| asn1_int_from_der(&ver, &ec_key_der, &ec_key_der_len) != 1
+				|| asn1_octet_string_from_der(&prikey, &prikey_len, &ec_key_der, &ec_key_der_len) != 1
+				|| asn1_explicit_from_der(0, &params, &params_len, &ec_key_der, &ec_key_der_len) < 0
+				|| asn1_explicit_from_der(1, &pubkey, &pubkey_len, &ec_key_der, &ec_key_der_len) < 0
+				|| asn1_check(ver == X509_EC_PRIVATE_KEY_VERSION) != 1
+				|| asn1_length_is_zero(ec_key_der_len) != 1
+				|| asn1_length_is_zero(private_key_len) != 1) {
+				error_print();
+				return -1;
+			}
+			if (params) {
+				if (ec_named_curve_from_der(&curve, &params, &params_len) != 1
+					|| asn1_length_is_zero(params_len) != 1) {
+					error_print();
+					return -1;
+				}
+				if (curve != algor_param && algor_param != OID_undef) {
+					error_print();
+					return -1;
+				}
+			} else {
+				curve = algor_param;
+			}
+			memset(key, 0, sizeof(X509_KEY));
+			key->algor = OID_ec_public_key;
+			key->algor_param = curve;
+
+			if (curve == OID_sm2) {
+				sm2_z256_t sm2_private;
+
+				if (prikey_len != 32) {
+					error_print();
+					return -1;
+				}
+				sm2_z256_from_bytes(sm2_private, prikey);
+				if (sm2_key_set_private_key(&key->u.sm2_key, sm2_private) != 1) {
+					gmssl_secure_clear(sm2_private, sizeof(sm2_private));
+					error_print();
+					return -1;
+				}
+				gmssl_secure_clear(sm2_private, sizeof(sm2_private));
+				if (pubkey) {
+					const uint8_t *public_key;
+					size_t public_key_len;
+					SM2_KEY sm2_pub;
+
+					if (asn1_bit_octets_from_der(&public_key, &public_key_len, &pubkey, &pubkey_len) != 1
+						|| asn1_length_is_zero(pubkey_len) != 1
+						|| public_key_len != 65
+						|| sm2_z256_point_from_octets(&sm2_pub.public_key, public_key, public_key_len) != 1
+						|| sm2_public_key_equ(&key->u.sm2_key, &sm2_pub) != 1) {
+						gmssl_secure_clear(&key->u.sm2_key, sizeof(SM2_KEY));
+						error_print();
+						return -1;
+					}
+				}
+#ifdef ENABLE_SECP256R1
+			} else if (curve == OID_secp256r1) {
+				const uint8_t *cp = prikey;
+				size_t len = prikey_len;
+
+				if (prikey_len != 32
+					|| secp256r1_private_key_from_bytes(&key->u.secp256r1_key, &cp, &len) != 1
+					|| asn1_length_is_zero(len) != 1) {
+					error_print();
+					return -1;
+				}
+				if (pubkey) {
+					const uint8_t *public_key;
+					size_t public_key_len;
+					SECP256R1_KEY p256_pub;
+
+					if (asn1_bit_octets_from_der(&public_key, &public_key_len, &pubkey, &pubkey_len) != 1
+						|| asn1_length_is_zero(pubkey_len) != 1
+						|| public_key_len != 65
+						|| secp256r1_public_key_from_bytes(&p256_pub, &public_key, &public_key_len) != 1
+						|| asn1_length_is_zero(public_key_len) != 1
+						|| secp256r1_public_key_equ(&key->u.secp256r1_key, &p256_pub) != 1) {
+						gmssl_secure_clear(&key->u.secp256r1_key, sizeof(SECP256R1_KEY));
+						error_print();
+						return -1;
+					}
+				}
+#endif
+#ifdef ENABLE_SECP384R1
+			} else if (curve == OID_secp384r1) {
+				const uint8_t *cp = prikey;
+				size_t len = prikey_len;
+
+				if (prikey_len != 48
+					|| secp384r1_private_key_from_bytes(&key->u.secp384r1_key, &cp, &len) != 1
+					|| asn1_length_is_zero(len) != 1) {
+					error_print();
+					return -1;
+				}
+				if (pubkey) {
+					const uint8_t *public_key;
+					size_t public_key_len;
+					SECP384R1_KEY p384_pub;
+
+					if (asn1_bit_octets_from_der(&public_key, &public_key_len, &pubkey, &pubkey_len) != 1
+						|| asn1_length_is_zero(pubkey_len) != 1
+						|| public_key_len != 97
+						|| secp384r1_public_key_from_bytes(&p384_pub, &public_key, &public_key_len) != 1
+						|| asn1_length_is_zero(public_key_len) != 1
+						|| secp384r1_public_key_equ(&key->u.secp384r1_key, &p384_pub) != 1) {
+						gmssl_secure_clear(&key->u.secp384r1_key, sizeof(SECP384R1_KEY));
+						error_print();
+						return -1;
+					}
+				}
+#endif
+			} else {
+				error_print();
+				return -1;
+			}
 		}
 		break;
 #ifdef ENABLE_SM9
@@ -1331,7 +1369,7 @@ int x509_private_key_info_encrypt_to_der(const X509_KEY *x509_key, const char *p
 	uint8_t **out, size_t *outlen)
 {
 	int ret = -1;
-	uint8_t private_key_info[168]; // 150
+	uint8_t private_key_info[512];
 	uint8_t *p = private_key_info;
 	size_t private_key_info_len = 0;
 	uint8_t salt[16];
@@ -1401,7 +1439,7 @@ int x509_private_key_info_decrypt_from_der(X509_KEY *x509_key,
 	SM4_KEY sm4_key;
 	const uint8_t *enced_private_key_info;
 	size_t enced_private_key_info_len; // 160
-	uint8_t private_key_info[168];
+	uint8_t private_key_info[512];
 	const uint8_t *cp = private_key_info;
 	size_t private_key_info_len;
 

@@ -16,8 +16,7 @@
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
-#include <gmssl/ecdsa.h>
-#include <gmssl/secp384r1_ecdsa.h>
+#include <gmssl/secp384r1.h>
 
 static int test_secp384r1_ecdsa_do_sign(void)
 {
@@ -170,61 +169,12 @@ static int test_secp384r1_ecdsa_verify_infinity(void)
 	return 1;
 }
 
-static int test_secp384r1_ecdsa_generic(void)
-{
-	EC_KEY key;
-	uint8_t dgst32[32];
-	uint8_t dgst48[48];
-	uint8_t sig[SECP384R1_ECDSA_SIGNATURE_MAX_SIZE];
-	size_t siglen;
-
-	key.oid = OID_secp384r1;
-	if (secp384r1_key_generate(&key.u.secp384r1_key) != 1) {
-		error_print();
-		return -1;
-	}
-	memset(dgst32, 0x33, sizeof(dgst32));
-	memset(dgst48, 0x44, sizeof(dgst48));
-
-	if (ecdsa_sign(&key, dgst48, sizeof(dgst48), sig, &siglen) != 1
-		|| siglen > sizeof(sig)
-		|| ecdsa_verify(&key, dgst48, sizeof(dgst48), sig, siglen) != 1) {
-		error_print();
-		return -1;
-	}
-	dgst48[0] ^= 0x01;
-	if (ecdsa_verify(&key, dgst48, sizeof(dgst48), sig, siglen) != 0) {
-		error_print();
-		return -1;
-	}
-
-	if (ecdsa_sign(&key, dgst32, sizeof(dgst32), sig, &siglen) != 1
-		|| siglen > sizeof(sig)
-		|| ecdsa_verify(&key, dgst32, sizeof(dgst32), sig, siglen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (ecdsa_sign_fixed_len(&key, dgst32, sizeof(dgst32), siglen, sig) != 1
-		|| ecdsa_verify(&key, dgst32, sizeof(dgst32), sig, siglen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (ecdsa_sign(&key, dgst32, 31, sig, &siglen) >= 0) {
-		error_print();
-		return -1;
-	}
-
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-
 int main(void)
 {
 	if (test_secp384r1_ecdsa_do_sign() != 1) goto err;
 	if (test_secp384r1_ecdsa_sign() != 1) goto err;
 	if (test_secp384r1_ecdsa_ctx() != 1) goto err;
 	if (test_secp384r1_ecdsa_verify_infinity() != 1) goto err;
-	if (test_secp384r1_ecdsa_generic() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

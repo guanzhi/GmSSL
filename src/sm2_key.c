@@ -19,6 +19,7 @@
 #include <gmssl/pkcs8.h>
 #include <gmssl/error.h>
 #include <gmssl/ec.h>
+#include <gmssl/x509_key.h>
 #include <gmssl/mem.h>
 #include <gmssl/x509_alg.h>
 
@@ -164,75 +165,89 @@ int sm2_public_key_algor_from_der(const uint8_t **in, size_t *inlen)
 #define SM2_PRIVATE_KEY_DER_SIZE 121
 int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen)
 {
-	uint8_t params[64];
-	uint8_t pubkey[128];
-	uint8_t *params_ptr = params;
-	uint8_t *pubkey_ptr = pubkey;
-	size_t params_len = 0;
-	size_t pubkey_len = 0;
 	uint8_t prikey[32];
+	uint8_t pubkey[65];
+	uint8_t params[32];
+	uint8_t pubkey_der[128];
+	uint8_t *params_ptr = params;
+	uint8_t *pubkey_ptr = pubkey_der;
+	size_t params_len = 0;
+	size_t pubkey_der_len = 0;
 	size_t len = 0;
+	int ret;
 
 	if (!key) {
 		error_print();
 		return -1;
 	}
-	if (ec_named_curve_to_der(OID_sm2, &params_ptr, &params_len) != 1
-		|| sm2_public_key_to_der(key, &pubkey_ptr, &pubkey_len) != 1) {
-		error_print();
-		return -1;
-	}
 	sm2_z256_to_bytes(key->private_key, prikey);
-	if (asn1_int_to_der(EC_private_key_version, NULL, &len) != 1
-		|| asn1_octet_string_to_der(prikey, 32, NULL, &len) != 1
-		|| asn1_explicit_to_der(0, params, params_len, NULL, &len) != 1
-		|| asn1_explicit_to_der(1, pubkey, pubkey_len, NULL, &len) != 1
-		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_int_to_der(EC_private_key_version, out, outlen) != 1
-		|| asn1_octet_string_to_der(prikey, 32, out, outlen) != 1
-		|| asn1_explicit_to_der(0, params, params_len, out, outlen) != 1
-		|| asn1_explicit_to_der(1, pubkey, pubkey_len, out, outlen) != 1) {
-		gmssl_secure_clear(prikey, 32);
+	if (sm2_z256_point_to_uncompressed_octets(&key->public_key, pubkey) != 1) {
+		gmssl_secure_clear(prikey, sizeof(prikey));
 		error_print();
 		return -1;
 	}
-	gmssl_secure_clear(prikey, 32);
-	return 1;
+	ret = ec_named_curve_to_der(OID_sm2, &params_ptr, &params_len);
+	if (ret == 1) {
+		ret = asn1_bit_octets_to_der(pubkey, sizeof(pubkey), &pubkey_ptr, &pubkey_der_len);
+	}
+	if (ret == 1
+		&& (asn1_int_to_der(1, NULL, &len) != 1
+		|| asn1_octet_string_to_der(prikey, sizeof(prikey), NULL, &len) != 1
+		|| asn1_explicit_to_der(0, params, params_len, NULL, &len) < 0
+		|| asn1_explicit_to_der(1, pubkey_der, pubkey_der_len, NULL, &len) < 0
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_int_to_der(1, out, outlen) != 1
+		|| asn1_octet_string_to_der(prikey, sizeof(prikey), out, outlen) != 1
+		|| asn1_explicit_to_der(0, params, params_len, out, outlen) < 0
+		|| asn1_explicit_to_der(1, pubkey_der, pubkey_der_len, out, outlen) < 0)) {
+		ret = -1;
+	}
+	gmssl_secure_clear(prikey, sizeof(prikey));
+	if (ret != 1) {
+		error_print();
+		return -1;
+	}
+	return ret;
 }
 
 int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen)
 {
 	int ret;
+	const uint8_t *prikey;
+	const uint8_t *pubkey;
+	const uint8_t *params;
+	size_t prikey_len, pubkey_len, params_len;
+	int curve;
+	int version;
 	const uint8_t *d;
 	size_t dlen;
-	int ver;
-	const uint8_t *prikey;
-	const uint8_t *params;
-	const uint8_t *pubkey;
-	size_t prikey_len, params_len, pubkey_len;
 	sm2_z256_t private_key;
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_int_from_der(&ver, &d, &dlen) != 1
+	if (asn1_int_from_der(&version, &d, &dlen) != 1
 		|| asn1_octet_string_from_der(&prikey, &prikey_len, &d, &dlen) != 1
-		|| asn1_explicit_from_der(0, &params, &params_len, &d, &dlen) != 1
-		|| asn1_explicit_from_der(1, &pubkey, &pubkey_len, &d, &dlen) != 1
-		|| asn1_check(ver == EC_private_key_version) != 1
+		|| asn1_explicit_from_der(0, &params, &params_len, &d, &dlen) < 0
+		|| asn1_explicit_from_der(1, &pubkey, &pubkey_len, &d, &dlen) < 0
+		|| asn1_check(version == 1) != 1
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
 	if (params) {
-		int curve;
 		if (ec_named_curve_from_der(&curve, &params, &params_len) != 1
-			|| asn1_check(curve == OID_sm2) != 1
 			|| asn1_length_is_zero(params_len) != 1) {
 			error_print();
 			return -1;
 		}
+	} else {
+		curve = OID_undef;
+	}
+	if (curve != OID_undef && curve != OID_sm2) {
+		error_print();
+		return -1;
 	}
 	if (asn1_check(prikey_len == 32) != 1) {
 		error_print();
@@ -246,11 +261,14 @@ int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen)
 	}
 	gmssl_secure_clear(private_key, 32);
 
-	// check if the public key is correct
 	if (pubkey) {
+		const uint8_t *pubkey_octets;
+		size_t pubkey_octets_len;
 		SM2_KEY tmp_key;
-		if (sm2_public_key_from_der(&tmp_key, &pubkey, &pubkey_len) != 1
-			|| asn1_length_is_zero(pubkey_len) != 1) {
+		if (asn1_bit_octets_from_der(&pubkey_octets, &pubkey_octets_len, &pubkey, &pubkey_len) != 1
+			|| asn1_length_is_zero(pubkey_len) != 1
+			|| pubkey_octets_len != 65
+			|| sm2_z256_point_from_octets(&tmp_key.public_key, pubkey_octets, pubkey_octets_len) != 1) {
 			error_print();
 			return -1;
 		}
@@ -264,34 +282,71 @@ int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen)
 
 int sm2_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
-	return ec_private_key_print(fp, fmt, ind, label, d, dlen);
+	int ret;
+	const uint8_t *a;
+	size_t alen;
+	const uint8_t *p;
+	size_t len;
+	int val;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	if (asn1_int_from_der(&val, &d, &dlen) != 1) goto err;
+	format_print(fp, fmt, ind, "version: %d\n", val);
+	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	format_bytes(fp, fmt, ind, "privateKey", p, len);
+	if ((ret = asn1_explicit_from_der(0, &a, &alen, &d, &dlen)) < 0) goto err;
+	else if (ret) {
+		if (ec_named_curve_from_der(&val, &a, &alen) != 1) goto err;
+		format_print(fp, fmt, ind, "parameters: %s\n", ec_named_curve_name(val));
+		if (asn1_length_is_zero(alen) != 1) goto err;
+	}
+	format_print(fp, fmt, ind, "publicKey\n");
+	ind += 4;
+	if ((ret = asn1_explicit_from_der(1, &a, &alen, &d, &dlen)) < 0) goto err;
+	else if (ret) {
+		if (asn1_bit_octets_from_der(&p, &len, &a, &alen) != 1) goto err;
+		format_bytes(fp, fmt, ind, "ECPoint", p, len);
+		if (asn1_length_is_zero(alen) != 1) goto err;
+	}
+	if (asn1_length_is_zero(dlen) != 1) goto err;
+	return 1;
+err:
+	error_print();
+	return -1;
 }
 
 #define SM2_PRIVATE_KEY_INFO_DER_SIZE 150
 
 int sm2_private_key_info_to_der(const SM2_KEY *sm2_key, uint8_t **out, size_t *outlen)
 {
-	size_t len = 0;
 	uint8_t prikey[SM2_PRIVATE_KEY_DER_SIZE];
 	uint8_t *p = prikey;
 	size_t prikey_len = 0;
+	size_t len = 0;
+	int ret;
 
 	if (sm2_private_key_to_der(sm2_key, &p, &prikey_len) != 1) {
 		error_print();
 		return -1;
 	}
 	if (asn1_int_to_der(PKCS8_private_key_info_version, NULL, &len) != 1
-		|| sm2_public_key_algor_to_der(NULL, &len) != 1
+		|| x509_public_key_algor_to_der(OID_ec_public_key, OID_sm2, NULL, &len) != 1
 		|| asn1_octet_string_to_der(prikey, prikey_len, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_int_to_der(PKCS8_private_key_info_version, out, outlen) != 1
-		|| sm2_public_key_algor_to_der(out, outlen) != 1
+		|| x509_public_key_algor_to_der(OID_ec_public_key, OID_sm2, out, outlen) != 1
 		|| asn1_octet_string_to_der(prikey, prikey_len, out, outlen) != 1) {
-		memset(prikey, 0, sizeof(prikey));
+		ret = -1;
+	} else {
+		ret = 1;
+	}
+	gmssl_secure_clear(prikey, sizeof(prikey));
+	if (ret != 1) {
 		error_print();
 		return -1;
 	}
-	memset(prikey, 0, sizeof(prikey));
 	return 1;
 }
 
@@ -302,6 +357,8 @@ int sm2_private_key_info_from_der(SM2_KEY *sm2_key, const uint8_t **attrs, size_
 	const uint8_t *d;
 	size_t dlen;
 	int version;
+	int algor;
+	int curve;
 	const uint8_t *prikey;
 	size_t prikey_len;
 
@@ -310,16 +367,15 @@ int sm2_private_key_info_from_der(SM2_KEY *sm2_key, const uint8_t **attrs, size_
 		return ret;
 	}
 	if (asn1_int_from_der(&version, &d, &dlen) != 1
-		|| sm2_public_key_algor_from_der(&d, &dlen) != 1
+		|| x509_public_key_algor_from_der(&algor, &curve, &d, &dlen) != 1
 		|| asn1_octet_string_from_der(&prikey, &prikey_len, &d, &dlen) != 1
 		|| asn1_implicit_set_from_der(0, attrs, attrslen, &d, &dlen) < 0
-		|| asn1_length_is_zero(dlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (asn1_check(version == PKCS8_private_key_info_version) != 1
+		|| asn1_check(version == PKCS8_private_key_info_version) != 1
+		|| asn1_check(algor == OID_ec_public_key) != 1
+		|| asn1_check(curve == OID_sm2) != 1
 		|| sm2_private_key_from_der(sm2_key, &prikey, &prikey_len) != 1
-		|| asn1_length_is_zero(prikey_len) != 1) {
+		|| asn1_length_is_zero(prikey_len) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -344,7 +400,7 @@ int sm2_private_key_info_print(FILE *fp, int fmt, int ind, const char *label, co
 	x509_public_key_algor_print(fp, fmt, ind, "privateKeyAlgorithm", p, len);
 	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	if (asn1_sequence_from_der(&prikey, &prikey_len, &p, &len) != 1) goto err;
-	ec_private_key_print(fp, fmt, ind + 4, "privateKey", prikey, prikey_len);
+	sm2_private_key_print(fp, fmt, ind + 4, "privateKey", prikey, prikey_len);
 	if (asn1_length_is_zero(len) != 1) goto err;
 	if ((ret = asn1_implicit_set_from_der(0, &p, &len, &d, &dlen)) < 0) goto err;
 	else if (ret) format_bytes(fp, fmt, ind, "attributes", p, len);
@@ -366,15 +422,8 @@ int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp)
 		error_print();
 		return -1;
 	}
-	if (sm2_private_key_info_to_der(key, &p, &len) != 1) {
-		error_print();
-		goto end;
-	}
-	if (len != sizeof(buf)) {
-		error_print();
-		goto end;
-	}
-	if (pem_write(fp, "PRIVATE KEY", buf, len) != 1) {
+	if (sm2_private_key_info_to_der(key, &p, &len) != 1
+		|| pem_write(fp, "PRIVATE KEY", buf, len) != 1) {
 		error_print();
 		goto end;
 	}
@@ -394,12 +443,10 @@ int sm2_private_key_info_from_pem(SM2_KEY *sm2_key, FILE *fp)
 
 	if (pem_read(fp, "PRIVATE KEY", buf, &len, sizeof(buf)) != 1
 		|| sm2_private_key_info_from_der(sm2_key, &attrs, &attrs_len, &cp, &len) != 1
+		|| asn1_length_is_zero(attrs_len) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
-	}
-	if (attrs_len) {
-		error_print();
 	}
 	return 1;
 }
@@ -448,7 +495,7 @@ int sm2_private_key_to_pem(const SM2_KEY *a, FILE *fp)
 		error_print();
 		return -1;
 	}
-	if (pem_write(fp, "EC PRIVATE KEY", buf, len) <= 0) {
+	if (pem_write(fp, "EC PRIVATE KEY", buf, len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -461,11 +508,8 @@ int sm2_private_key_from_pem(SM2_KEY *a, FILE *fp)
 	const uint8_t *cp = buf;
 	size_t len;
 
-	if (pem_read(fp, "EC PRIVATE KEY", buf, &len, sizeof(buf)) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sm2_private_key_from_der(a, &cp, &len) != 1
+	if (pem_read(fp, "EC PRIVATE KEY", buf, &len, sizeof(buf)) != 1
+		|| sm2_private_key_from_der(a, &cp, &len) != 1
 		|| len > 0) {
 		error_print();
 		return -1;
@@ -534,125 +578,50 @@ int sm2_public_key_digest(const SM2_KEY *sm2_key, uint8_t dgst[32])
 int sm2_private_key_info_encrypt_to_der(const SM2_KEY *sm2_key, const char *pass,
 	uint8_t **out, size_t *outlen)
 {
-	int ret = -1;
-	uint8_t pkey_info[SM2_PRIVATE_KEY_INFO_DER_SIZE];
-	uint8_t *p = pkey_info;
-	size_t pkey_info_len = 0;
-	uint8_t salt[16];
-	int iter = 65536;
-	uint8_t iv[16];
-	uint8_t key[16];
-	SM4_KEY sm4_key;
-	uint8_t enced_pkey_info[sizeof(pkey_info) + 32];
-	size_t enced_pkey_info_len;
+	X509_KEY x509_key;
 
 	if (!sm2_key || !pass || !outlen) {
 		error_print();
 		return -1;
 	}
-	if (sm2_private_key_info_to_der(sm2_key, &p, &pkey_info_len) != 1
-		|| rand_bytes(salt, sizeof(salt)) != 1
-		|| rand_bytes(iv, sizeof(iv)) != 1
-		|| sm3_pbkdf2(pass, strlen(pass), salt, sizeof(salt), iter, sizeof(key), key) != 1) {
+	if (x509_key_set_sm2_key(&x509_key, sm2_key) != 1
+		|| x509_private_key_info_encrypt_to_der(&x509_key, pass, out, outlen) != 1) {
 		error_print();
-		goto end;
+		return -1;
 	}
-	/*
-	if (pkey_info_len != sizeof(pkey_info)) {
-		error_print();
-		goto end;
-	}
-	*/
-	sm4_set_encrypt_key(&sm4_key, key);
-	if (sm4_cbc_padding_encrypt(
-			&sm4_key, iv, pkey_info, pkey_info_len,
-			enced_pkey_info, &enced_pkey_info_len) != 1
-		|| pkcs8_enced_private_key_info_to_der(
-			salt, sizeof(salt), iter, sizeof(key), OID_hmac_sm3,
-			OID_sm4_cbc, iv, sizeof(iv),
-			enced_pkey_info, enced_pkey_info_len, out, outlen) != 1) {
-		error_print();
-		goto end;
-	}
-
-	ret = 1;
-end:
-	gmssl_secure_clear(pkey_info, sizeof(pkey_info));
-	gmssl_secure_clear(key, sizeof(key));
-	gmssl_secure_clear(&sm4_key, sizeof(sm4_key));
-	return ret;
+	return 1;
 }
 
 int sm2_private_key_info_decrypt_from_der(SM2_KEY *sm2,
 	const uint8_t **attrs, size_t *attrs_len,
 	const char *pass, const uint8_t **in, size_t *inlen)
 {
-	int ret = -1;
-	const uint8_t *salt;
-	size_t saltlen;
-	int iter;
-	int keylen;
-	int prf;
-	int cipher;
-	const uint8_t *iv;
-	size_t ivlen;
-	uint8_t key[16];
-	SM4_KEY sm4_key;
-	const uint8_t *enced_pkey_info;
-	size_t enced_pkey_info_len;
-	uint8_t pkey_info[256];
-	const uint8_t *cp = pkey_info;
-	size_t pkey_info_len;
+	X509_KEY x509_key;
 
 	if (!sm2 || !attrs || !attrs_len || !pass || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
 	}
-	if (pkcs8_enced_private_key_info_from_der(&salt, &saltlen, &iter, &keylen, &prf,
-		&cipher, &iv, &ivlen, &enced_pkey_info, &enced_pkey_info_len, in, inlen) != 1
-		|| asn1_check(keylen == -1 || keylen == 16) != 1
-		|| asn1_check(prf == - 1 || prf == OID_hmac_sm3) != 1
-		|| asn1_check(cipher == OID_sm4_cbc) != 1
-		|| asn1_check(ivlen == 16) != 1
-		|| asn1_length_le(enced_pkey_info_len, sizeof(pkey_info)) != 1) {
+	if (x509_private_key_info_decrypt_from_der(&x509_key, attrs, attrs_len, pass, in, inlen) != 1
+		|| x509_key.algor != OID_ec_public_key
+		|| x509_key.algor_param != OID_sm2) {
 		error_print();
 		return -1;
 	}
-	if (sm3_pbkdf2(pass, strlen(pass), salt, saltlen, iter, sizeof(key), key) != 1) {
-		error_print();
-		goto end;
-	}
-	sm4_set_decrypt_key(&sm4_key, key);
-	if (sm4_cbc_padding_decrypt(&sm4_key, iv, enced_pkey_info, enced_pkey_info_len,
-			pkey_info, &pkey_info_len) != 1
-		|| sm2_private_key_info_from_der(sm2, attrs, attrs_len, &cp, &pkey_info_len) != 1
-		|| asn1_length_is_zero(pkey_info_len) != 1) {
-		error_print();
-		goto end;
-	}
-	ret = 1;
-end:
-	gmssl_secure_clear(&sm4_key, sizeof(sm4_key));
-	gmssl_secure_clear(key, sizeof(key));
-	gmssl_secure_clear(pkey_info, sizeof(pkey_info));
-	return ret;
+	*sm2 = x509_key.u.sm2_key;
+	return 1;
 }
 
 int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *sm2_key, const char *pass, FILE *fp)
 {
-	uint8_t buf[1024];
-	uint8_t *p = buf;
-	size_t len = 0;
+	X509_KEY x509_key;
 
 	if (!fp) {
 		error_print();
 		return -1;
 	}
-	if (sm2_private_key_info_encrypt_to_der(sm2_key, pass, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (pem_write(fp, "ENCRYPTED PRIVATE KEY", buf, len) != 1) {
+	if (x509_key_set_sm2_key(&x509_key, sm2_key) != 1
+		|| x509_private_key_info_encrypt_to_pem(&x509_key, pass, fp) != 1) {
 		error_print();
 		return -1;
 	}
@@ -661,9 +630,7 @@ int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *sm2_key, const char *pass
 
 int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *fp)
 {
-	uint8_t buf[512];
-	const uint8_t *cp = buf;
-	size_t len;
+	X509_KEY x509_key;
 	const uint8_t *attrs;
 	size_t attrs_len;
 
@@ -671,11 +638,12 @@ int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *
 		error_print();
 		return -1;
 	}
-	if (pem_read(fp, "ENCRYPTED PRIVATE KEY", buf, &len, sizeof(buf)) != 1
-		|| sm2_private_key_info_decrypt_from_der(key, &attrs, &attrs_len, pass, &cp, &len) != 1
-		|| asn1_length_is_zero(len) != 1) {
+	if (x509_private_key_info_decrypt_from_pem(&x509_key, &attrs, &attrs_len, pass, fp) != 1
+		|| x509_key.algor != OID_ec_public_key
+		|| x509_key.algor_param != OID_sm2) {
 		error_print();
 		return -1;
 	}
+	*key = x509_key.u.sm2_key;
 	return 1;
 }

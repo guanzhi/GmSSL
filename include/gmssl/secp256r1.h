@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <gmssl/digest.h>
 
 
 #ifdef __cplusplus
@@ -101,6 +102,88 @@ int  secp256r1_point_mul_generator(SECP256R1_POINT *R, const secp256r1_t k);
 int  secp256r1_point_print(FILE *fp, int fmt, int ind, const char *label, const SECP256R1_POINT *P);
 int  secp256r1_point_to_uncompressed_octets(const SECP256R1_POINT *P, uint8_t octets[65]);
 int  secp256r1_point_from_uncompressed_octets(SECP256R1_POINT *P, const uint8_t octets[65]);
+
+
+typedef struct {
+	SECP256R1_POINT public_key;
+	secp256r1_t private_key;
+} SECP256R1_KEY;
+
+int secp256r1_key_generate(SECP256R1_KEY *key);
+int secp256r1_key_set_private_key(SECP256R1_KEY *key, const secp256r1_t private_key);
+int secp256r1_public_key_equ(const SECP256R1_KEY *key, const SECP256R1_KEY *pub);
+
+int secp256r1_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SECP256R1_KEY *key);
+int secp256r1_private_key_print(FILE *fp, int fmt, int ind, const char *label, const SECP256R1_KEY *key);
+
+int secp256r1_public_key_to_bytes(const SECP256R1_KEY *key, uint8_t **out, size_t *outlen);
+int secp256r1_public_key_from_bytes(SECP256R1_KEY *key, const uint8_t **in, size_t *inlen);
+int secp256r1_private_key_to_bytes(const SECP256R1_KEY *key, uint8_t **out, size_t *outlen);
+int secp256r1_private_key_from_bytes(SECP256R1_KEY *key, const uint8_t **in, size_t *inlen);
+int secp256r1_public_key_to_der(const SECP256R1_KEY *key, uint8_t **out, size_t *outlen);
+int secp256r1_public_key_from_der(SECP256R1_KEY *key, const uint8_t **in, size_t *inlen);
+int secp256r1_private_key_to_der(const SECP256R1_KEY *key, uint8_t **out, size_t *outlen);
+int secp256r1_private_key_from_der(SECP256R1_KEY *key, const uint8_t **in, size_t *inlen);
+int secp256r1_private_key_info_to_der(const SECP256R1_KEY *key, uint8_t **out, size_t *outlen);
+int secp256r1_private_key_info_from_der(SECP256R1_KEY *key, const uint8_t **attrs, size_t *attrslen,
+	const uint8_t **in, size_t *inlen);
+int secp256r1_private_key_info_encrypt_to_der(const SECP256R1_KEY *ec_key, const char *pass,
+	uint8_t **out, size_t *outlen);
+int secp256r1_private_key_info_decrypt_from_der(SECP256R1_KEY *ec_key,
+	const uint8_t **attrs, size_t *attrs_len,
+	const char *pass, const uint8_t **in, size_t *inlen);
+
+int secp256r1_private_key_to_pem(const SECP256R1_KEY *key, FILE *fp);
+int secp256r1_private_key_from_pem(SECP256R1_KEY *key, FILE *fp);
+int secp256r1_private_key_info_encrypt_to_pem(const SECP256R1_KEY *key, const char *pass, FILE *fp);
+int secp256r1_private_key_info_decrypt_from_pem(SECP256R1_KEY *key, const char *pass, FILE *fp);
+
+int secp256r1_do_ecdh(const SECP256R1_KEY *key, const SECP256R1_KEY *pub, uint8_t out[32]);
+int secp256r1_ecdh(const SECP256R1_KEY *key, const uint8_t uncompressed_point[65], uint8_t out[32]);
+
+
+typedef struct {
+	secp256r1_t r;
+	secp256r1_t s;
+} SECP256R1_ECDSA_SIGNATURE;
+
+#define SECP256R1_ECDSA_SIGNATURE_COMPACT_SIZE	70
+#define SECP256R1_ECDSA_SIGNATURE_TYPICAL_SIZE	71
+#define SECP256R1_ECDSA_SIGNATURE_MAX_SIZE	72
+
+int secp256r1_ecdsa_signature_to_der(const SECP256R1_ECDSA_SIGNATURE *sig, uint8_t **out, size_t *outlen);
+int secp256r1_ecdsa_signature_from_der(SECP256R1_ECDSA_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
+int secp256r1_ecdsa_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const SECP256R1_ECDSA_SIGNATURE *sig);
+int secp256r1_ecdsa_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
+
+int secp256r1_ecdsa_do_sign_ex(const SECP256R1_KEY *key, const secp256r1_t k,
+	const uint8_t *dgst, size_t dgstlen, SECP256R1_ECDSA_SIGNATURE *sig);
+int secp256r1_ecdsa_do_sign(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, SECP256R1_ECDSA_SIGNATURE *sig);
+int secp256r1_ecdsa_do_verify(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, const SECP256R1_ECDSA_SIGNATURE *sig);
+
+int secp256r1_ecdsa_sign(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, uint8_t *sig, size_t *siglen);
+int secp256r1_ecdsa_sign_fixlen(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, size_t siglen, uint8_t *sig);
+int secp256r1_ecdsa_verify(const SECP256R1_KEY *key,
+	const uint8_t *dgst, size_t dgstlen, const uint8_t *sig, size_t siglen);
+
+typedef struct {
+	DIGEST_CTX digest_ctx;
+	SECP256R1_KEY key;
+	SECP256R1_ECDSA_SIGNATURE sig;
+} SECP256R1_ECDSA_SIGN_CTX;
+
+int secp256r1_ecdsa_sign_init(SECP256R1_ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key, const DIGEST *digest);
+int secp256r1_ecdsa_sign_update(SECP256R1_ECDSA_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+int secp256r1_ecdsa_sign_finish(SECP256R1_ECDSA_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
+int secp256r1_ecdsa_sign_finish_fixlen(SECP256R1_ECDSA_SIGN_CTX *ctx, size_t siglen, uint8_t *sig);
+int secp256r1_ecdsa_verify_init(SECP256R1_ECDSA_SIGN_CTX *ctx, const SECP256R1_KEY *key, const DIGEST *digest,
+	const uint8_t *sig, size_t siglen);
+int secp256r1_ecdsa_verify_update(SECP256R1_ECDSA_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+int secp256r1_ecdsa_verify_finish(SECP256R1_ECDSA_SIGN_CTX *ctx);
 
 
 #ifdef __cplusplus

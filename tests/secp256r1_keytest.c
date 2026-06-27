@@ -16,7 +16,7 @@
 #include <gmssl/rand.h>
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
-#include <gmssl/secp256r1_key.h>
+#include <gmssl/secp256r1.h>
 
 
 static int test_secp256r1_key_generate(void)

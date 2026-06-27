@@ -8,9 +8,6 @@
  */
 
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <gmssl/ec.h>
 #include <gmssl/error.h>
 
@@ -21,12 +18,12 @@ static uint32_t oid_sm2[] = { oid_sm_scheme,301 };
 #define oid_x9_62_curves oid_x9_62,3
 #define oid_x9_62_prime_curves oid_x9_62_curves,1
 static uint32_t oid_prime192v1[] = { oid_x9_62_prime_curves,1 };
-static uint32_t oid_prime256v1[] = { oid_x9_62_prime_curves,7 }; // NIST P-256
+static uint32_t oid_prime256v1[] = { oid_x9_62_prime_curves,7 };
 
 #define oid_secg_curve 1,3,132,0
 static uint32_t oid_secp256k1[] = { oid_secg_curve,10 };
-static uint32_t oid_secp384r1[] = { oid_secg_curve,34 }; // NIST P-384
-static uint32_t oid_secp521r1[] = { oid_secg_curve,35 }; // NIST P-521
+static uint32_t oid_secp384r1[] = { oid_secg_curve,34 };
+static uint32_t oid_secp521r1[] = { oid_secg_curve,35 };
 
 
 static const ASN1_OID_INFO ec_named_curves[] = {
@@ -86,55 +83,4 @@ int ec_named_curve_from_der(int *oid, const uint8_t **in, size_t *inlen)
 	}
 	*oid = info->oid;
 	return 1;
-}
-
-int ec_point_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
-{
-	const uint8_t *p;
-	size_t len;
-
-	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
-	format_bytes(fp, fmt, ind, label, p, len);
-	if (asn1_length_is_zero(dlen) != 1) goto err;
-	return 1;
-err:
-	error_print();
-	return -1;
-}
-
-int ec_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
-{
-	int ret;
-	const uint8_t *a;
-	size_t alen;
-	const uint8_t *p;
-	size_t len;
-	int val;
-
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-
-	if (asn1_int_from_der(&val, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "version: %d\n", val);
-	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
-	format_bytes(fp, fmt, ind, "privateKey", p, len);
-	if ((ret = asn1_explicit_from_der(0, &a, &alen, &d, &dlen)) < 0) goto err;
-	else if (ret) {
-		if (ec_named_curve_from_der(&val, &a, &alen) != 1) goto err;
-		format_print(fp, fmt, ind, "parameters: %s\n", ec_named_curve_name(val));
-		if (asn1_length_is_zero(alen) != 1) goto err;
-	}
-	format_print(fp, fmt, ind, "publicKey\n");
-	ind += 4;
-	if ((ret = asn1_explicit_from_der(1, &a, &alen, &d, &dlen)) < 0) goto err;
-	else if (ret) {
-		if (asn1_bit_octets_from_der(&p, &len, &a, &alen) != 1) goto err;
-		format_bytes(fp, fmt, ind, "ECPoint", p, len);
-		if (asn1_length_is_zero(alen) != 1) goto err;
-	}
-	if (asn1_length_is_zero(dlen) != 1) goto err;
-	return 1;
-err:
-	error_print();
-	return -1;
 }

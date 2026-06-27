@@ -35,6 +35,9 @@ struct {
 #ifdef ENABLE_SECP256R1
 	{ OID_ec_public_key, OID_secp256r1 },
 #endif
+#ifdef ENABLE_SECP384R1
+	{ OID_ec_public_key, OID_secp384r1 },
+#endif
 #ifdef ENABLE_LMS
 	{ OID_lms_hashsig, LMS_SM3_M32_H5 },
 	{ OID_hss_lms_hashsig, OID_undef }, // use lms_types[]
@@ -185,96 +188,6 @@ static int test_x509_public_key_info_to_der(void)
 			return -1;
 		}
 
-		if (x509_public_key_equ(&key, &x509_keys[i]) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-
-static int test_ec_private_key_to_der(void)
-{
-	X509_KEY key;
-	uint8_t buf[512];
-	int i;
-
-	for (i = 0; i < sizeof(tests)/sizeof(tests[0]) && tests[i].algor == OID_ec_public_key; i++) {
-		const uint8_t *cp = buf;
-		uint8_t *p = buf;
-		size_t len = 0;
-		int encode_params;
-		int encode_pubkey;
-
-		// test 1
-		encode_params = 0;
-		encode_pubkey = 0;
-		if (ec_private_key_to_der(&x509_keys[i], encode_params, encode_pubkey, &p, &len) != 1) {
-			error_print();
-			return -1;
-		}
-		//format_print(stderr, 0, 0, "ECPrivateKey encode_params = %d, encode_pubkey = %d\n", encode_params, encode_pubkey);
-		//format_bytes(stderr, 0, 0, "ECPrivateKey", buf, len);
-		if (ec_private_key_from_der(&key, tests[i].algor_param, &cp, &len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (x509_public_key_equ(&key, &x509_keys[i]) != 1) {
-			error_print();
-			return -1;
-		}
-
-		// test 2
-		encode_params = 0;
-		encode_pubkey = 1;
-		if (ec_private_key_to_der(&x509_keys[i], encode_params, encode_pubkey, &p, &len) != 1) {
-			error_print();
-			return -1;
-		}
-		//format_print(stderr, 0, 0, "ECPrivateKey encode_params = %d, encode_pubkey = %d\n", encode_params, encode_pubkey);
-		//format_bytes(stderr, 0, 0, "ECPrivateKey", buf, len);
-		if (ec_private_key_from_der(&key, tests[i].algor_param, &cp, &len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (x509_public_key_equ(&key, &x509_keys[i]) != 1) {
-			error_print();
-			return -1;
-		}
-
-		// test 3
-		encode_params = 1;
-		encode_pubkey = 0;
-		if (ec_private_key_to_der(&x509_keys[i], encode_params, encode_pubkey, &p, &len) != 1) {
-			error_print();
-			return -1;
-		}
-		//format_print(stderr, 0, 0, "ECPrivateKey encode_params = %d, encode_pubkey = %d\n", encode_params, encode_pubkey);
-		//format_bytes(stderr, 0, 0, "ECPrivateKey", buf, len);
-		if (ec_private_key_from_der(&key, tests[i].algor_param, &cp, &len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (x509_public_key_equ(&key, &x509_keys[i]) != 1) {
-			error_print();
-			return -1;
-		}
-
-		// test 4
-		encode_params = 1;
-		encode_pubkey = 1;
-		if (ec_private_key_to_der(&x509_keys[i], encode_params, encode_pubkey, &p, &len) != 1) {
-			error_print();
-			return -1;
-		}
-		//format_print(stderr, 0, 0, "ECPrivateKey encode_params = %d, encode_pubkey = %d\n", encode_params, encode_pubkey);
-		//format_bytes(stderr, 0, 0, "ECPrivateKey", buf, len);
-		if (ec_private_key_from_der(&key, tests[i].algor_param, &cp, &len) != 1) {
-			error_print();
-			return -1;
-		}
 		if (x509_public_key_equ(&key, &x509_keys[i]) != 1) {
 			error_print();
 			return -1;
@@ -455,11 +368,17 @@ static int test_x509_sign(void)
 	memset(msg, 0xa5, sizeof(msg));
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+		int sign_algor;
+
 		if (tests[i].algor == OID_kyber_kem) {
 			continue;
 		}
+		sign_algor = test_sign_algor(&x509_keys[i]);
+		if (sign_algor == OID_undef) {
+			continue;
+		}
 		//format_print(stderr, 0, 4, "%s\n", x509_public_key_algor_name(tests[i].algor));
-		if (x509_sign_init(&sign_ctx, &x509_keys[i], test_sign_algor(&x509_keys[i]), args, argslen) != 1) {
+		if (x509_sign_init(&sign_ctx, &x509_keys[i], sign_algor, args, argslen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -468,7 +387,7 @@ static int test_x509_sign(void)
 			return -1;
 		}
 		format_print(stderr, 0, 4, "%s: %zu\n", x509_public_key_algor_name(tests[i].algor), siglen);
-		if (x509_verify_init(&sign_ctx, &x509_keys[i], test_sign_algor(&x509_keys[i]), args, argslen, sig, siglen) != 1) {
+		if (x509_verify_init(&sign_ctx, &x509_keys[i], sign_algor, args, argslen, sig, siglen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -556,6 +475,9 @@ static int test_x509_key_exchange(void)
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		if (tests[i].algor != OID_ec_public_key) {
+			continue;
+		}
+		if (tests[i].algor_param == OID_secp384r1) {
 			continue;
 		}
 		if (x509_key_generate(&key, tests[i].algor, &tests[i].algor_param, sizeof(tests[i].algor_param)) != 1) {
@@ -660,7 +582,6 @@ int main(void)
 	if (test_x509_key_generate() != 1) goto err;
 	if (test_x509_public_key_to_bytes() != 1) goto err;
 	if (test_x509_public_key_info_to_der() != 1) goto err;
-	if (test_ec_private_key_to_der() != 1) goto err;
 	if (test_x509_private_key_info_to_der() != 1) goto err;
 	if (test_x509_private_key_info_encrypt_to_der() != 1) goto err;
 	if (test_x509_private_key_info_encrypt_to_pem() != 1) goto err;

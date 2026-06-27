@@ -11,20 +11,13 @@
 #ifndef GMSSL_EC_H
 #define GMSSL_EC_H
 
+#include <stdio.h>
 #include <time.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <gmssl/sm2.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
-#ifdef ENABLE_SECP256R1
-#include <gmssl/secp256r1_key.h>
-#endif
-#ifdef ENABLE_SECP384R1
-#include <gmssl/secp384r1_key.h>
-#endif
-#include <gmssl/x509_key.h>
 
 
 #ifdef __cplusplus
@@ -44,46 +37,6 @@ const char *ec_named_curve_name(int curve);
 int ec_named_curve_from_name(const char *name);
 int ec_named_curve_to_der(int curve, uint8_t **out, size_t *outlen);
 int ec_named_curve_from_der(int *curve, const uint8_t **in, size_t *inlen);
-
-typedef struct {
-	int oid;
-	union {
-#ifdef ENABLE_SECP256R1
-		SECP256R1_KEY secp256r1_key;
-#endif
-#ifdef ENABLE_SECP384R1
-		SECP384R1_KEY secp384r1_key;
-#endif
-		int unused;
-	} u;
-} EC_KEY;
-
-/*
-ECPoint ::= OCTET STRING -- uncompressed point
-*/
-int ec_point_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-
-
-/*
-ECPrivateKey ::= SEQUENCE {
-	version		INTEGER,	-- value MUST be (1)
-	privateKey	OCTET STRING,	-- big endian encoding of integer
-	parameters	[0] EXPLICIT OBJECT IDENTIFIER OPTIONAL, -- namedCurve
-	publicKey	[1] EXPLICIT BIT STRING OPTIONAL -- ECPoint
-}
-*/
-// ECPrivateKey when key->algor == OID_ec_public_key
-int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pubkey, uint8_t **out, size_t *outlen);
-int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, size_t *inlen);
-int ec_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen); // from <gmssl/ec.h>
-// X509_KEY lost some information of ECPrivateKey. so no ec_private_key_print_ex(X509_KEY)
-
-
-enum {
-	EC_private_key_version = 1,
-};
-
-int ec_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 #ifdef __cplusplus
 }
