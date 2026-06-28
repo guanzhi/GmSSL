@@ -2204,8 +2204,8 @@ bad:
 		fprintf(stderr, "gmssl %s: option `-lib` missing\n", prog);
 		goto end;
 	}
-	if (gmssl_tool_get_password(prog, "Password to access SDF private key", NULL, &pass,
-		passbuf, sizeof(passbuf)) != 1) {
+	if (gmssl_tool_get_password(prog, "pass", NULL, &pass,
+		passbuf, sizeof(passbuf), 0) != 1) {
 		goto end;
 	}
 

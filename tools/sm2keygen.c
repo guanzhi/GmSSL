@@ -87,8 +87,8 @@ bad:
 		argv++;
 	}
 
-	if (gmssl_tool_get_password(prog, "Password to encrypt private key", outfile, &pass,
-		passbuf, sizeof(passbuf)) != 1) {
+	if (gmssl_tool_get_password(prog, "pass", outfile, &pass,
+		passbuf, sizeof(passbuf), 1) != 1) {
 		goto end;
 	}
 

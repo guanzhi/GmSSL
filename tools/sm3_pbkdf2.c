@@ -124,8 +124,8 @@ bad:
 		argv++;
 	}
 
-	if (gmssl_tool_get_password(prog, "Password", NULL, &pass,
-		passbuf, sizeof(passbuf)) != 1) {
+	if (gmssl_tool_get_password(prog, "pass", NULL, &pass,
+		passbuf, sizeof(passbuf), 1) != 1) {
 		goto end;
 	}
 	if (!salthex) {

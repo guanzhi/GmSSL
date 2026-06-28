@@ -8,6 +8,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 #include <gmssl/mem.h>
@@ -63,9 +64,52 @@ static int gmssl_password_read_line(FILE *in, FILE *out, const char *prompt, cha
 	return 1;
 }
 
+static int gmssl_password_read(FILE *in, FILE *out, const char *prompt,
+	char *pass, size_t passlen, int do_confirm)
+{
+	char *confirm = NULL;
+	int ret = -1;
+
+	ret = gmssl_password_read_line(in, out, prompt, pass, passlen);
+	fputc('\n', out);
+	fflush(out);
+	if (ret != 1) {
+		goto end;
+	}
+
+	if (do_confirm) {
+		if (!(confirm = malloc(passlen))) {
+			error_print();
+			goto end;
+		}
+		ret = gmssl_password_read_line(in, out, "Confirm: ", confirm, passlen);
+		fputc('\n', out);
+		fflush(out);
+		if (ret != 1) {
+			goto end;
+		}
+		if (strcmp(pass, confirm) != 0) {
+			error_print();
+			goto end;
+		}
+	}
+
+	ret = 1;
+
+end:
+	if (ret != 1) {
+		gmssl_secure_clear(pass, passlen);
+	}
+	if (confirm) {
+		gmssl_secure_clear(confirm, passlen);
+		free(confirm);
+	}
+	return ret;
+}
+
 #if defined(_WIN32)
 
-int gmssl_read_password(const char *prompt, char *pass, size_t passlen)
+int gmssl_read_password(const char *prompt, char *pass, size_t passlen, int do_confirm)
 {
 	FILE *in = NULL;
 	FILE *out = NULL;
@@ -98,14 +142,12 @@ int gmssl_read_password(const char *prompt, char *pass, size_t passlen)
 		goto end;
 	}
 
-	ret = gmssl_password_read_line(in, out, prompt, pass, passlen);
+	ret = gmssl_password_read(in, out, prompt, pass, passlen, do_confirm);
 
 	if (!SetConsoleMode(in_handle, old_mode)) {
 		error_print();
 		ret = -1;
 	}
-	fputc('\n', out);
-	fflush(out);
 
 end:
 	if (in) fclose(in);
@@ -116,7 +158,7 @@ end:
 
 #else
 
-int gmssl_read_password(const char *prompt, char *pass, size_t passlen)
+int gmssl_read_password(const char *prompt, char *pass, size_t passlen, int do_confirm)
 {
 	FILE *tty = NULL;
 	int fd;
@@ -148,14 +190,12 @@ int gmssl_read_password(const char *prompt, char *pass, size_t passlen)
 		goto end;
 	}
 
-	ret = gmssl_password_read_line(tty, tty, prompt, pass, passlen);
+	ret = gmssl_password_read(tty, tty, prompt, pass, passlen, do_confirm);
 
 	if (tcsetattr(fd, TCSAFLUSH, &old_termios) < 0) {
 		error_print();
 		ret = -1;
 	}
-	fputc('\n', tty);
-	fflush(tty);
 
 end:
 	if (tty) fclose(tty);

@@ -119,10 +119,10 @@ bad:
 		fprintf(stderr, "%s: option '-id' is required\n", prog);
 		goto end;
 	}
-	if (gmssl_tool_get_password(prog, "Password to decrypt master private key", infile,
-		&inpass, inpassbuf, sizeof(inpassbuf)) != 1
-		|| gmssl_tool_get_password(prog, "Password to encrypt user private key", outfile,
-		&outpass, outpassbuf, sizeof(outpassbuf)) != 1) {
+	if (gmssl_tool_get_password(prog, "inpass", infile,
+		&inpass, inpassbuf, sizeof(inpassbuf), 0) != 1
+		|| gmssl_tool_get_password(prog, "outpass", outfile,
+		&outpass, outpassbuf, sizeof(outpassbuf), 1) != 1) {
 		goto end;
 	}
 

@@ -16,8 +16,7 @@
 extern "C" {
 #endif
 
-
-int gmssl_read_password(const char *prompt, char *pass, size_t passlen);
+int gmssl_read_password(const char *prompt, char *pass, size_t passlen, int do_confirm);
 
 
 #ifdef __cplusplus

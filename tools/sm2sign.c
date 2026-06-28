@@ -114,8 +114,8 @@ bad:
 		fprintf(stderr, "gmssl %s: '-key' option required\n", prog);
 		goto end;
 	}
-	if (gmssl_tool_get_password(prog, "Password to open private key", keyfile, &pass,
-		passbuf, sizeof(passbuf)) != 1) {
+	if (gmssl_tool_get_password(prog, "pass", keyfile, &pass,
+		passbuf, sizeof(passbuf), 0) != 1) {
 		goto end;
 	}
 	if (sm2_private_key_info_decrypt_from_pem(&key, pass, keyfp) != 1) {

@@ -571,8 +571,8 @@ bad:
 			fprintf(stderr, "%s: option -key is required\n", prog);
 			goto end;
 		}
-		if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
-			passbuf, sizeof(passbuf)) != 1) {
+		if (gmssl_tool_get_password(prog, "pass", keyfile, &pass,
+			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
 		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass) != 1) {

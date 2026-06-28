@@ -406,8 +406,8 @@ bad:
 		goto end;
 	}
 	if (!pass && signer_pub.algor == OID_ec_public_key) {
-		if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
-			passbuf, sizeof(passbuf)) != 1) {
+		if (gmssl_tool_get_password(prog, "pass", keyfile, &pass,
+			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
 	}

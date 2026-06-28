@@ -101,8 +101,8 @@ extern int sctverify_main(int argc, char **argv);
 extern int quic_client_main(int argc, char **argv);
 extern int quic_server_main(int argc, char **argv);
 #endif
-#ifdef ENABLE_SECP256R1
-extern int p256keygen_main(int argc, char **argv);
+#if defined(ENABLE_SECP256R1) || defined(ENABLE_SECP384R1)
+extern int eckeygen_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_LMS
 extern int lmskeygen_main(int argc, char **argv);
@@ -225,8 +225,8 @@ static const char *options =
 	"  cmsdecrypt        Decrypt CMS EnvelopedData\n"
 	"  cmsparse          Parse CMS (cryptographic message syntax) file\n"
 #endif
-#ifdef ENABLE_SECP256R1
-	"  p256keygen        Generate P-256 (secp256r1, prime256v1) keypair\n"
+#if defined(ENABLE_SECP256R1) || defined(ENABLE_SECP384R1)
+	"  eckeygen          Generate EC keypair on a named curve\n"
 #endif
 #ifdef ENABLE_LMS
 	"  lmskeygen         Generate LMS-SM3 (Leighton-Micali Signature) keypair\n"
@@ -450,9 +450,9 @@ int main(int argc, char **argv)
 		} else if (!strcmp(*argv, "quic_server")) {
 			return quic_server_main(argc, argv);
 #endif
-#ifdef ENABLE_SECP256R1
-		} else if (!strcmp(*argv, "p256keygen")) {
-			return p256keygen_main(argc, argv);
+#if defined(ENABLE_SECP256R1) || defined(ENABLE_SECP384R1)
+		} else if (!strcmp(*argv, "eckeygen")) {
+			return eckeygen_main(argc, argv);
 #endif
 #ifdef ENABLE_LMS
 		} else if (!strcmp(*argv, "lmskeygen")) {

@@ -752,24 +752,24 @@ bad:
 		ret = sm9exch_stage_init(mpkfile, peer_id, peer_id_len,
 			exch_keyoutfile, outfile, format, prog);
 	} else if (!strcmp(stage, "respond")) {
-		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
-			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+		if (keyfile && gmssl_tool_get_password(prog, "pass",
+			keyfile, &pass, passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
 		ret = sm9exch_stage_respond(mpkfile, keyfile, pass, id, id_len,
 			peer_id, peer_id_len, infile, exch_keyoutfile,
 			outfile, keylen, format, prog);
 	} else if (!strcmp(stage, "confirm")) {
-		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
-			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+		if (keyfile && gmssl_tool_get_password(prog, "pass",
+			keyfile, &pass, passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
 		ret = sm9exch_stage_confirm(mpkfile, keyfile, pass, id, id_len,
 			peer_id, peer_id_len, exch_keyfile, infile,
 			keyoutfile, outfile, keylen, format, prog);
 	} else if (!strcmp(stage, "finish")) {
-		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
-			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+		if (keyfile && gmssl_tool_get_password(prog, "pass",
+			keyfile, &pass, passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
 		ret = sm9exch_stage_finish(mpkfile, keyfile, pass, id, id_len,

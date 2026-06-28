@@ -906,20 +906,18 @@ bad:
 	}
 
 	if (!strcmp(stage, "init")) {
-		if (exch_keyoutfile && gmssl_tool_get_password(prog,
-			"Password to encrypt exchange private key", exch_keyoutfile,
-			&exch_pass, exch_passbuf, sizeof(exch_passbuf)) != 1) {
+		if (exch_keyoutfile && gmssl_tool_get_password(prog, "exchpass",
+			exch_keyoutfile, &exch_pass, exch_passbuf, sizeof(exch_passbuf), 1) != 1) {
 			goto end;
 		}
 		ret = sm2exch_stage_init(exch_keyoutfile, exch_pass, outfile, format, prog);
 	} else if (!strcmp(stage, "respond")) {
-		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
-			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+		if (keyfile && gmssl_tool_get_password(prog, "pass",
+			keyfile, &pass, passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
-		if (exch_keyoutfile && gmssl_tool_get_password(prog,
-			"Password to encrypt exchange private key", exch_keyoutfile,
-			&exch_pass, exch_passbuf, sizeof(exch_passbuf)) != 1) {
+		if (exch_keyoutfile && gmssl_tool_get_password(prog, "exchpass",
+			exch_keyoutfile, &exch_pass, exch_passbuf, sizeof(exch_passbuf), 1) != 1) {
 			goto end;
 		}
 		ret = sm2exch_stage_respond(keyfile, pass, pubkeyfile, certfile,
@@ -927,13 +925,12 @@ bad:
 			infile, exch_keyoutfile, exch_pass, secret_stateoutfile,
 			outfile, keylen, format, prog);
 	} else if (!strcmp(stage, "confirm")) {
-		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
-			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+		if (keyfile && gmssl_tool_get_password(prog, "pass",
+			keyfile, &pass, passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
-		if (exch_keyfile && gmssl_tool_get_password(prog,
-			"Password to open exchange private key", exch_keyfile,
-			&exch_pass, exch_passbuf, sizeof(exch_passbuf)) != 1) {
+		if (exch_keyfile && gmssl_tool_get_password(prog, "exchpass",
+			exch_keyfile, &exch_pass, exch_passbuf, sizeof(exch_passbuf), 0) != 1) {
 			goto end;
 		}
 		ret = sm2exch_stage_confirm(keyfile, pass, pubkeyfile, certfile,
@@ -941,13 +938,12 @@ bad:
 			exch_keyfile, exch_pass, infile, secret_stateoutfile,
 			keyoutfile, outfile, keylen, format, prog);
 	} else if (!strcmp(stage, "finish")) {
-		if (keyfile && gmssl_tool_get_password(prog, "Password to open private key",
-			keyfile, &pass, passbuf, sizeof(passbuf)) != 1) {
+		if (keyfile && gmssl_tool_get_password(prog, "pass",
+			keyfile, &pass, passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
-		if (exch_keyfile && gmssl_tool_get_password(prog,
-			"Password to open exchange private key", exch_keyfile,
-			&exch_pass, exch_passbuf, sizeof(exch_passbuf)) != 1) {
+		if (exch_keyfile && gmssl_tool_get_password(prog, "exchpass",
+			exch_keyfile, &exch_pass, exch_passbuf, sizeof(exch_passbuf), 0) != 1) {
 			goto end;
 		}
 		ret = sm2exch_stage_finish(keyfile, pass, pubkeyfile, certfile,

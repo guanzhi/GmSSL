@@ -197,8 +197,8 @@ bad:
 		fprintf(stderr, "%s: option '-container' required\n", prog);
 		goto end;
 	}
-	if (gmssl_tool_get_password(prog, "Password to access SKF container", container_name, &pass,
-		passbuf, sizeof(passbuf)) != 1) {
+	if (gmssl_tool_get_password(prog, "pass", container_name, &pass,
+		passbuf, sizeof(passbuf), 0) != 1) {
 		goto end;
 	}
 

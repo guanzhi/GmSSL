@@ -301,8 +301,8 @@ bad:
 		return -1;
 	}
 	for (i = passes_cnt; i < keyfiles_cnt; i++) {
-		if (gmssl_tool_read_password(prog, "Password to decrypt private key",
-			keyfiles[i], passbufs[i], sizeof(passbufs[i])) != 1) {
+		if (gmssl_tool_read_password(prog, "pass",
+			keyfiles[i], passbufs[i], sizeof(passbufs[i]), 0) != 1) {
 			goto end;
 		}
 		passes[i] = passbufs[i];

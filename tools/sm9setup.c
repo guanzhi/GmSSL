@@ -103,8 +103,8 @@ bad:
 		error_print();
 		goto end;
 	}
-	if (gmssl_tool_get_password(prog, "Password to encrypt master private key", outfile, &pass,
-		passbuf, sizeof(passbuf)) != 1) {
+	if (gmssl_tool_get_password(prog, "pass", outfile, &pass,
+		passbuf, sizeof(passbuf), 1) != 1) {
 		goto end;
 	}
 
@@ -147,7 +147,6 @@ end:
 	if (puboutfile && puboutfp) fclose(puboutfp);
 	return ret;
 }
-
 
 
 

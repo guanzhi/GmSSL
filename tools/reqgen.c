@@ -64,7 +64,7 @@ static char *usage =
 "    gmssl sm2keygen -pass P@ssw0rd -out sm2key.pem\n"
 "    gmssl reqgen -CN www.gmssl.org -key sm2key.pem -pass P@ssw0rd -out sm2req.pem\n"
 "\n"
-"    gmssl p256keygen -pass P@ssw0rd -out p256key.pem\n"
+"    gmssl eckeygen -curve secp256r1 -pass P@ssw0rd -out p256key.pem\n"
 "    gmssl reqgen -CN www.gmssl.org -key p256key.pem -pass P@ssw0rd -out p256req.pem\n"
 "\n";
 
@@ -217,8 +217,8 @@ bad:
 	}
 
 	if (!pass && algor == OID_ec_public_key) {
-		if (gmssl_tool_get_password(prog, "Password to decrypt private key", keyfile, &pass,
-			passbuf, sizeof(passbuf)) != 1) {
+		if (gmssl_tool_get_password(prog, "pass", keyfile, &pass,
+			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
 	}

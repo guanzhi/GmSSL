@@ -274,8 +274,8 @@ bad:
 		return 1;
 	}
 	for (i = signpasses_cnt; i < signkeyfiles_cnt; i++) {
-		if (gmssl_tool_read_password(prog, "Password to decrypt private key",
-			signkeyfiles[i], passbufs[i], sizeof(passbufs[i])) != 1) {
+		if (gmssl_tool_read_password(prog, "pass",
+			signkeyfiles[i], passbufs[i], sizeof(passbufs[i]), 0) != 1) {
 			goto end;
 		}
 		signpasses[i] = passbufs[i];

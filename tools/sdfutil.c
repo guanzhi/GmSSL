@@ -145,8 +145,8 @@ bad:
 			fprintf(stderr, "%s: invalid key index\n", prog);
 			goto end;
 		}
-		if (gmssl_tool_get_password(prog, "Password to access SDF private key", NULL, &pass,
-			passbuf, sizeof(passbuf)) != 1) {
+		if (gmssl_tool_get_password(prog, "pass", NULL, &pass,
+			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
 		if (sdf_load_sign_key(&dev, &key, keyindex, pass) != 1) {
@@ -171,8 +171,8 @@ bad:
 			fprintf(stderr, "%s: invalid key index\n", prog);
 			goto end;
 		}
-		if (gmssl_tool_get_password(prog, "Password to access SDF private key", NULL, &pass,
-			passbuf, sizeof(passbuf)) != 1) {
+		if (gmssl_tool_get_password(prog, "pass", NULL, &pass,
+			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
 		if (sdf_load_sign_key(&dev, &key, keyindex, pass) != 1) {

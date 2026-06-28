@@ -13,16 +13,16 @@
 
 
 int gmssl_tool_read_password(const char *prog, const char *label,
-	const char *file, char *pass, size_t passlen)
+	const char *file, char *pass, size_t passlen, int do_confirm)
 {
 	char prompt[512];
 	int len;
 
 	if (!prog) prog = "gmssl";
-	if (!label) label = "Password";
+	if (!label) label = "pass";
 
 	if (file && file[0]) {
-		len = snprintf(prompt, sizeof(prompt), "gmssl %s: %s '%s': ", prog, label, file);
+		len = snprintf(prompt, sizeof(prompt), "gmssl %s: %s %s: ", prog, label, file);
 	} else {
 		len = snprintf(prompt, sizeof(prompt), "gmssl %s: %s: ", prog, label);
 	}
@@ -30,11 +30,11 @@ int gmssl_tool_read_password(const char *prog, const char *label,
 		return -1;
 	}
 
-	return gmssl_read_password(prompt, pass, passlen);
+	return gmssl_read_password(prompt, pass, passlen, do_confirm);
 }
 
 int gmssl_tool_get_password(const char *prog, const char *label,
-	const char *file, char **pass, char *passbuf, size_t passlen)
+	const char *file, char **pass, char *passbuf, size_t passlen, int do_confirm)
 {
 	if (!pass || !passbuf) {
 		return -1;
@@ -42,7 +42,7 @@ int gmssl_tool_get_password(const char *prog, const char *label,
 	if (*pass) {
 		return 1;
 	}
-	if (gmssl_tool_read_password(prog, label, file, passbuf, passlen) != 1) {
+	if (gmssl_tool_read_password(prog, label, file, passbuf, passlen, do_confirm) != 1) {
 		return -1;
 	}
 	*pass = passbuf;

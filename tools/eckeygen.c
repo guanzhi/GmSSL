@@ -17,26 +17,50 @@
 #include "passwd.h"
 
 
-static const char *usage = "[-pass str] [-out pem] [-pubout pem]\n";
+static const char *usage = "-curve str [-pass str] [-out pem] [-pubout pem]\n";
 
 static const char *options =
 "Options\n"
 "\n"
+"    -curve str                 EC curve name, supported curves: secp256r1, prime256v1, secp384r1\n"
+"                               SM2 is not supported by this command, use `sm2keygen` instead\n"
 "    -pass pass                  Password to encrypt the private key, prompt if not given\n"
 "    -out pem                    Output password-encrypted PKCS #8 private key in PEM format\n"
 "    -pubout pem                 Output public key in PEM format\n"
-"    -export pem                 Output non-encrypted PKCS#8 private key in PEM format\n"
+"    -export pem                 Output non-encrypted EC private key in PEM format\n"
 "\n"
 "Examples\n"
 "\n"
-"    gmssl p256keygen -pass P@ssw0rd -out p256.pem\n"
-"    gmssl p256keygen -pass P@ssw0rd -out p256.pem -pubout p256pub.pem\n"
+"    gmssl eckeygen -curve secp256r1 -pass P@ssw0rd -out p256.pem\n"
+"    gmssl eckeygen -curve secp384r1 -pass P@ssw0rd -out p384.pem -pubout p384pub.pem\n"
 "\n";
 
-int p256keygen_main(int argc, char **argv)
+static int eckeygen_curve_from_name(const char *name)
+{
+	if (!name) {
+		return OID_undef;
+	}
+	if (!strcmp(name, "sm2") || !strcmp(name, "sm2p256v1")) {
+		return OID_sm2;
+	}
+#ifdef ENABLE_SECP256R1
+	if (!strcmp(name, "secp256r1") || !strcmp(name, "prime256v1")) {
+		return OID_secp256r1;
+	}
+#endif
+#ifdef ENABLE_SECP384R1
+	if (!strcmp(name, "secp384r1")) {
+		return OID_secp384r1;
+	}
+#endif
+	return OID_undef;
+}
+
+int eckeygen_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
+	char *curve_name = NULL;
 	char *pass = NULL;
 	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *outfile = NULL;
@@ -45,8 +69,8 @@ int p256keygen_main(int argc, char **argv)
 	FILE *outfp = stdout;
 	FILE *puboutfp = stdout;
 	FILE *exportfp = NULL;
-	int curve_oid = OID_secp256r1;
-	X509_KEY key;
+	int curve_oid = OID_undef;
+	X509_KEY key = {0};
 
 	argc--;
 	argv++;
@@ -62,6 +86,9 @@ int p256keygen_main(int argc, char **argv)
 			printf("%s\n", options);
 			ret = 0;
 			goto end;
+		} else if (!strcmp(*argv, "-curve")) {
+			if (--argc < 1) goto bad;
+			curve_name = *(++argv);
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
@@ -98,8 +125,22 @@ bad:
 		argv++;
 	}
 
-	if (gmssl_tool_get_password(prog, "Password to encrypt private key", outfile, &pass,
-		passbuf, sizeof(passbuf)) != 1) {
+	if (!curve_name) {
+		fprintf(stderr, "gmssl %s: option '-curve' required\n", prog);
+		goto end;
+	}
+	curve_oid = eckeygen_curve_from_name(curve_name);
+	if (curve_oid == OID_sm2) {
+		fprintf(stderr, "gmssl %s: SM2 curve is not supported, use `sm2keygen` instead\n", prog);
+		goto end;
+	}
+	if (curve_oid == OID_undef) {
+		fprintf(stderr, "gmssl %s: unsupported curve '%s'\n", prog, curve_name);
+		goto end;
+	}
+
+	if (gmssl_tool_get_password(prog, "pass", outfile, &pass,
+		passbuf, sizeof(passbuf), 1) != 1) {
 		goto end;
 	}
 
@@ -116,7 +157,22 @@ bad:
 		goto end;
 	}
 	if (exportfp) {
-		if (secp256r1_private_key_to_pem(&key.u.secp256r1_key, exportfp) != 1) {
+		switch (curve_oid) {
+#ifdef ENABLE_SECP256R1
+		case OID_secp256r1:
+			ret = secp256r1_private_key_to_pem(&key.u.secp256r1_key, exportfp);
+			break;
+#endif
+#ifdef ENABLE_SECP384R1
+		case OID_secp384r1:
+			ret = secp384r1_private_key_to_pem(&key.u.secp384r1_key, exportfp);
+			break;
+#endif
+		default:
+			ret = -1;
+			break;
+		}
+		if (ret != 1) {
 			fprintf(stderr, "gmssl %s: inner failure\n", prog);
 			goto end;
 		}
@@ -129,5 +185,6 @@ end:
 	gmssl_secure_clear(passbuf, sizeof(passbuf));
 	if (outfile && outfp) fclose(outfp);
 	if (puboutfile && puboutfp) fclose(puboutfp);
+	if (exportfile && exportfp) fclose(exportfp);
 	return ret;
 }

@@ -20,9 +20,9 @@ extern "C" {
 #define GMSSL_PASSWORD_MAX_SIZE 256
 
 int gmssl_tool_read_password(const char *prog, const char *label,
-	const char *file, char *pass, size_t passlen);
+	const char *file, char *pass, size_t passlen, int do_confirm);
 int gmssl_tool_get_password(const char *prog, const char *label,
-	const char *file, char **pass, char *passbuf, size_t passlen);
+	const char *file, char **pass, char *passbuf, size_t passlen, int do_confirm);
 
 
 #ifdef __cplusplus
