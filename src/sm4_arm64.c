@@ -140,7 +140,7 @@ void sm4_encrypt(const SM4_KEY *key, const unsigned char in[16], unsigned char o
 	uint8x16x4_t S1 = vld1q_u8_x4(S + 64);
 	uint8x16x4_t S2 = vld1q_u8_x4(S + 128);
 	uint8x16x4_t S3 = vld1q_u8_x4(S + 192);
-	uint8x16_t vx;
+	uint32x4_t vx;
 	uint8x16_t vt;
 	uint32_t X0, X1, X2, X3, X4;
 	int i;
@@ -156,10 +156,10 @@ void sm4_encrypt(const SM4_KEY *key, const unsigned char in[16], unsigned char o
 
 		// const time X4 = S32(X4)
 		vx = vdupq_n_u32(X4);
-		vt = vqtbl4q_u8(S0, vx);
-		vt = vqtbx4q_u8(vt, S1, veorq_u8(vx, vdupq_n_u8(0x40)));
-		vt = vqtbx4q_u8(vt, S2, veorq_u8(vx, vdupq_n_u8(0x80)));
-		vx = vqtbx4q_u8(vt, S3, veorq_u8(vx, vdupq_n_u8(0xc0)));
+		vt = vqtbl4q_u8(S0, (uint8x16_t)vx);
+		vt = vqtbx4q_u8(vt, S1, veorq_u8((uint8x16_t)vx, vdupq_n_u8(0x40)));
+		vt = vqtbx4q_u8(vt, S2, veorq_u8((uint8x16_t)vx, vdupq_n_u8(0x80)));
+		vx = (uint32x4_t)vqtbx4q_u8(vt, S3, veorq_u8((uint8x16_t)vx, vdupq_n_u8(0xc0)));
 		X4 = vgetq_lane_u32(vx, 0);
 
 		X4 = X0 ^ L32(X4);
@@ -278,7 +278,7 @@ void sm4_ctr32_encrypt_4blocks(const SM4_KEY *key, uint8_t iv[16], const uint8_t
 
 	memcpy(buf, iv, 16);
 	ctr = vld1q_u32(buf);
-	ctr = vrev32q_u8(ctr);
+	ctr = (uint32x4_t)vrev32q_u8((uint8x16_t)ctr);
 
 	ctr0 = vdupq_n_u32(vgetq_lane_u32(ctr, 0));
 	ctr1 = vdupq_n_u32(vgetq_lane_u32(ctr, 1));
@@ -301,10 +301,10 @@ void sm4_ctr32_encrypt_4blocks(const SM4_KEY *key, uint8_t iv[16], const uint8_t
 			x4 = veorq_u32(veorq_u32(x1, x2), veorq_u32(x3, rk));
 
 			// X4 = SBOX(X4)
-			xt = vqtbl4q_u8(S0, x4);
-			xt = vqtbx4q_u8(xt, S1, veorq_u8(x4, vdupq_n_u8(0x40)));
-			xt = vqtbx4q_u8(xt, S2, veorq_u8(x4, vdupq_n_u8(0x80)));
-			x4 = vqtbx4q_u8(xt, S3, veorq_u8(x4, vdupq_n_u8(0xc0)));
+			xt = (uint32x4_t)vqtbl4q_u8(S0, (uint8x16_t)x4);
+			xt = (uint32x4_t)vqtbx4q_u8((uint8x16_t)xt, S1, veorq_u8((uint8x16_t)x4, vdupq_n_u8(0x40)));
+			xt = (uint32x4_t)vqtbx4q_u8((uint8x16_t)xt, S2, veorq_u8((uint8x16_t)x4, vdupq_n_u8(0x80)));
+			x4 = (uint32x4_t)vqtbx4q_u8((uint8x16_t)xt, S3, veorq_u8((uint8x16_t)x4, vdupq_n_u8(0xc0)));
 
 			// X4 = L(X4)
 			xt = veorq_u32(x4, vrolq_n_u32(x4,  2));
@@ -326,16 +326,16 @@ void sm4_ctr32_encrypt_4blocks(const SM4_KEY *key, uint8_t iv[16], const uint8_t
 		x01 = vzipq_u32(x02.val[0], x13.val[0]);
 		x23 = vzipq_u32(x02.val[1], x13.val[1]);
 
-		x0 = vrev32q_u8(x01.val[0]);
+		x0 = (uint32x4_t)vrev32q_u8((uint8x16_t)x01.val[0]);
 		vst1q_u32(buf, x0);
 
-		x1 = vrev32q_u8(x01.val[1]);
+		x1 = (uint32x4_t)vrev32q_u8((uint8x16_t)x01.val[1]);
 		vst1q_u32(buf + 4, x1);
 
-		x2 = vrev32q_u8(x23.val[0]);
+		x2 = (uint32x4_t)vrev32q_u8((uint8x16_t)x23.val[0]);
 		vst1q_u32(buf + 8, x2);
 
-		x3 = vrev32q_u8(x23.val[1]);
+		x3 = (uint32x4_t)vrev32q_u8((uint8x16_t)x23.val[1]);
 		vst1q_u32(buf + 12, x3);
 
 		// xor with plaintext
