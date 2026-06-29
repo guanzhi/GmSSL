@@ -128,7 +128,7 @@ void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 
 		for (j = 0; j < 16; j += 4) {
 			words = vld1q_u32((uint32_t *)data + j);
-			words = vrev32q_u8(words);
+			words = (uint32x4_t)vrev32q_u8((uint8x16_t)words);
 			vst1q_u32(W + j, words);
 		}
 
