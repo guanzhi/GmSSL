@@ -21,9 +21,9 @@ endif()
 
 if(ENABLE_XMSS)
 	gmssl_signature_roundtrip(tool_xmss xmsskeygen xmsssign xmssverify
-		KEYGEN_ARGS -xmss_type XMSS_SHA2_10_256)
+		KEYGEN_ARGS -xmss_type XMSS_SM3_10_256)
 	gmssl_signature_roundtrip(tool_xmssmt xmssmtkeygen xmssmtsign xmssmtverify
-		KEYGEN_ARGS -xmssmt_type XMSSMT_SHA2_20_2_256)
+		KEYGEN_ARGS -xmssmt_type XMSSMT_SM3_20_2_256)
 endif()
 
 if(ENABLE_SPHINCS)
