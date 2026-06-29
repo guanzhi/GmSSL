@@ -5874,9 +5874,9 @@ int tls13_recv_certificate_request(TLS_CONNECT *conn)
 	int signed_certificate_timestamp = 0;
 
 	int common_sig_algs[4];
-	size_t common_sig_algs_cnt;
+	size_t common_sig_algs_cnt = 0;
 	int common_sig_algs_cert[4];
-	size_t common_sig_algs_cert_cnt;
+	size_t common_sig_algs_cert_cnt = 0;
 	const uint8_t *ca_names = NULL;
 	size_t ca_names_len = 0;
 	const uint8_t *filters = NULL;
