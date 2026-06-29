@@ -165,7 +165,11 @@ option(ENABLE_GHASH "Enable standalone GHASH command and test" ON)
 option(ENABLE_SKF "Enable SKF module" ON)
 option(ENABLE_SDF "Enable SDF module" ON)
 
-option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
+if (APPLE)
+	option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
+else()
+	option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" OFF)
+endif()
 
 option(ENABLE_TLS "Enable TLS and TLCP protocol support" ON)
 option(ENABLE_QUIC "Enable QUIC support" ON)
