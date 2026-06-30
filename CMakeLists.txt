@@ -91,21 +91,6 @@ if (NOT MSVC)
 	endif()
 endif()
 
-if (APPLE)
-	include(CheckCSourceCompiles)
-	set(GMSSL_CMAKE_REQUIRED_LIBRARIES_SAVE "${CMAKE_REQUIRED_LIBRARIES}")
-	set(CMAKE_REQUIRED_LIBRARIES "-framework OpenCL")
-	check_c_source_compiles(
-		"#include <OpenCL/OpenCL.h>
-		int main(void) { cl_uint n = 0; clGetPlatformIDs(0, 0, &n); return 0; }"
-		GMSSL_HAVE_MACOS_OPENCL)
-	set(CMAKE_REQUIRED_LIBRARIES "${GMSSL_CMAKE_REQUIRED_LIBRARIES_SAVE}")
-	if (GMSSL_HAVE_MACOS_OPENCL)
-		set(GMSSL_DEFAULT_ENABLE_LMS_CL ON)
-		set(GMSSL_DEFAULT_ENABLE_XMSS_CL ON)
-	endif()
-endif()
-
 option(ENABLE_TEST_SPEED "Enable test speed" OFF)
 option(ENABLE_SLOW_TEST "Enable slow tests" OFF)
 
