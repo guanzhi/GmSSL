@@ -75,6 +75,8 @@ static int test_secp384r1(void)
 {
 	secp384r1_t a;
 	secp384r1_t b;
+	secp384r1_t p;
+	secp384r1_t n;
 	uint8_t buf[48];
 
 	if (secp384r1_set_zero(a) != 1 || !secp384r1_is_zero(a)) {
@@ -101,9 +103,12 @@ static int test_secp384r1(void)
 		error_print();
 		return -1;
 	}
-	if (secp384r1_check_hex(SECP384R1_P, secp384r1_p) != 1
-		|| secp384r1_check_hex(SECP384R1_B, secp384r1_b) != 1
-		|| secp384r1_check_hex(SECP384R1_N, secp384r1_n) != 1) {
+	if (secp384r1_from_hex(p, secp384r1_p) != 1
+		|| secp384r1_from_hex(b, secp384r1_b) != 1
+		|| secp384r1_from_hex(n, secp384r1_n) != 1
+		|| secp384r1_check_hex(p, secp384r1_p) != 1
+		|| secp384r1_check_hex(b, secp384r1_b) != 1
+		|| secp384r1_check_hex(n, secp384r1_n) != 1) {
 		error_print();
 		return -1;
 	}
@@ -232,6 +237,7 @@ static int test_secp384r1_point(void)
 	SECP384R1_POINT Q;
 	SECP384R1_POINT R;
 	secp384r1_t k;
+	secp384r1_t n;
 	uint8_t octets[97];
 
 	if (secp384r1_point_set_xy(&P, SECP384R1_POINT_G.X, SECP384R1_POINT_G.Y) != 1
@@ -261,7 +267,8 @@ static int test_secp384r1_point(void)
 		error_print();
 		return -1;
 	}
-	if (secp384r1_point_mul_generator(&R, SECP384R1_N) != 1
+	if (secp384r1_from_hex(n, secp384r1_n) != 1
+		|| secp384r1_point_mul_generator(&R, n) != 1
 		|| !secp384r1_point_is_at_infinity(&R)) {
 		error_print();
 		return -1;

@@ -91,21 +91,6 @@ if (NOT MSVC)
 	endif()
 endif()
 
-if (APPLE)
-	include(CheckCSourceCompiles)
-	set(GMSSL_CMAKE_REQUIRED_LIBRARIES_SAVE "${CMAKE_REQUIRED_LIBRARIES}")
-	set(CMAKE_REQUIRED_LIBRARIES "-framework OpenCL")
-	check_c_source_compiles(
-		"#include <OpenCL/OpenCL.h>
-		int main(void) { cl_uint n = 0; clGetPlatformIDs(0, 0, &n); return 0; }"
-		GMSSL_HAVE_MACOS_OPENCL)
-	set(CMAKE_REQUIRED_LIBRARIES "${GMSSL_CMAKE_REQUIRED_LIBRARIES_SAVE}")
-	if (GMSSL_HAVE_MACOS_OPENCL)
-		set(GMSSL_DEFAULT_ENABLE_LMS_CL ON)
-		set(GMSSL_DEFAULT_ENABLE_XMSS_CL ON)
-	endif()
-endif()
-
 option(ENABLE_TEST_SPEED "Enable test speed" OFF)
 option(ENABLE_SLOW_TEST "Enable slow tests" OFF)
 
@@ -165,7 +150,11 @@ option(ENABLE_GHASH "Enable standalone GHASH command and test" ON)
 option(ENABLE_SKF "Enable SKF module" ON)
 option(ENABLE_SDF "Enable SDF module" ON)
 
-option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
+if (APPLE)
+	option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
+else()
+	option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" OFF)
+endif()
 
 option(ENABLE_TLS "Enable TLS and TLCP protocol support" ON)
 option(ENABLE_QUIC "Enable QUIC support" ON)
