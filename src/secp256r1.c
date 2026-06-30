@@ -1526,6 +1526,8 @@ int secp256r1_ecdsa_signature_from_der(SECP256R1_ECDSA_SIGNATURE *sig, const uin
 	const uint8_t *d;
 	const uint8_t *r;
 	const uint8_t *s;
+	uint8_t rbuf[32] = {0};
+	uint8_t sbuf[32] = {0};
 	size_t dlen, rlen, slen;
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
@@ -1541,8 +1543,10 @@ int secp256r1_ecdsa_signature_from_der(SECP256R1_ECDSA_SIGNATURE *sig, const uin
 		return -1;
 	}
 
-	if (secp256r1_from_32bytes(sig->r, r) != 1
-		|| secp256r1_from_32bytes(sig->s, s) != 1) {
+	memcpy(rbuf + sizeof(rbuf) - rlen, r, rlen);
+	memcpy(sbuf + sizeof(sbuf) - slen, s, slen);
+	if (secp256r1_from_32bytes(sig->r, rbuf) != 1
+		|| secp256r1_from_32bytes(sig->s, sbuf) != 1) {
 		error_print();
 		return -1;
 	}
