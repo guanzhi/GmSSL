@@ -608,8 +608,6 @@ int tls12_cert_chains_select(const uint8_t *cert_chains, size_t cert_chains_len,
 	for (i = 1; cert_chains_len; i++) {
 		const uint8_t *cert_chain;
 		size_t cert_chain_len;
-		int sig_alg;
-		int ret;
 
 		if (tls_uint24array_from_bytes(&cert_chain, &cert_chain_len,
 			&cert_chains, &cert_chains_len) != 1) {
@@ -620,7 +618,8 @@ int tls12_cert_chains_select(const uint8_t *cert_chains, size_t cert_chains_len,
 		if (certs) *certs = cert_chain;
 		if (certs_len) *certs_len = cert_chain_len;
 		if (certs_idx) *certs_idx = i;
-		if (prefered_sig_alg) *prefered_sig_alg = sig_alg;
+		/* prefered_sig_alg extraction not yet implemented */
+		if (prefered_sig_alg) *prefered_sig_alg = 0;
 		return 1;
 	}
 

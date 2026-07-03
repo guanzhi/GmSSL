@@ -278,7 +278,7 @@ static int test_sm2_encrypt(void)
 		SM2_MAX_PLAINTEXT_SIZE,
 	};
 	size_t clen, mlen;
-	int i;
+	size_t i;
 
 	if (sm2_key_generate(&sm2_key) != 1) {
 		error_print();
@@ -324,7 +324,7 @@ static int speed_sm2_encrypt_ctx(void)
 	size_t ciphertext_len;
 	clock_t begin, end;
 	double seconds;
-	int i;
+	size_t i;
 
 	sm2_key_generate(&sm2_key);
 

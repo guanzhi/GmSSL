@@ -144,10 +144,10 @@ static const uint8_t S1[256] = {
 			S1[V & 0xFF])
 
 #define F(X0,X1,X2)					\
-	(X0 ^ R1) + R2;					\
+	(((X0) ^ R1) + R2);				\
 	F_(X1, X2)
 
-void zuc_init(ZUC_STATE *state, const uint8_t *user_key, const uint8_t *iv)
+void zuc_init(ZUC_STATE *state, const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE])
 {
 	ZUC_UINT31 *LFSR = state->LFSR;
 	uint32_t R1, R2;
@@ -157,7 +157,7 @@ void zuc_init(ZUC_STATE *state, const uint8_t *user_key, const uint8_t *iv)
 
 
 	for (i = 0; i < 16; i++) {
-		LFSR[i] = MAKEU31(user_key[i], KD[i], iv[i]);
+		LFSR[i] = MAKEU31(key[i], KD[i], iv[i]);
 	}
 
 	R1 = 0;

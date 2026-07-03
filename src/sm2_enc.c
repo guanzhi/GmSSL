@@ -276,7 +276,7 @@ retry:
 		size_t len = 0;
 		asn1_integer_to_der(out->point.x, 32, NULL, &len);
 		asn1_integer_to_der(out->point.y, 32, NULL, &len);
-		if (len != point_size) {
+		if (len != (size_t)point_size) {
 			trys--;
 			goto retry;
 		}

@@ -30,7 +30,7 @@ static int test_ec_named_curve(void)
 		"secp521r1",
 	};
 	int oid;
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(curves)/sizeof(curves[0]); i++) {
 		if ((oid = ec_named_curve_from_name(curves[i])) == OID_undef) {

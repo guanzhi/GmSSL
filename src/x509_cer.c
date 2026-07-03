@@ -1810,9 +1810,9 @@ int x509_certs_get_cert_by_issuer_and_serial_number(const uint8_t *d, size_t dle
 int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type)
 {
 	int version;
-	const uint8_t *serial;
-	size_t serial_len;
-	int tbs_sig_algor;
+	const uint8_t *serial = NULL;
+	size_t serial_len = 0;
+	int tbs_sig_algor = 0;
 	const uint8_t *issuer;
 	size_t issuer_len;
 	time_t not_before;
@@ -1822,7 +1822,7 @@ int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type)
 	size_t subject_len;
 	const uint8_t *exts;
 	size_t extslen;
-	int sig_algor;
+	int sig_algor = 0;
 
 	if (x509_cert_get_details(cert, certlen,
 		&version, // version

@@ -159,7 +159,7 @@ static int test_sm3(void)
 		sm3_finish(&sm3_ctx, dgst);
 
 		if (memcmp(dgstbuf, dgst, sizeof(dgst)) != 0) {
-			int n;
+			size_t n;
 			fprintf(stderr, "sm3 test %zu failed\n", i+1);
 			fprintf(stderr, "error calculating SM3 on %s\n", testhex[i]);
 			fprintf(stderr, " digest(error) = ");
@@ -183,7 +183,7 @@ static int speed_sm3(void)
 	uint8_t dgst[32];
 	clock_t start, end;
 	double seconds;
-	int i;
+	size_t i;
 
 	for (i = 0; i < 4096; i++) {
 		sm3_update(&sm3_ctx, blocks, sizeof(blocks));

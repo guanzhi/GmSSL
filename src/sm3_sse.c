@@ -226,7 +226,7 @@ void sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t data_len)
 	}
 }
 
-void sm3_finish(SM3_CTX *ctx, uint8_t *digest)
+void sm3_finish(SM3_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE])
 {
 	int i;
 
@@ -245,7 +245,7 @@ void sm3_finish(SM3_CTX *ctx, uint8_t *digest)
 
 	sm3_compress_blocks(ctx->digest, ctx->block, 1);
 	for (i = 0; i < 8; i++) {
-		PUTU32(digest + i*4, ctx->digest[i]);
+		PUTU32(dgst + i*4, ctx->digest[i]);
 	}
 }
 

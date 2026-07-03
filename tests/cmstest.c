@@ -34,7 +34,7 @@ static int test_cms_content_type(void)
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		if (cms_content_type_to_der(tests[i], &p, &len) != 1) {

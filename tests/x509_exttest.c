@@ -311,7 +311,7 @@ static int test_x509_key_usage(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 	int usage;
-	int i;
+	size_t i;
 
 	for (i = 0; i <= 8; i++) {
 		format_print(stderr, 0, 4, "%d %s\n", i, x509_key_usage_name(1 << i));
@@ -766,7 +766,7 @@ static int test_x509_revoke_reasons(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 	int bits;
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		if (x509_revoke_reason_flags_to_der(tests[i], &p, &len) != 1) {

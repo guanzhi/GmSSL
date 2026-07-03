@@ -91,7 +91,7 @@ int hsskeygen_main(int argc, char **argv)
 
 			tok = strtok(lms_types_str, ":");
 			while (tok) {
-				if (levels >= sizeof(lms_types_val)/sizeof(lms_types_val[0])) {
+				if ((size_t)levels >= sizeof(lms_types_val)/sizeof(lms_types_val[0])) {
 					fprintf(stderr, "%s: too many lms types\n", prog);
 					goto end;
 				}

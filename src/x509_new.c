@@ -35,11 +35,23 @@ int x509_cert_new_from_file(uint8_t **out, size_t *outlen, const char *file)
 	size_t fsize;
 	uint8_t *buf = NULL;
 	size_t buflen;
+	size_t q, r;
 
 	if (!(fp = fopen(file, "r"))
-		|| file_size(fp, &fsize) != 1
-		|| (buflen = (fsize * 3)/4 + 1) < 0
-		|| (buf = malloc((fsize * 3)/4 + 1)) == NULL) {
+		|| file_size(fp, &fsize) != 1) {
+		error_print();
+		goto end;
+	}
+	q = fsize / 4;
+	r = fsize % 4;
+	if (q > (SIZE_MAX - 3) / 3) {
+		error_print();
+		goto end;
+	}
+	/* buflen = q*3 + (r*3)/4 + 1, where r <= 3, so tail + 1 <= 3 */
+	buflen = q * 3 + (r * 3) / 4 + 1;
+	buf = malloc(buflen);
+	if (!buf) {
 		error_print();
 		goto end;
 	}
@@ -63,11 +75,23 @@ int x509_certs_new_from_file(uint8_t **out, size_t *outlen, const char *file)
 	size_t fsize;
 	uint8_t *buf = NULL;
 	size_t buflen;
+	size_t q, r;
 
 	if (!(fp = fopen(file, "r"))
-		|| file_size(fp, &fsize) != 1
-		|| (buflen = (fsize * 3)/4 + 1) < 0
-		|| (buf = malloc((fsize * 3)/4 + 1)) == NULL) {
+		|| file_size(fp, &fsize) != 1) {
+		error_print();
+		goto end;
+	}
+	q = fsize / 4;
+	r = fsize % 4;
+	if (q > (SIZE_MAX - 3) / 3) {
+		error_print();
+		goto end;
+	}
+	/* buflen = q*3 + (r*3)/4 + 1, where r <= 3, so tail + 1 <= 3 */
+	buflen = q * 3 + (r * 3) / 4 + 1;
+	buf = malloc(buflen);
+	if (!buf) {
 		error_print();
 		goto end;
 	}

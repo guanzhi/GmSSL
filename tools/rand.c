@@ -82,7 +82,7 @@ bad:
 	}
 
 	while (outlen > 0) {
-		size_t len = outlen < sizeof(buf) ? outlen : sizeof(buf);
+		size_t len = (size_t)outlen < sizeof(buf) ? (size_t)outlen : sizeof(buf);
 
 		if (rdrand) {
 #ifdef ENABLE_INTEL_RDRAND

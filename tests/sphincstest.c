@@ -132,8 +132,8 @@ static int test_sphincs_wots_chain(void)
 static int test_sphincs_wots_sk_to_pk(void)
 {
 	sphincs_wots_key_t wots_sk;
-	sphincs_hash128_t seed;
-	sphincs_adrs_t adrs;
+	sphincs_hash128_t seed = {0};
+	sphincs_adrs_t adrs = {0};
 	sphincs_wots_key_t wots_pk;
 
 	sphincs_wots_sk_to_pk(wots_sk, seed, adrs, wots_pk);
@@ -147,8 +147,8 @@ static int test_sphincs_wots_sk_to_pk(void)
 static int test_sphincs_wots_pk_to_root(void)
 {
 	sphincs_wots_key_t wots_pk;
-	sphincs_hash128_t seed;
-	sphincs_adrs_t adrs;
+	sphincs_hash128_t seed = {0};
+	sphincs_adrs_t adrs = {0};
 	sphincs_hash128_t wots_root;
 
 	sphincs_wots_pk_to_root(wots_pk, seed, adrs, wots_root);
@@ -160,9 +160,9 @@ static int test_sphincs_wots_pk_to_root(void)
 static int test_sphincs_wots_sign(void)
 {
 	sphincs_wots_key_t wots_sk;
-	sphincs_hash128_t seed;
-	sphincs_adrs_t adrs;
-	sphincs_hash128_t dgst;
+	sphincs_hash128_t seed = {0};
+	sphincs_adrs_t adrs = {0};
+	sphincs_hash128_t dgst = {0};
 	sphincs_wots_sig_t wots_sig;
 	clock_t start = clock();
 
@@ -176,9 +176,9 @@ static int test_sphincs_wots_sign(void)
 static int test_sphincs_wots_sig_to_pk(void)
 {
 	sphincs_wots_sig_t wots_sig;
-	sphincs_hash128_t seed;
-	sphincs_adrs_t adrs;
-	sphincs_hash128_t dgst;
+	sphincs_hash128_t seed = {0};
+	sphincs_adrs_t adrs = {0};
+	sphincs_hash128_t dgst = {0};
 	sphincs_wots_key_t wots_pk;
 
 	sphincs_wots_sig_to_pk(wots_sig, seed, adrs, dgst, wots_pk);

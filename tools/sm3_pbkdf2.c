@@ -97,7 +97,7 @@ int sm3_pbkdf2_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-outlen")) {
 			if (--argc < 1) goto bad;
 			outlen = atoi(*(++argv));
-			if (outlen < 1 || outlen > sizeof(outbuf)) {
+			if (outlen < 1 || (size_t)outlen > sizeof(outbuf)) {
 				fprintf(stderr, "gmssl %s: invalid outlen\n", prog);
 				goto end;
 			}
@@ -147,7 +147,7 @@ bad:
 	}
 
 	if (bin) {
-		if (fwrite(outbuf, 1, outlen, outfp) != outlen) {
+		if (fwrite(outbuf, 1, outlen, outfp) != (size_t)outlen) {
 			fprintf(stderr, "gmssl %s: output failure : %s\n", prog, strerror(errno));
 			goto end;
 		}

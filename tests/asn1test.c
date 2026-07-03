@@ -748,7 +748,7 @@ static int test_asn1_time(void)
 	time_t cur = time(NULL);
 	time_t ts;
 	char str[16] = {0};
-	int i;
+	size_t i;
 
 	if (asn1_time_to_str(0, cur, str) != 1
 		|| asn1_time_from_str(0, &ts, str) != 1

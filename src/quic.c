@@ -382,7 +382,7 @@ int quic_frame_print(FILE *fp, int fmt, int ind, int level, const uint8_t **in, 
 		{
 			uint64_t offset;
 			uint64_t data_len;
-			const uint8_t *data;
+			const uint8_t *data = NULL;
 			if (quic_varint_from_bytes(&offset, &p, &len) != 1 || quic_varint_from_bytes(&data_len, &p, &len) != 1) return -1;
 			if (data_len > len || quic_bytes_get(&p, &len, &data, (size_t)data_len) != 1) return -1;
 			format_print(fp, fmt, ind, "Offset: %" PRIu64 "\n", offset);
@@ -392,7 +392,7 @@ int quic_frame_print(FILE *fp, int fmt, int ind, int level, const uint8_t **in, 
 		break;
 	case QUIC_frame_new_token:
 		{
-			const uint8_t *token;
+			const uint8_t *token = NULL;
 			if (quic_varint_from_bytes(&val, &p, &len) != 1 || val > len || quic_bytes_get(&p, &len, &token, (size_t)val) != 1) return -1;
 			format_bytes(fp, fmt, ind, "Token", token, (size_t)val);
 		}
@@ -418,8 +418,8 @@ int quic_frame_print(FILE *fp, int fmt, int ind, int level, const uint8_t **in, 
 		{
 			uint64_t seq;
 			uint64_t retire_prior_to;
-			const uint8_t *cid;
-			const uint8_t *token;
+			const uint8_t *cid = NULL;
+			const uint8_t *token = NULL;
 			if (quic_varint_from_bytes(&seq, &p, &len) != 1 || quic_varint_from_bytes(&retire_prior_to, &p, &len) != 1) return -1;
 			if (!len) return -1;
 			val = *p++;
@@ -434,7 +434,7 @@ int quic_frame_print(FILE *fp, int fmt, int ind, int level, const uint8_t **in, 
 	case QUIC_frame_path_challenge:
 	case QUIC_frame_path_response:
 		{
-			const uint8_t *data;
+			const uint8_t *data = NULL;
 			if (quic_bytes_get(&p, &len, &data, 8) != 1) return -1;
 			format_bytes(fp, fmt, ind, "Data", data, 8);
 		}
@@ -443,7 +443,7 @@ int quic_frame_print(FILE *fp, int fmt, int ind, int level, const uint8_t **in, 
 	case QUIC_frame_connection_close_app:
 		{
 			uint64_t reason_len;
-			const uint8_t *reason;
+			const uint8_t *reason = NULL;
 			if (quic_varint_from_bytes(&val, &p, &len) != 1) return -1;
 			format_print(fp, fmt, ind, "Error Code: %" PRIu64 "\n", val);
 			if (type == QUIC_frame_connection_close) {
@@ -459,7 +459,7 @@ int quic_frame_print(FILE *fp, int fmt, int ind, int level, const uint8_t **in, 
 			uint64_t stream_id;
 			uint64_t offset = 0;
 			uint64_t data_len;
-			const uint8_t *data;
+			const uint8_t *data = NULL;
 			if (quic_varint_from_bytes(&stream_id, &p, &len) != 1) return -1;
 			if (type & 0x04) {
 				if (quic_varint_from_bytes(&offset, &p, &len) != 1) return -1;
@@ -569,7 +569,7 @@ int quic_packet_print(FILE *fp, int fmt, int ind, const uint8_t *packet, size_t 
 		}
 
 		if (type == QUIC_packet_initial) {
-			const uint8_t *token;
+			const uint8_t *token = NULL;
 			if (quic_varint_from_bytes(&val, &p, &len) != 1 || val > len || quic_bytes_get(&p, &len, &token, (size_t)val) != 1) return -1;
 			format_bytes(fp, fmt, ind, "Token", token, (size_t)val);
 		}

@@ -193,7 +193,7 @@ static struct {
 
 static int test_hkdf(void)
 {
-	int i;
+	size_t i;
 	const DIGEST *digest;
 	uint8_t ikm[512];
 	uint8_t salt[512];
@@ -221,7 +221,7 @@ static int test_hkdf(void)
 		okmlen = strlen(hkdf_tests[i].okm)/2;
 		L = hkdf_tests[i].L;
 
-		printf("test %d\n", i + 1);
+		printf("test %zu\n", i + 1);
 		format_print(stdout, 0, 0, "Hash = %s\n", digest_name(digest));
 		format_bytes(stdout, 0, 0, "IKM  = ", ikm, ikmlen);
 		format_bytes(stdout, 0, 0, "salt = ", salt, saltlen);
@@ -313,7 +313,7 @@ static int test_sm3_hkdf(void)
 		},
 	};
 
-	int i;
+	size_t i;
 	uint8_t ikm[512];
 	uint8_t salt[512];
 	uint8_t info[512];

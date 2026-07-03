@@ -253,7 +253,7 @@ int tls13_client_main(int argc, char *argv[])
 
 	// key_share
 	char  *max_key_exchanges = NULL;
-	int max_key_exchanges_cnt;
+	int max_key_exchanges_cnt = 0;
 
 	// signature_algorithms
 	int sig_algs[4];

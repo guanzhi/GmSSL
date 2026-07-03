@@ -115,7 +115,8 @@ static int test_SDF_GenerateRandom(void)
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
 	int lengths[] = { 1, 8, 128 };
-	int ret, i;
+	int ret;
+	size_t i;
 
 	ret = SDF_OpenDevice(&hDeviceHandle);
 	if (ret != SDR_OK) {

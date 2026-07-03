@@ -92,7 +92,7 @@ int test_ghash(void)
 	uint8_t T[16];
 	uint8_t out[16];
 	size_t Hlen, Alen, Clen, Tlen;
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(ghash_tests)/sizeof(ghash_tests[0]); i++) {
 		hex_to_bytes(ghash_tests[i].H, strlen(ghash_tests[i].H), H, &Hlen);
@@ -162,7 +162,7 @@ static int speed_ghash(void)
 	uint8_t ghash[16];
 	clock_t start, end;
 	double seconds;
-	int i;
+	size_t i;
 
 	ghash_init(&ghash_ctx, h, aad, sizeof(aad));
 	for (i = 0; i < 4096; i++) {

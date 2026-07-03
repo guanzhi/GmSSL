@@ -352,7 +352,7 @@ int test_aes_gcm(void)
 	uint8_t out[64];
 	uint8_t tag[16];
 	uint8_t buf[64];
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(aes_gcm_tests)/sizeof(aes_gcm_tests[0]); i++) {
 		hex_to_bytes(aes_gcm_tests[i].K, strlen(aes_gcm_tests[i].K), K, &Klen);
@@ -365,7 +365,7 @@ int test_aes_gcm(void)
 		aes_set_encrypt_key(&aes_key, K, Klen);
 		aes_gcm_encrypt(&aes_key, IV, IVlen, A, Alen, P, Plen, out, Tlen, tag);
 
-		printf("aes gcm test %d ", i + 1);
+		printf("aes gcm test %zu ", i + 1);
 		if (aes_gcm_decrypt(&aes_key, IV, IVlen, A, Alen, out, Plen, tag, Tlen, buf) != 1
 			|| memcmp(buf, P, Plen) != 0) {
 			printf("failed\n");

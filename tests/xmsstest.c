@@ -96,7 +96,7 @@ static int test_xmss_build_root(void)
 	xmss_adrs_set_tree_address(adrs, 0);
 	xmss_build_tree(secret, seed, adrs, height, tree);
 
-	for (index = 0; index < (1 << height); index++) {
+	for (index = 0; index < ((uint32_t)1 << height); index++) {
 		xmss_build_auth_path(tree, height, index, auth_path);
 		xmss_build_root(tree[index], index, seed, adrs, auth_path, height, root);
 		if (memcmp(root, tree[sizeof(tree)/sizeof(tree[0]) - 1], sizeof(xmss_sm3_digest_t)) != 0) {
@@ -365,7 +365,7 @@ static int test_xmss_sign_update(void)
 	uint8_t sig[XMSS_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 	uint8_t msg[100] = {0};
-	int i;
+	size_t i;
 	clock_t start = clock();
 
 	if (xmss_key_generate(&key, xmss_type) != 1) {

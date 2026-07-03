@@ -60,7 +60,7 @@ int ghash_main(int argc, char **argv)
 	FILE *outfp = stdout;
 	GHASH_CTX ghash_ctx;
 	uint8_t dgst[GHASH_SIZE];
-	int i;
+	size_t i;
 
 	argc--;
 	argv++;

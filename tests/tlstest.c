@@ -65,7 +65,7 @@ static int test_tls_encode(void)
 
 static int test_tls_null_to_bytes(void)
 {
-	uint8_t buf[10];
+	uint8_t buf[10] = {0};
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;

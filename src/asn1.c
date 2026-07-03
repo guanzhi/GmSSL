@@ -853,7 +853,7 @@ int asn1_bits_from_der_ex(int tag, int *bits, const uint8_t **in, size_t *inlen)
 {
 	int ret;
 	const uint8_t *p;
-	uint8_t c;
+	uint8_t c = 0;
 	size_t nbits;
 	size_t i;
 

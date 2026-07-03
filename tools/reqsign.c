@@ -293,7 +293,7 @@ int reqsign_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-serial_len")) {
 			if (--argc < 1) goto bad;
 			serial_len = atoi(*(++argv));
-			if (serial_len <= 0 || serial_len > sizeof(serial)) {
+			if (serial_len <= 0 || (size_t)serial_len > sizeof(serial)) {
 				fprintf(stderr, "%s: invalid `-serial_len` value, need a number less than %zu\n", prog, sizeof(serial));
 				goto end;
 			}

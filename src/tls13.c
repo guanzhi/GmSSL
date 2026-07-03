@@ -4966,11 +4966,11 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 	size_t extslen;
 
 	const uint8_t *supported_versions = NULL;
-	size_t supported_versions_len;
+	size_t supported_versions_len = 0;
 	const uint8_t *key_share = NULL;
-	size_t key_share_len;
+	size_t key_share_len = 0;
 	const uint8_t *pre_shared_key = NULL;
-	size_t pre_shared_key_len;
+	size_t pre_shared_key_len = 0;
 
 	int selected_version;
 	int server_key_exchange_mode = 0;
@@ -5627,7 +5627,7 @@ int tls_cert_chain_match_signature_algorithms_cert(
 	int sig_alg;
 
 	if (!cert_chain || !cert_chain_len
-		|| !signature_algorithms_cert && signature_algorithms_cert_cnt) {
+		|| (!signature_algorithms_cert && signature_algorithms_cert_cnt)) {
 		error_print();
 		return -1;
 	}
@@ -5863,13 +5863,13 @@ int tls13_recv_certificate_request(TLS_CONNECT *conn)
 
 	// extensions
 	const uint8_t *signature_algorithms = NULL;
-	size_t signature_algorithms_len;
+	size_t signature_algorithms_len = 0;
 	const uint8_t *signature_algorithms_cert = NULL;
-	size_t signature_algorithms_cert_len;
+	size_t signature_algorithms_cert_len = 0;
 	const uint8_t *certificate_authorities = NULL;
-	size_t certificate_authorities_len;
+	size_t certificate_authorities_len = 0;
 	const uint8_t *oid_filters = NULL;
-	size_t oid_filters_len;
+	size_t oid_filters_len = 0;
 	int status_request = 0;
 	int signed_certificate_timestamp = 0;
 
@@ -6744,27 +6744,27 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 
 	// extensions
 	const uint8_t *supported_versions = NULL;
-	size_t supported_versions_len;
+	size_t supported_versions_len = 0;
 	const uint8_t *supported_groups = NULL;
-	size_t supported_groups_len;
+	size_t supported_groups_len = 0;
 	const uint8_t *signature_algorithms = NULL;
-	size_t signature_algorithms_len;
+	size_t signature_algorithms_len = 0;
 	const uint8_t *signature_algorithms_cert = NULL;
-	size_t signature_algorithms_cert_len;
+	size_t signature_algorithms_cert_len = 0;
 	const uint8_t *certificate_authorities = NULL;
-	size_t certificate_authorities_len;
+	size_t certificate_authorities_len = 0;
 	const uint8_t *key_share = NULL;
-	size_t key_share_len;
+	size_t key_share_len = 0;
 	const uint8_t *server_name = NULL;
-	size_t server_name_len;
+	size_t server_name_len = 0;
 	const uint8_t *alpn = NULL;
-	size_t alpn_len;
+	size_t alpn_len = 0;
 	const uint8_t *psk_key_exchange_modes = NULL;
-	size_t psk_key_exchange_modes_len;
+	size_t psk_key_exchange_modes_len = 0;
 	const uint8_t *pre_shared_key = NULL;
-	size_t pre_shared_key_len;
+	size_t pre_shared_key_len = 0;
 	const uint8_t *status_request = NULL;
-	size_t status_request_len;
+	size_t status_request_len = 0;
 	int signed_certificate_timestamp = 0;
 	int early_data = 0;
 
@@ -6778,7 +6778,7 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 	size_t common_sig_algs_cert_cnt = 0;
 
 	const uint8_t *host_name = NULL;
-	size_t host_name_len;
+	size_t host_name_len = 0;
 
 	int common_key_exchange_modes = 0;
 
@@ -8015,7 +8015,7 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 	// pre_shared_key
 	if (pre_shared_key) {
 		if (conn->key_exchange_modes & (TLS_KE_PSK_DHE|TLS_KE_PSK)) {
-			size_t selected_psk_identity = conn->selected_psk_identity;
+			int selected_psk_identity = conn->selected_psk_identity;
 			conn->selected_psk_identity = 0;
 
 			if (conn->psk_identities_len) {

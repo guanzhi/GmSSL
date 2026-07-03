@@ -27,7 +27,7 @@ static int test_x509_crl_reason(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 	int reason;
-	int i;
+	size_t i;
 
 	for (i = 0; i < 11; i++) {
 		if (x509_crl_reason_to_der(i, &p, &len) != 1) {
@@ -38,7 +38,7 @@ static int test_x509_crl_reason(void)
 	}
 	for (i = 0; i < 11; i++) {
 		if (x509_crl_reason_from_der(&reason, &cp, &len) != 1
-			|| asn1_check(reason == i) != 1) {
+			|| asn1_check(reason == (int)i) != 1) {
 			error_print();
 			return -1;
 		}
@@ -61,7 +61,7 @@ static int test_x509_crl_entry_ext(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 	int oid;
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(exts)/sizeof(exts[0]); i++) {
 		if (x509_crl_entry_ext_id_to_der(exts[i], &p, &len) != 1) {

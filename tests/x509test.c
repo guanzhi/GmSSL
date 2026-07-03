@@ -33,7 +33,7 @@ static int test_x509_version(void)
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 4, "EXPLICIT Version(s) to DER\n");
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {

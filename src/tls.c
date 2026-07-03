@@ -1151,7 +1151,7 @@ int tls_client_verify_finish(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *sig, siz
 void tls_client_verify_cleanup(TLS_CLIENT_VERIFY_CTX *ctx)
 {
 	if (ctx) {
-		int i;
+		TLS_CLIENT_VERIFY_INDEX i;
 		for (i = 0; i< ctx->index; i++) {
 			if (ctx->handshake[i]) {
 				free(ctx->handshake[i]);
@@ -1538,8 +1538,11 @@ int tls_record_get_handshake_client_hello(const uint8_t *record,
 
 	if (*session_id) {
 		if (*session_id_len == 0
+			|| *session_id_len > TLS_MAX_SESSION_ID_SIZE
+#if TLS_MIN_SESSION_ID_SIZE > 0
 			|| *session_id_len < TLS_MIN_SESSION_ID_SIZE
-			|| *session_id_len > TLS_MAX_SESSION_ID_SIZE) {
+#endif
+		) {
 			error_print();
 			return -1;
 		}
@@ -1668,9 +1671,12 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 	*protocol = ver;
 
 	if (*session_id) {
-		if (*session_id == 0
+		if (*session_id_len == 0
+			|| *session_id_len > TLS_MAX_SESSION_ID_SIZE
+#if TLS_MIN_SESSION_ID_SIZE > 0
 			|| *session_id_len < TLS_MIN_SESSION_ID_SIZE
-			|| *session_id_len > TLS_MAX_SESSION_ID_SIZE) {
+#endif
+		) {
 			error_print();
 			return -1;
 		}

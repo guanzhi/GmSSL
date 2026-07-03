@@ -139,7 +139,7 @@ static int test_x509_public_key_to_bytes(void)
 	uint8_t *p;
 	size_t len;
 	uint8_t dgst[32];
-	int i;
+	size_t i;
 
 	//format_print(stderr, 0, 4, "public_key_to_bytes size\n");
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
@@ -164,7 +164,7 @@ static int test_x509_public_key_info_to_der(void)
 {
 	X509_KEY key;
 	uint8_t buf[2048];
-	int i;
+	size_t i;
 
 	//format_print(stderr, 0, 4, "public_key_info_to_bytes size\n");
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
@@ -202,7 +202,7 @@ static int test_x509_private_key_info_to_der(void)
 {
 	X509_KEY key;
 	uint8_t buf[512];
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]) && tests[i].algor == OID_ec_public_key; i++) {
 		const uint8_t *cp = buf;
@@ -238,7 +238,7 @@ static int test_x509_private_key_info_encrypt_to_der(void)
 	const char *pass = "P@ssw0rd";
 	X509_KEY key;
 	uint8_t buf[1024];
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]) && tests[i].algor == OID_ec_public_key; i++) {
 		const uint8_t *cp = buf;
@@ -275,7 +275,7 @@ static int test_x509_private_key_info_encrypt_to_pem(void)
 	X509_KEY key;
 	uint8_t buf[1024];
 	FILE *fp;
-	int i;
+	size_t i;
 
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]) && tests[i].algor == OID_ec_public_key; i++) {
@@ -320,7 +320,7 @@ static int test_x509_private_key_info_decrypt_from_pem(void)
 {
 	const char *pass = "P@ssw0rd";
 	FILE *fp;
-	int i;
+	size_t i;
 
 	if (!(fp = tmpfile())) {
 		error_print();

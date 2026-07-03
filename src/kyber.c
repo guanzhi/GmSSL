@@ -331,7 +331,7 @@ int16_t zeta[256];
 
 void init_zeta(void)
 {
-	int i;
+	size_t i;
 
 	zeta[0] = 1;
 	for (i = 1; i < sizeof(zeta)/sizeof(zeta[0]); i++) {

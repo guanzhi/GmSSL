@@ -104,7 +104,7 @@ int test_gf128_from_hex(void)
 		"14b267838ec9ef1bb7b5ce8c19e34bc6",
 	};
 	gf128_t a;
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		gf128_from_hex(a, tests[i]);
@@ -129,7 +129,7 @@ int test_gf128_mul_by_2(void)
 		"8e1807c980d24cd4b2fc5fb3bf4cf406",
 	};
 	gf128_t a;
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		gf128_from_hex(a, tests[i]);

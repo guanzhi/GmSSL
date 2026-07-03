@@ -354,7 +354,7 @@ int sm9_z256_get_booth(const uint64_t a[4], uint64_t window_size, int i)
 	j = j % 64;
 
 	wbits = a[n] >> j;
-	if ((64 - j) < (window_size + 1) && n < 3) {
+	if ((uint64_t)(64 - j) < (window_size + 1) && n < 3) {
 		wbits |= a[n + 1] << (64 - j);
 	}
 	return (int)(wbits & mask) - (int)((wbits >> 1) & mask);

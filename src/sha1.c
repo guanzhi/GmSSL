@@ -137,7 +137,7 @@ void sha1_update(SHA1_CTX *ctx, const unsigned char *data, size_t datalen)
 	}
 }
 
-void sha1_finish(SHA1_CTX *ctx, unsigned char *dgst)
+void sha1_finish(SHA1_CTX *ctx, uint8_t dgst[SHA1_DIGEST_SIZE])
 {
 	int i;
 

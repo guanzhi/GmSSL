@@ -77,7 +77,7 @@ int sm3_main(int argc, char **argv)
 	size_t id_bin_len;
 	SM3_CTX sm3_ctx;
 	uint8_t dgst[32];
-	int i;
+	size_t i;
 
 	argc--;
 	argv++;

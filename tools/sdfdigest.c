@@ -80,7 +80,7 @@ int sdfdigest_main(int argc, char **argv)
 	SDF_DEVICE dev;
 	SDF_DIGEST_CTX ctx;
 	uint8_t dgst[32];
-	int i;
+	size_t i;
 
 	memset(&dev, 0, sizeof(dev));
 	memset(&ctx, 0, sizeof(ctx));

@@ -1712,7 +1712,7 @@ int xmssmt_key_generate_ex(XMSSMT_KEY *key, uint32_t xmssmt_type,
 	uint32_t layer;
 	xmss_adrs_t adrs;
 	xmss_sm3_digest_t *tree;
-	uint8_t *xmss_root;
+	uint8_t *xmss_root = NULL;
 
 
 	uint64_t index = 0;

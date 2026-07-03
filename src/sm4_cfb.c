@@ -20,6 +20,11 @@ void sm4_cfb_encrypt(const SM4_KEY *key, size_t sbytes, uint8_t iv[16],
 	uint8_t block[16];
 	size_t len, i;
 
+	if (sbytes == 0 || sbytes > 16) {
+		error_print();
+		return;
+	}
+
 	while (inlen) {
 		len = inlen < sbytes ? inlen : sbytes;
 
@@ -44,6 +49,11 @@ void sm4_cfb_decrypt(const SM4_KEY *key, size_t sbytes, uint8_t iv[16],
 {
 	uint8_t block[16];
 	size_t len, i;
+
+	if (sbytes == 0 || sbytes > 16) {
+		error_print();
+		return;
+	}
 
 	while (inlen) {
 		len = inlen < sbytes ? inlen : sbytes;

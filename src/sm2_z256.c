@@ -1404,7 +1404,7 @@ void sm2_z256_point_mul_pre_compute(const SM2_Z256_POINT *P, SM2_Z256_POINT T[16
 	}
 }
 
-void sm2_z256_point_mul_ex(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_POINT *T)
+void sm2_z256_point_mul_ex(SM2_Z256_POINT *R, const sm2_z256_t k, const SM2_Z256_POINT T[16])
 {
 	int window_size = 5;
 	int R_infinity = 1;

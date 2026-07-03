@@ -43,7 +43,7 @@ int sm9setup_main(int argc, char **argv)
 	char passbuf[GMSSL_PASSWORD_MAX_SIZE] = {0};
 	char *outfile = NULL;
 	char *puboutfile = NULL;
-	int oid;
+	int oid = 0;
 	FILE *outfp = stdout;
 	FILE *puboutfp = stdout;
 	SM9_SIGN_MASTER_KEY sign_msk;

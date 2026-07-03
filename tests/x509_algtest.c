@@ -34,7 +34,7 @@ static int test_x509_digest_algor(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 	int oid;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 0, "DER\n");
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
@@ -78,7 +78,7 @@ static int test_x509_encryption_algor(void)
 	int oid;
 	const uint8_t *params;
 	size_t paramslen;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 0, "DER\n");
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
@@ -124,7 +124,7 @@ static int test_x509_signature_algor(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 	int oid;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 0, "DER\n");
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
@@ -161,7 +161,7 @@ static int test_x509_public_key_encryption_algor(void)
 	int oid;
 	const uint8_t *params;
 	size_t paramslen;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 0, "DER\n");
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {

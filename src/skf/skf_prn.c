@@ -271,7 +271,7 @@ ULONG DEVAPI SKF_GetAlgorName(ULONG ulAlgID, LPSTR *szName)
 {
 	char *name;
 	if ((name = skf_algor_name(ulAlgID)) != NULL) {
-		*szName = (LPSTR)&name;
+		*szName = (LPSTR)name;
 		return SAR_OK;
 	}
 	return SAR_FAIL;

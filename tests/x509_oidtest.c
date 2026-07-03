@@ -43,7 +43,7 @@ static int test_x509_name_type()
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 0, "DER\n");
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
@@ -102,7 +102,7 @@ static int test_x509_ext_id()
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 0, "DER\n");
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
@@ -146,7 +146,7 @@ static int test_x509_qualifier_id(void)
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 0, "DER\n");
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
@@ -191,7 +191,7 @@ static int test_x509_cert_policy_id(void)
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 0, "DER\n");
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
@@ -239,7 +239,7 @@ static int test_x509_key_purpose(void)
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
-	int i;
+	size_t i;
 
 	format_print(stderr, 0, 0, "DER\n");
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {

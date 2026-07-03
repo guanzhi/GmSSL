@@ -16,7 +16,18 @@ include_directories(include)
 if(MSVC)
 	#add_compile_options(/O2) # conflict with CI /0d (not optimized)
 else()
-	add_compile_options(-O3)
+	add_compile_options(-Wall -Wextra -O3)
+	add_compile_options(
+		-Wno-unused-parameter
+		-Wno-missing-field-initializers
+		-Wno-unused-variable
+		-Wno-unused-function
+		-Wno-empty-body
+		-Wno-unused-but-set-variable
+	)
+	if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+		add_compile_options(-Wno-misleading-indentation)
+	endif()
 endif()
 
 set(GMSSL_TARGET_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")

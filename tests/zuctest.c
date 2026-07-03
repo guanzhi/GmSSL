@@ -47,7 +47,7 @@ static int test_zuc(void)
 
 	ZUC_STATE zuc_state;
 	uint32_t buf[2];
-	int i;
+	size_t i;
 
 	for (i = 0; i < 3; i++) {
 		zuc_init(&zuc_state, key[i], iv[i]);
@@ -313,7 +313,7 @@ static int test_zuc256(void)
 		 0x7a5be02e,0xc32ba585,0x505af316,0xc2f9ded2,0x7cdbd935,
 		 0xe441ce11,0x15fd0a80,0xbb7aef67,0x68989416,0xb8fac8c2}
 	};
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(key)/sizeof(key[0]); i++) {
 		ZUC_STATE zuc_key;
@@ -323,11 +323,11 @@ static int test_zuc256(void)
 		zuc_generate_keystream(&zuc_key, 20, buf);
 
 		if (memcmp(buf, ciphertext[i], 20) != 0) {
-			printf("zuc256 test %d failed\n", i);
+			printf("zuc256 test %zu failed\n", i);
 			error_print();
 			return -1;
 		} else {
-			printf("zuc256 test %d ok\n", i);
+			printf("zuc256 test %zu ok\n", i);
 		}
 	}
 
@@ -475,7 +475,7 @@ static int speed_zuc_generate_keystream(void)
 	uint32_t buf[1024]; // aligned
 	clock_t begin, end;
 	double seconds;
-	int i;
+	size_t i;
 
 	zuc_init(&zuc_state, key, iv);
 	for (i = 0; i < 4096; i++) {
@@ -503,7 +503,7 @@ static int speed_zuc_encrypt(void)
 	uint8_t *buf = (uint8_t *)align_buf;
 	clock_t begin, end;
 	double seconds;
-	int i;
+	size_t i;
 
 	zuc_init(&zuc_state, key, iv);
 	for (i = 0; i < 4096; i++) {

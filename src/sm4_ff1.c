@@ -86,7 +86,11 @@ static int sm4_ff1_check_args(const SM4_KEY *key, const char *in, size_t inlen,
 		error_print();
 		return -1;
 	}
-	if (tweaklen < SM4_FF1_MIN_TWEAK_SIZE || tweaklen > SM4_FF1_MAX_TWEAK_SIZE) {
+	if (tweaklen > SM4_FF1_MAX_TWEAK_SIZE
+#if SM4_FF1_MIN_TWEAK_SIZE > 0
+		|| tweaklen < SM4_FF1_MIN_TWEAK_SIZE
+#endif
+	) {
 		error_print();
 		return -1;
 	}

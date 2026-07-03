@@ -341,7 +341,7 @@ static int test_sm4_ctr_ctx_multi_updates(void)
 	size_t len;
 	size_t lens[] = { 1,5,17,80 };
 
-	int i;
+	size_t i;
 
 	rand_bytes(key, sizeof(key));
 	rand_bytes(iv, sizeof(iv));
