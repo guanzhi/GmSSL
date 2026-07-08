@@ -11,6 +11,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+include(GNUInstallDirs)
 include_directories(include)
 
 if(MSVC)
@@ -839,20 +840,20 @@ if (ENABLE_SM4_CL OR ENABLE_LMS_CL OR ENABLE_XMSS_CL)
 endif()
 
 
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.3 SOVERSION 3)
 
 
-install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
+install(TARGETS gmssl ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 
 if(UNIX AND NOT APPLE AND BUILD_SHARED_LIBS)
 	install(CODE [[
-		message(STATUS "GmSSL shared library installed to: ${CMAKE_INSTALL_PREFIX}/lib")
+		message(STATUS "GmSSL shared library installed to: ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 		message(STATUS "If gmssl or external applications cannot find libgmssl.so, configure the runtime library path manually.")
-		message(STATUS "For a temporary shell: export LD_LIBRARY_PATH=${CMAKE_INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH")
-		message(STATUS "For a system-wide setup: echo ${CMAKE_INSTALL_PREFIX}/lib | sudo tee /etc/ld.so.conf.d/gmssl.conf && sudo ldconfig")
+		message(STATUS "For a temporary shell: export LD_LIBRARY_PATH=${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}:$LD_LIBRARY_PATH")
+		message(STATUS "For a system-wide setup: echo ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR} | sudo tee /etc/ld.so.conf.d/gmssl.conf && sudo ldconfig")
 	]])
 endif()
 
