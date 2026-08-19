@@ -31,7 +31,7 @@ static int tls_cert_verify_get_cert_group(const uint8_t *cert, size_t certlen, i
 		error_print();
 		return -1;
 	}
-	if (public_key.algor != OID_ec_public_key) {
+	if (public_key.algor != OID_ec_public_key && public_key.algor != OID_sm2) {
 		error_print();
 		return -1;
 	}

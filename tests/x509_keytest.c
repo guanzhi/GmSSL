@@ -17,6 +17,9 @@
 #include <gmssl/error.h>
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_key.h>
+#include <gmssl/sm2.h>
+#include <gmssl/ec.h>
+#include <gmssl/asn1.h>
 
 
 #ifdef ENABLE_LMS
@@ -90,6 +93,326 @@ static int test_sign_algor(const X509_KEY *key)
 	}
 }
 
+
+static int test_x509_public_key_algor_sm2_oid(void)
+{
+	// Test 1: Search sm2 in public key list
+	{
+		const char *name = x509_public_key_algor_name(OID_sm2);
+		if (name == NULL || strcmp(name, "sm2") != 0) {
+			error_print();
+			return -1;
+		}
+		int oid = x509_public_key_algor_from_name("sm2");
+		if (oid != OID_sm2) {
+			error_print();
+			return -1;
+		}
+	}
+
+	// Test 2: Construct a sm2 algo der, parse it
+	{
+		uint8_t buf[256];
+		const uint8_t *cp = buf;
+
+		// SEQUENCE { OID 1.2.156.10197.1.301, OID 1.2.156.10197.1.301 }
+		static const uint8_t sm2_algor_der[] = {
+			0x30, 0x14,
+			0x06, 0x08, 0x2a, 0x81, 0x1c, 0xcf, 0x55, 0x01, 0x82, 0x2d,
+			0x06, 0x08, 0x2a, 0x81, 0x1c, 0xcf, 0x55, 0x01, 0x82, 0x2d,
+		};
+		memcpy(buf, sm2_algor_der, sizeof(sm2_algor_der));
+		size_t len = sizeof(sm2_algor_der);
+
+		int oid = 0;
+		int curve = 0;
+		if (x509_public_key_algor_from_der(&oid, &curve, &cp, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (oid != OID_sm2) {
+			error_print();
+			return -1;
+		}
+		if (curve != OID_sm2) {
+			error_print();
+			return -1;
+		}
+		if (len != 0) {
+			error_print();
+			return -1;
+		}
+	}
+
+	// Test 3: Build a full SM2-OID SubjectPublicKeyInfo, parse it with
+	//         sm2_public_key_info_from_der, and verify the key matches.
+	{
+		SM2_KEY sm2_key;
+		uint8_t pubkey_der[256];
+		uint8_t spki_der[512];
+
+		if (sm2_key_generate(&sm2_key) != 1) {
+			error_print();
+			return -1;
+		}
+
+		// sm2_public_key_to_der already produces a BIT STRING (tag 0x03)
+		// wrapping the EC point, so we use it directly as the second
+		// element of SubjectPublicKeyInfo.
+		uint8_t *pkp = pubkey_der;
+		size_t pklen = 0;
+		if (sm2_public_key_to_der(&sm2_key, &pkp, &pklen) != 1) {
+			error_print();
+			return -1;
+		}
+
+		// Build SubjectPublicKeyInfo manually with sm2 OID format:
+		// SEQUENCE {
+		//   SEQUENCE { OID sm2, OID sm2 }   <- AlgorithmIdentifier
+		//   BIT STRING { ECPoint }          <- from sm2_public_key_to_der
+		// }
+		static const uint8_t sm2_alg[] = {
+			0x30, 0x14,
+			0x06, 0x08, 0x2a, 0x81, 0x1c, 0xcf, 0x55, 0x01, 0x82, 0x2d,
+			0x06, 0x08, 0x2a, 0x81, 0x1c, 0xcf, 0x55, 0x01, 0x82, 0x2d,
+		};
+		size_t alg_len = sizeof(sm2_alg);
+		size_t inner_len = alg_len + pklen;
+
+		uint8_t *p = spki_der;
+		// SEQUENCE header
+		*p++ = 0x30;
+		if (inner_len < 0x80) {
+			*p++ = (uint8_t)inner_len;
+		} else {
+			*p++ = 0x81;
+			*p++ = (uint8_t)inner_len;
+		}
+		// Algorithm identifier (sm2 OID format)
+		memcpy(p, sm2_alg, alg_len);
+		p += alg_len;
+		// BIT STRING from sm2_public_key_to_der
+		memcpy(p, pubkey_der, pklen);
+		p += pklen;
+		size_t spki_len = p - spki_der;
+
+		// Parse it back
+		SM2_KEY parsed_key;
+		const uint8_t *cp2 = spki_der;
+		if (sm2_public_key_info_from_der(&parsed_key, &cp2, &spki_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (spki_len != 0) {
+			error_print();
+			return -1;
+		}
+		if (sm2_public_key_equ(&sm2_key, &parsed_key) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_x509_public_key_algor_sm2_to_der(void)
+{
+	// Test 4: Verify x509_public_key_algor_to_der(OID_sm2, OID_sm2)
+	// produces GM/T 0015-2023 SM2-OID format (algorithm OID = sm2),
+	// while x509_public_key_algor_to_der(OID_ec_public_key, OID_sm2)
+	// produces RFC 5480 format (algorithm OID = id-ecPublicKey).
+	{
+		uint8_t der_sm2[64];
+		uint8_t der_ec[64];
+		uint8_t *p_sm2 = der_sm2;
+		uint8_t *p_ec = der_ec;
+		size_t len_sm2 = 0;
+		size_t len_ec = 0;
+
+		if (x509_public_key_algor_to_der(OID_sm2, OID_sm2, &p_sm2, &len_sm2) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_public_key_algor_to_der(OID_ec_public_key, OID_sm2, &p_ec, &len_ec) != 1) {
+			error_print();
+			return -1;
+		}
+		// SM2-OID format and id-ecPublicKey format should produce different DER
+		if (len_sm2 == len_ec && memcmp(der_sm2, der_ec, len_sm2) == 0) {
+			error_print();
+			return -1;
+		}
+		// Verify SM2-OID output starts with SEQUENCE { OID 1.2.156.10197.1.301
+		static const uint8_t sm2_oid_prefix[] = {
+			0x30, 0x14,
+			0x06, 0x08, 0x2a, 0x81, 0x1c, 0xcf, 0x55, 0x01, 0x82, 0x2d,
+		};
+		if (len_sm2 < sizeof(sm2_oid_prefix)
+			|| memcmp(der_sm2, sm2_oid_prefix, sizeof(sm2_oid_prefix)) != 0) {
+			error_print();
+			return -1;
+		}
+		// Verify id-ecPublicKey output starts with SEQUENCE { OID 1.2.840.10045.2.1
+		static const uint8_t ec_oid_prefix[] = {
+			0x30, 0x13,
+			0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01,
+		};
+		if (len_ec < sizeof(ec_oid_prefix)
+			|| memcmp(der_ec, ec_oid_prefix, sizeof(ec_oid_prefix)) != 0) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_x509_public_key_info_sm2_oid_from_der(void)
+{
+	// Test 5: Build a full SM2-OID SubjectPublicKeyInfo and parse it with
+	//         the generic x509_public_key_info_from_der, verifying that
+	//         algor is normalized to OID_sm2 and algor_param to OID_sm2.
+	{
+		SM2_KEY sm2_key;
+		uint8_t pubkey_der[256];
+		uint8_t spki_der[512];
+
+		if (sm2_key_generate(&sm2_key) != 1) {
+			error_print();
+			return -1;
+		}
+
+		uint8_t *pkp = pubkey_der;
+		size_t pklen = 0;
+		if (sm2_public_key_to_der(&sm2_key, &pkp, &pklen) != 1) {
+			error_print();
+			return -1;
+		}
+
+		// Build SubjectPublicKeyInfo with SM2-OID format:
+		// SEQUENCE {
+		//   SEQUENCE { OID sm2, OID sm2 }   <- GM/T 0015-2023 format
+		//   BIT STRING { ECPoint }
+		// }
+		static const uint8_t sm2_alg[] = {
+			0x30, 0x14,
+			0x06, 0x08, 0x2a, 0x81, 0x1c, 0xcf, 0x55, 0x01, 0x82, 0x2d,
+			0x06, 0x08, 0x2a, 0x81, 0x1c, 0xcf, 0x55, 0x01, 0x82, 0x2d,
+		};
+		size_t alg_len = sizeof(sm2_alg);
+		size_t inner_len = alg_len + pklen;
+
+		uint8_t *p = spki_der;
+		*p++ = 0x30;
+		if (inner_len < 0x80) {
+			*p++ = (uint8_t)inner_len;
+		} else {
+			*p++ = 0x81;
+			*p++ = (uint8_t)inner_len;
+		}
+		memcpy(p, sm2_alg, alg_len);
+		p += alg_len;
+		memcpy(p, pubkey_der, pklen);
+		p += pklen;
+		size_t spki_len = p - spki_der;
+
+		// Parse with generic x509_public_key_info_from_der
+		X509_KEY parsed_key;
+		const uint8_t *cp = spki_der;
+		if (x509_public_key_info_from_der(&parsed_key, &cp, &spki_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (spki_len != 0) {
+			error_print();
+			return -1;
+		}
+		if (parsed_key.algor != OID_sm2) {
+			error_print();
+			return -1;
+		}
+		if (parsed_key.algor_param != OID_sm2) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_x509_private_key_info_sm2_oid_from_der(void)
+{
+	// Test 6: Parse a GM/T 0015-2023 SM2-OID PrivateKeyInfo. The parsed
+	// X509_KEY must keep algor = OID_sm2 (no normalization to
+	// OID_ec_public_key), and must compare equal to the same key parsed
+	// from an SM2-OID SubjectPublicKeyInfo.
+	{
+		X509_KEY key;
+		uint8_t pki[512];
+		uint8_t *p = pki;
+		size_t pki_len = 0;
+		const uint8_t *attrs;
+		size_t attrslen;
+
+		int param = OID_sm2;
+		if (x509_key_generate(&key, OID_sm2, &param, sizeof(param)) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_private_key_info_to_der(&key, &p, &pki_len) != 1) {
+			error_print();
+			return -1;
+		}
+
+		X509_KEY parsed_key;
+		const uint8_t *cp = pki;
+		size_t len = pki_len;
+		if (x509_private_key_info_from_der(&parsed_key, &attrs, &attrslen, &cp, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (len != 0) {
+			error_print();
+			return -1;
+		}
+		if (parsed_key.algor != OID_sm2) {
+			error_print();
+			return -1;
+		}
+		if (parsed_key.algor_param != OID_sm2) {
+			error_print();
+			return -1;
+		}
+
+		// The same key parsed from an SM2-OID SubjectPublicKeyInfo must
+		// compare equal to the parsed private key.
+		uint8_t spki_der[512];
+		uint8_t *p2 = spki_der;
+		size_t spki_len = 0;
+		if (x509_public_key_info_to_der(&key, &p2, &spki_len) != 1) {
+			error_print();
+			return -1;
+		}
+		X509_KEY parsed_pub;
+		const uint8_t *cp2 = spki_der;
+		size_t len2 = spki_len;
+		if (x509_public_key_info_from_der(&parsed_pub, &cp2, &len2) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_public_key_equ(&parsed_key, &parsed_pub) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
 
 static int test_x509_key_generate(void)
 {
@@ -579,6 +902,10 @@ static int test_x509_kem(void)
 
 int main(void)
 {
+	if (test_x509_public_key_algor_sm2_oid() != 1) goto err;
+	if (test_x509_public_key_algor_sm2_to_der() != 1) goto err;
+	if (test_x509_public_key_info_sm2_oid_from_der() != 1) goto err;
+	if (test_x509_private_key_info_sm2_oid_from_der() != 1) goto err;
 	if (test_x509_key_generate() != 1) goto err;
 	if (test_x509_public_key_to_bytes() != 1) goto err;
 	if (test_x509_public_key_info_to_der() != 1) goto err;

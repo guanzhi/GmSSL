@@ -179,7 +179,7 @@ int x509_req_sign_to_der(
 		error_print();
 		return -1;
 	}
-	if (sign_key->algor == OID_ec_public_key) {
+	if (sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2) {
 		siglen = SM2_signature_typical_size;
 	}
 
@@ -204,7 +204,7 @@ int x509_req_sign_to_der(
 		void *sign_args = NULL;
 		size_t sign_argslen = 0;
 
-		if (sign_key->algor == OID_ec_public_key && sign_key->algor_param == OID_sm2) {
+		if ((sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2) && sign_key->algor_param == OID_sm2) {
 			sign_args = SM2_DEFAULT_ID;
 			sign_argslen = SM2_DEFAULT_ID_LENGTH;
 		}
@@ -212,7 +212,7 @@ int x509_req_sign_to_der(
 			error_print();
 			return -1;
 		}
-		if (sign_key->algor == OID_ec_public_key) {
+		if (sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2) {
 			if (x509_sign_set_signature_size(&sign_ctx, siglen) != 1) {
 				gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 				error_print();

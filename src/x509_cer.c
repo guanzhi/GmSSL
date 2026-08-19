@@ -924,6 +924,7 @@ int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, co
 	ind += 4;
 	if (asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	switch (alg) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		format_bytes(fp, fmt, ind, "ECPoint", p, len);
 		break;
@@ -1121,7 +1122,7 @@ int x509_cert_sign_to_der(
 		error_print();
 		return -1;
 	}
-	if (sign_key->algor == OID_ec_public_key) {
+	if (sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2) {
 		siglen = SM2_signature_typical_size;
 	}
 
@@ -1168,7 +1169,7 @@ int x509_cert_sign_to_der(
 		void *sign_args = NULL;
 		size_t sign_argslen = 0;
 
-		if (sign_key->algor == OID_ec_public_key && sign_key->algor_param == OID_sm2) {
+		if ((sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2) && sign_key->algor_param == OID_sm2) {
 			sign_args = SM2_DEFAULT_ID;
 			sign_argslen = SM2_DEFAULT_ID_LENGTH;
 		}
@@ -1176,7 +1177,7 @@ int x509_cert_sign_to_der(
 			error_print();
 			return -1;
 		}
-		if (sign_key->algor == OID_ec_public_key) {
+		if (sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2) {
 			if (x509_sign_set_signature_size(&sign_ctx, siglen) != 1) {
 				gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 				error_print();
@@ -1250,7 +1251,7 @@ int x509_signed_verify(const uint8_t *a, size_t alen,
 	}
 
 	// FIXME: 应该直接把函数接口的signer_id 改为sign_args
-	if (key->algor == OID_ec_public_key && key->algor_param == OID_sm2) {
+	if ((key->algor == OID_ec_public_key || key->algor == OID_sm2) && key->algor_param == OID_sm2) {
 		sign_args = (uint8_t *)signer_id;
 		sign_argslen = signer_id_len;
 	}

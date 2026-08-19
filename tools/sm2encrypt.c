@@ -129,7 +129,7 @@ bad:
 			fprintf(stderr, "gmssl %s: parse certificate failed\n", prog);
 			goto end;
 		}
-		if (x509_key.algor != OID_ec_public_key
+		if ((x509_key.algor != OID_ec_public_key && x509_key.algor != OID_sm2)
 			|| x509_key.algor_param != OID_sm2) {
 			fprintf(stderr, "gmssl %s: invalid certificate type\n", prog);
 			goto end;

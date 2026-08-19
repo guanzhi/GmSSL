@@ -258,7 +258,7 @@ bad:
 		goto end;
 	}
 
-	if (!pass && x509_pub.algor == OID_ec_public_key) {
+	if (!pass && (x509_pub.algor == OID_ec_public_key || x509_pub.algor == OID_sm2)) {
 		if (gmssl_tool_get_password(prog, "pass", keyfile, &pass,
 			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;

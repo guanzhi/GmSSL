@@ -151,7 +151,7 @@ int sm2_public_key_algor_from_der(const uint8_t **in, size_t *inlen)
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (oid != OID_ec_public_key) {
+	if (oid != OID_ec_public_key && oid != OID_sm2) {
 		error_print();
 		return -1;
 	}
@@ -371,7 +371,7 @@ int sm2_private_key_info_from_der(SM2_KEY *sm2_key, const uint8_t **attrs, size_
 		|| asn1_octet_string_from_der(&prikey, &prikey_len, &d, &dlen) != 1
 		|| asn1_implicit_set_from_der(0, attrs, attrslen, &d, &dlen) < 0
 		|| asn1_check(version == PKCS8_private_key_info_version) != 1
-		|| asn1_check(algor == OID_ec_public_key) != 1
+		|| asn1_check(algor == OID_ec_public_key || algor == OID_sm2) != 1
 		|| asn1_check(curve == OID_sm2) != 1
 		|| sm2_private_key_from_der(sm2_key, &prikey, &prikey_len) != 1
 		|| asn1_length_is_zero(prikey_len) != 1
@@ -603,7 +603,7 @@ int sm2_private_key_info_decrypt_from_der(SM2_KEY *sm2,
 		return -1;
 	}
 	if (x509_private_key_info_decrypt_from_der(&x509_key, attrs, attrs_len, pass, in, inlen) != 1
-		|| x509_key.algor != OID_ec_public_key
+		|| (x509_key.algor != OID_ec_public_key && x509_key.algor != OID_sm2)
 		|| x509_key.algor_param != OID_sm2) {
 		error_print();
 		return -1;
@@ -639,7 +639,7 @@ int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *
 		return -1;
 	}
 	if (x509_private_key_info_decrypt_from_pem(&x509_key, &attrs, &attrs_len, pass, fp) != 1
-		|| x509_key.algor != OID_ec_public_key
+		|| (x509_key.algor != OID_ec_public_key && x509_key.algor != OID_sm2)
 		|| x509_key.algor_param != OID_sm2) {
 		error_print();
 		return -1;
