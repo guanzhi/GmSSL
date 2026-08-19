@@ -336,7 +336,7 @@ static int sm2exch_load_public_key(SM2_KEY *pub_key, const char *pubkeyfile,
 			fprintf(stderr, "gmssl %s: parse certificate failed\n", prog);
 			return -1;
 		}
-		if (x509_key.algor != OID_ec_public_key || x509_key.algor_param != OID_sm2) {
+		if ((x509_key.algor != OID_ec_public_key && x509_key.algor != OID_sm2) || x509_key.algor_param != OID_sm2) {
 			fprintf(stderr, "gmssl %s: certificate public key is not SM2\n", prog);
 			return -1;
 		}

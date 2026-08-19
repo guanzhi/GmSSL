@@ -748,7 +748,7 @@ static int tls12_cert_chain_get_end_entity_group(const uint8_t *cert_chain, size
 		error_print();
 		return -1;
 	}
-	if (public_key.algor != OID_ec_public_key) {
+	if (public_key.algor != OID_ec_public_key && public_key.algor != OID_sm2) {
 		error_print();
 		return -1;
 	}
@@ -766,7 +766,7 @@ static int tls12_public_key_get_group(const X509_KEY *public_key, int *group)
 		error_print();
 		return -1;
 	}
-	if (public_key->algor != OID_ec_public_key) {
+	if (public_key->algor != OID_ec_public_key && public_key->algor != OID_sm2) {
 		error_print();
 		return -1;
 	}
@@ -1446,7 +1446,7 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 
 	switch (sig_alg) {
 	case TLS_sig_sm2sig_sm3:
-		if (server_sign_key.algor != OID_ec_public_key
+		if ((server_sign_key.algor != OID_ec_public_key && server_sign_key.algor != OID_sm2)
 			|| server_sign_key.algor_param != OID_sm2) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_bad_certificate);
@@ -1466,7 +1466,8 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (server_sign_key.algor == OID_ec_public_key && server_sign_key.algor_param == OID_sm2) {
+	if ((server_sign_key.algor == OID_ec_public_key || server_sign_key.algor == OID_sm2)
+		&& server_sign_key.algor_param == OID_sm2) {
 		sign_args = SM2_DEFAULT_ID;
 		sign_argslen = SM2_DEFAULT_ID_LENGTH;
 	}
@@ -1910,7 +1911,8 @@ int tls_send_certificate_verify(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		if (sign_key->algor == OID_ec_public_key && sign_key->algor_param == OID_sm2) {
+		if ((sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2)
+			&& sign_key->algor_param == OID_sm2) {
 			signer_id = (uint8_t *)SM2_DEFAULT_ID;
 			signer_idlen = SM2_DEFAULT_ID_LENGTH;
 		}
@@ -2642,7 +2644,8 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 		}
 
 		// sign server_ecdh_params
-		if (sign_key->algor == OID_ec_public_key && sign_key->algor_param == OID_sm2) {
+		if ((sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2)
+			&& sign_key->algor_param == OID_sm2) {
 			sign_args = SM2_DEFAULT_ID;
 			sign_argslen = SM2_DEFAULT_ID_LENGTH;
 		}
@@ -3028,7 +3031,7 @@ int tls_recv_certificate_verify(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (client_sign_key.algor != OID_ec_public_key) {
+	if (client_sign_key.algor != OID_ec_public_key && client_sign_key.algor != OID_sm2) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;

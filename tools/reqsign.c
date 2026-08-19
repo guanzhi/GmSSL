@@ -472,7 +472,7 @@ bad:
 		fprintf(stderr, "%s: parse CA certificate failure\n", prog);
 		goto end;
 	}
-	if (!pass && issuer_public_key.algor == OID_ec_public_key) {
+	if (!pass && (issuer_public_key.algor == OID_ec_public_key || issuer_public_key.algor == OID_sm2)) {
 		if (gmssl_tool_get_password(prog, "pass", keyfile, &pass,
 			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;

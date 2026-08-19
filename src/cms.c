@@ -737,7 +737,7 @@ int cms_signer_info_sign_to_der(
 	// 显然我们没有这个功能了！			
 	// 这是个严重的问题啊，这个签名是有问题的！这里签名的是 dgst啊！
 	// 没想到会出现如此严重的问题！
-	if (sign_key->algor != OID_ec_public_key
+	if ((sign_key->algor != OID_ec_public_key && sign_key->algor != OID_sm2)
 		|| sign_key->algor_param != OID_sm2) {
 		error_print();
 		return -1;
@@ -794,7 +794,7 @@ int cms_signer_info_verify_from_der(
 		error_print();
 		return -1;
 	}
-	if (public_key.algor != OID_ec_public_key
+	if ((public_key.algor != OID_ec_public_key && public_key.algor != OID_sm2)
 		|| public_key.algor_param != OID_sm2) {
 		error_print();
 		return -1;
@@ -1300,7 +1300,7 @@ int cms_recipient_info_encrypt_to_der(
 	size_t enced_key_len;
 	int fixed_outlen = 1;
 
-	if (public_key->algor != OID_ec_public_key
+	if ((public_key->algor != OID_ec_public_key && public_key->algor != OID_sm2)
 		|| public_key->algor_param != OID_sm2) {
 		error_print();
 		return -1;
@@ -1364,7 +1364,7 @@ int cms_recipient_info_decrypt_from_der(
 		return -1;
 	}
 
-	if (x509_key->algor != OID_ec_public_key
+	if ((x509_key->algor != OID_ec_public_key && x509_key->algor != OID_sm2)
 		|| x509_key->algor_param != OID_sm2) {
 		error_print();
 		return -1;
@@ -1537,7 +1537,7 @@ int cms_enveloped_data_encrypt_to_der(
 			error_print();
 			return -1;
 		}
-		if (public_key.algor != OID_ec_public_key
+		if ((public_key.algor != OID_ec_public_key && public_key.algor != OID_sm2)
 			|| public_key.algor_param != OID_sm2) {
 			error_print();
 			return -1;
@@ -1785,7 +1785,7 @@ int cms_signed_and_enveloped_data_encipher_to_der(
 			error_print();
 			return -1;
 		}
-		if (public_key.algor != OID_ec_public_key
+		if ((public_key.algor != OID_ec_public_key && public_key.algor != OID_sm2)
 			|| public_key.algor_param != OID_sm2) {
 			error_print();
 			return -1;
@@ -2298,7 +2298,7 @@ int cms_deenvelop(const uint8_t *cms, size_t cmslen,
 		error_print();
 		return -1;
 	}
-	if (rcpt_key->algor != OID_ec_public_key
+	if ((rcpt_key->algor != OID_ec_public_key && rcpt_key->algor != OID_sm2)
 		|| rcpt_key->algor_param != OID_sm2
 		|| sm2_public_key_equ(&public_key.u.sm2_key, &rcpt_key->u.sm2_key) != 1) {
 		error_print();

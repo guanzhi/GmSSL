@@ -2125,7 +2125,7 @@ int ocsp_sign(OCSP_SIGN_CTX *ctx,
 		error_print();
 		return -1;
 	}
-	if (sign_key->algor == OID_ec_public_key) {
+	if (sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2) {
 		signature_len = SM2_signature_typical_size;
 	}
 
@@ -2133,7 +2133,7 @@ int ocsp_sign(OCSP_SIGN_CTX *ctx,
 		error_print();
 		return -1;
 	}
-	if ((sign_key->algor == OID_ec_public_key
+	if (((sign_key->algor == OID_ec_public_key || sign_key->algor == OID_sm2)
 		&& x509_sign_set_signature_size(&sign_ctx, signature_len) != 1)
 		|| x509_sign(&sign_ctx, response_data, response_data_len, signature, &signature_len) != 1) {
 		gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
@@ -2232,7 +2232,8 @@ static int ocsp_verify_signature(const uint8_t *response_data, size_t response_d
 		error_print();
 		return -1;
 	}
-	if (!sign_args && public_key.algor == OID_ec_public_key && public_key.algor_param == OID_sm2) {
+	if (!sign_args && (public_key.algor == OID_ec_public_key || public_key.algor == OID_sm2)
+		&& public_key.algor_param == OID_sm2) {
 		sign_args = SM2_DEFAULT_ID;
 		sign_args_len = SM2_DEFAULT_ID_LENGTH;
 	}

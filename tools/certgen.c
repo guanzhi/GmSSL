@@ -413,7 +413,7 @@ bad:
 		printf("usage: gmssl %s %s\n\n", prog, options);
 		goto end;
 	}
-	if (!pass && algor != OID_ec_public_key) {
+	if (!pass && (algor == OID_ec_public_key || algor == OID_sm2)) {
 		if (gmssl_tool_get_password(prog, "pass", keyfile, &pass,
 			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;

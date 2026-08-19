@@ -405,7 +405,7 @@ bad:
 		fprintf(stderr, "%s: parse signer certificate failure\n", prog);
 		goto end;
 	}
-	if (!pass && signer_pub.algor == OID_ec_public_key) {
+	if (!pass && (signer_pub.algor == OID_ec_public_key || signer_pub.algor == OID_sm2)) {
 		if (gmssl_tool_get_password(prog, "pass", keyfile, &pass,
 			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;

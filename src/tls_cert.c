@@ -215,7 +215,7 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 		error_print();
 		return -1;
 	}
-	if (public_key.algor == OID_ec_public_key) {
+	if (public_key.algor == OID_ec_public_key || public_key.algor == OID_sm2) {
 		if (!(keyfp = fopen(keyfile, "r"))) {
 			fclose(certfp);
 			error_print();
@@ -361,7 +361,8 @@ static int tlcp_ctx_add_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 		error_print();
 		goto end;
 	}
-	if (public_key.algor != algor || public_key.algor_param != algor_param
+	if ((public_key.algor != OID_ec_public_key && public_key.algor != OID_sm2)
+		|| public_key.algor_param != algor_param
 		|| x509_public_key_equ(&ctx->x509_keys[key_idx], &public_key) != 1) {
 		error_print();
 		goto end;
@@ -377,7 +378,8 @@ static int tlcp_ctx_add_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 		error_print();
 		goto end;
 	}
-	if (public_key.algor != algor || public_key.algor_param != algor_param
+	if ((public_key.algor != OID_ec_public_key && public_key.algor != OID_sm2)
+		|| public_key.algor_param != algor_param
 		|| x509_public_key_equ(&ctx->enc_keys[key_idx], &public_key) != 1) {
 		error_print();
 		goto end;

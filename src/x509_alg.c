@@ -607,9 +607,11 @@ err:
 
 
 static uint32_t oid_ec_public_key[] = { oid_x9_62,2,1 };
+static uint32_t oid_sm2_pubkey[] = { oid_sm,1,301 };
 
 static const ASN1_OID_INFO x509_public_key_algors[] = {
 	{ OID_ec_public_key, "ecPublicKey", oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), 0, "X9.62 ecPublicKey" },
+	{ OID_sm2, "sm2", oid_sm2_pubkey, sizeof(oid_sm2_pubkey)/sizeof(int), 0, "SM2" },
 	{ OID_sm9, "sm9", oid_sm9, sizeof(oid_sm9)/sizeof(int), 0, "SM9" },
 	{ OID_rsa_encryption, "rsaEncryption", oid_rsa_encryption, sizeof(oid_rsa_encryption)/sizeof(int), 0, "RSAEncryption" },
 	{ OID_lms_hashsig, "lms-hashsig", oid_lms_hashsig, sizeof(oid_lms_hashsig)/sizeof(int), 0, "HSS/LMS HashSig" },
@@ -649,10 +651,22 @@ int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size
 
 	switch (oid) {
 	case OID_ec_public_key:
+		// RFC 5480 format: algorithm field uses id-ecPublicKey (1.2.840.10045.2.1)
 		if (asn1_object_identifier_to_der(oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), NULL, &len) != 1
 			|| ec_named_curve_to_der(curve_or_null, NULL, &len) != 1
 			|| asn1_sequence_header_to_der(len, out, outlen) != 1
 			|| asn1_object_identifier_to_der(oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), out, outlen) != 1
+			|| ec_named_curve_to_der(curve_or_null, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sm2:
+		// GM/T 0015-2023 SM2-OID format: algorithm field uses SM2 OID (1.2.156.10197.1.301)
+		if (asn1_object_identifier_to_der(oid_sm2_pubkey, sizeof(oid_sm2_pubkey)/sizeof(int), NULL, &len) != 1
+			|| ec_named_curve_to_der(curve_or_null, NULL, &len) != 1
+			|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			|| asn1_object_identifier_to_der(oid_sm2_pubkey, sizeof(oid_sm2_pubkey)/sizeof(int), out, outlen) != 1
 			|| ec_named_curve_to_der(curve_or_null, out, outlen) != 1) {
 			error_print();
 			return -1;
@@ -774,6 +788,8 @@ int x509_public_key_algor_from_der(int *oid , int *curve_or_null, const uint8_t 
 
 	switch (*oid) {
 	case OID_ec_public_key:
+	case OID_sm2:
+		// GM/T 0015-2023 SM2-OID format and RFC 5480 id-ecPublicKey format
 		if (ec_named_curve_from_der(curve_or_null, &d, &dlen) != 1
 			|| asn1_length_is_zero(dlen) != 1) {
 			error_print();
@@ -834,6 +850,7 @@ int x509_public_key_algor_print(FILE *fp, int fmt, int ind, const char *label, c
 
 	switch (info->oid) {
 	case OID_ec_public_key:
+	case OID_sm2:
 		if (ec_named_curve_from_der(&val, &d, &dlen) != 1) goto err;
 		format_print(fp, fmt, ind, "namedCurve: %s\n", ec_named_curve_name(val));
 		break;

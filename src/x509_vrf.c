@@ -128,7 +128,7 @@ static int x509_signed_is_verified_by_key(const uint8_t *a, size_t alen,
 
 
 	// X509_sign/verify 还是默认就使用SM2的默认ID吧
-	if (key->algor == OID_ec_public_key && key->algor_param == OID_sm2) {
+	if ((key->algor == OID_ec_public_key || key->algor == OID_sm2) && key->algor_param == OID_sm2) {
 		sign_args = (uint8_t *)signer_id;
 		sign_argslen = signer_id_len;
 	}

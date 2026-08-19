@@ -1803,7 +1803,7 @@ int tls_server_ecdh_params_to_bytes(const X509_KEY *public_key, uint8_t **out, s
 		error_print();
 		return -1;
 	}
-	if (public_key->algor != OID_ec_public_key) {
+	if (public_key->algor != OID_ec_public_key && public_key->algor != OID_sm2) {
 		error_print();
 		return -1;
 	}
@@ -3294,7 +3294,7 @@ static int tls_ctx_check(const TLS_CTX *ctx)
 		}
 		if (tlcp_client_needs_double_certs) {
 			if (certs_cnt < 2
-				|| ctx->enc_keys[key_idx].algor != OID_ec_public_key
+				|| (ctx->enc_keys[key_idx].algor != OID_ec_public_key && ctx->enc_keys[key_idx].algor != OID_sm2)
 				|| ctx->enc_keys[key_idx].algor_param != OID_sm2) {
 				error_print();
 				return -1;

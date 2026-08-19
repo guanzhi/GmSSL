@@ -196,6 +196,7 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 	key->algor_param = OID_undef;
 
 	switch (algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 #ifdef ENABLE_LMS
 	case OID_lms_hashsig:
@@ -252,6 +253,7 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 	}
 
 	switch (algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		switch (param_val) {
 		case OID_sm2:
@@ -341,6 +343,7 @@ void x509_key_cleanup(X509_KEY *key)
 			return;
 		}
 		switch (key->algor) {
+		case OID_sm2:
 		case OID_ec_public_key:
 			switch (key->algor_param) {
 			case OID_sm2:
@@ -417,6 +420,7 @@ int x509_public_key_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen)
 	}
 
 	switch (key->algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		switch (key->algor_param) {
 		case OID_sm2:
@@ -528,6 +532,7 @@ int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const 
 	key->algor_param = algor_param;
 
 	switch (algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		if (*inlen < 65) {
 			error_print();
@@ -686,6 +691,7 @@ int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub)
 		return 0;
 	}
 	switch (key->algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		if (key->algor_param == OID_sm2) {
 			if ((ret = sm2_public_key_equ(&key->u.sm2_key, &pub->u.sm2_key)) != 1) {
@@ -792,6 +798,7 @@ int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub)
 int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key)
 {
 	switch (key->algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		if (key->algor_param == OID_sm2) {
 			if (sm2_public_key_print(fp, fmt, ind, label, &key->u.sm2_key) != 1) {
@@ -1002,6 +1009,7 @@ int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, co
 	ind += 4;
 	if (asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	switch (alg) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		format_bytes(fp, fmt, ind, "ECPoint", p, len);
 		break;
@@ -1069,6 +1077,7 @@ int x509_private_key_info_to_der(const X509_KEY *key, uint8_t **out, size_t *out
 	}
 
 	switch (key->algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		{
 			uint8_t ec_private_key[64];
@@ -1201,6 +1210,7 @@ int x509_private_key_info_from_der(X509_KEY *key, const uint8_t **attrs, size_t 
 		return -1;
 	}
 	switch (algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		{
 			const uint8_t *ec_key_der;
@@ -1239,7 +1249,11 @@ int x509_private_key_info_from_der(X509_KEY *key, const uint8_t **attrs, size_t 
 				curve = algor_param;
 			}
 			memset(key, 0, sizeof(X509_KEY));
-			key->algor = OID_ec_public_key;
+			// Keep the AlgorithmIdentifier OID as parsed (OID_sm2 or
+			// OID_ec_public_key) so that a key read from an SM2-OID
+			// (GM/T 0015-2023) PrivateKeyInfo compares equal to the same
+			// key parsed from an SM2-OID SubjectPublicKeyInfo.
+			key->algor = algor;
 			key->algor_param = curve;
 
 			if (curve == OID_sm2) {
@@ -1542,7 +1556,9 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 		return -1;
 	}
 
-	if (algor == OID_ec_public_key) {
+	if (algor == OID_ec_public_key || algor == OID_sm2) {
+		// OID_sm2 (GM/T 0015-2023) and OID_ec_public_key (RFC 5480) are both
+		// standard SubjectPublicKeyInfo formats. They are handled identically.
 		int ret;
 		const uint8_t *attrs;
 		size_t attrslen;
@@ -1688,6 +1704,7 @@ int x509_key_supports_sign_algor(const X509_KEY *key, int sign_algor)
 	}
 
 	switch (key->algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		switch (key->algor_param) {
 		case OID_sm2:
@@ -1756,6 +1773,7 @@ int x509_key_get_signature_size(const X509_KEY *key, int sign_algor, size_t *sig
 	}
 
 	switch (key->algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		*siglen = SM2_signature_max_size;
 		break;
@@ -1856,6 +1874,7 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, int sign_algor, const void
 	memset(ctx, 0, sizeof(X509_SIGN_CTX));
 
 	switch (key->algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		switch (key->algor_param) {
 		case OID_sm2:
@@ -2230,6 +2249,7 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, int sign_algor, co
 		}
 		break;
 #endif
+	case OID_sm2:
 	case OID_ec_public_key:
 		break;
 	default:
@@ -2242,6 +2262,7 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, int sign_algor, co
 	memset(ctx, 0, sizeof(X509_SIGN_CTX));
 
 	switch (key->algor) {
+	case OID_sm2:
 	case OID_ec_public_key:
 		switch (key->algor_param) {
 		case OID_sm2:
@@ -2553,7 +2574,7 @@ int x509_key_do_exchange(const X509_KEY *key, const X509_KEY *pub, uint8_t *out,
 		error_print();
 		return -1;
 	}
-	if (key->algor != OID_ec_public_key) {
+	if (key->algor != OID_ec_public_key && key->algor != OID_sm2) {
 		error_print();
 		return -1;
 	}
@@ -2588,7 +2609,7 @@ int x509_key_exchange(const X509_KEY *key, const uint8_t *peer_pub, size_t peer_
 		error_print();
 		return -1;
 	}
-	if (key->algor != OID_ec_public_key) {
+	if (key->algor != OID_ec_public_key && key->algor != OID_sm2) {
 		error_print();
 		return -1;
 	}

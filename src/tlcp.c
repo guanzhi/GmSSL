@@ -969,7 +969,7 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (sign_key.algor != OID_ec_public_key || sign_key.algor_param != OID_sm2) {
+	if ((sign_key.algor != OID_ec_public_key && sign_key.algor != OID_sm2) || sign_key.algor_param != OID_sm2) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
@@ -1168,8 +1168,8 @@ int tlcp_send_client_key_exchange(TLS_CONNECT *conn)
 				return -1;
 			}
 			enc_key = &conn->ctx->enc_keys[conn->cert_chain_idx - 1];
-			if (public_key.algor != OID_ec_public_key || public_key.algor_param != OID_sm2
-				|| enc_key->algor != OID_ec_public_key || enc_key->algor_param != OID_sm2) {
+			if ((public_key.algor != OID_ec_public_key && public_key.algor != OID_sm2) || public_key.algor_param != OID_sm2
+				|| (enc_key->algor != OID_ec_public_key && enc_key->algor != OID_sm2) || enc_key->algor_param != OID_sm2) {
 				error_print();
 				tls_send_alert(conn, TLS_alert_internal_error);
 				return -1;
@@ -1805,7 +1805,7 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 		tls_uint24_to_bytes(enc_cert_len, &enc_cert_header_ptr, &enc_cert_header_len);
 
 		sign_key = &conn->ctx->x509_keys[conn->cert_chain_idx - 1];
-		if (sign_key->algor != OID_ec_public_key
+		if ((sign_key->algor != OID_ec_public_key && sign_key->algor != OID_sm2)
 			|| sign_key->algor_param != OID_sm2) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
@@ -2051,7 +2051,7 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 		return -1;
 	}
 	enc_key = &conn->ctx->enc_keys[conn->cert_chain_idx - 1];
-	if (enc_key->algor != OID_ec_public_key || enc_key->algor_param != OID_sm2) {
+	if ((enc_key->algor != OID_ec_public_key && enc_key->algor != OID_sm2) || enc_key->algor_param != OID_sm2) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
@@ -2087,8 +2087,8 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		}
-		if (peer_public_key.algor != OID_ec_public_key || peer_public_key.algor_param != OID_sm2
-			|| conn->key_exchanges[0].algor != OID_ec_public_key
+		if ((peer_public_key.algor != OID_ec_public_key && peer_public_key.algor != OID_sm2) || peer_public_key.algor_param != OID_sm2
+			|| (conn->key_exchanges[0].algor != OID_ec_public_key && conn->key_exchanges[0].algor != OID_sm2)
 			|| conn->key_exchanges[0].algor_param != OID_sm2) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);

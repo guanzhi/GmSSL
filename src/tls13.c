@@ -968,8 +968,8 @@ int tls13_sign_certificate_verify(int tls_mode, int sig_alg,
 
 	switch (sig_alg) {
 	case TLS_sig_sm2sig_sm3:
-		if (sign_key->algor != OID_ec_public_key
-			&& sign_key->algor_param != OID_sm2) {
+		if ((sign_key->algor != OID_ec_public_key && sign_key->algor != OID_sm2)
+			|| sign_key->algor_param != OID_sm2) {
 			error_print();
 			return -1;
 		}
@@ -983,7 +983,7 @@ int tls13_sign_certificate_verify(int tls_mode, int sig_alg,
 
 	case TLS_sig_ecdsa_secp256r1_sha256:
 		if (sign_key->algor != OID_ec_public_key
-			&& sign_key->algor_param != OID_secp256r1) {
+			|| sign_key->algor_param != OID_secp256r1) {
 			error_print();
 			return -1;
 		}
@@ -1063,8 +1063,8 @@ int tls13_verify_certificate_verify(int tls_mode, int sig_alg,
 
 	switch (sig_alg) {
 	case TLS_sig_sm2sig_sm3:
-		if (public_key->algor != OID_ec_public_key
-			&& public_key->algor_param != OID_sm2) {
+		if ((public_key->algor != OID_ec_public_key && public_key->algor != OID_sm2)
+			|| public_key->algor_param != OID_sm2) {
 			error_print();
 			return -1;
 		}
@@ -1078,7 +1078,7 @@ int tls13_verify_certificate_verify(int tls_mode, int sig_alg,
 
 	case TLS_sig_ecdsa_secp256r1_sha256:
 		if (public_key->algor != OID_ec_public_key
-			&& public_key->algor_param != OID_secp256r1) {
+			|| public_key->algor_param != OID_secp256r1) {
 			error_print();
 			return -1;
 		}
@@ -2010,7 +2010,7 @@ int tls13_key_share_entry_to_bytes(const X509_KEY *key, uint8_t **out, size_t *o
 		error_print();
 		return -1;
 	}
-	if (key->algor != OID_ec_public_key) {
+	if (key->algor != OID_ec_public_key && key->algor != OID_sm2) {
 		error_print();
 		return -1;
 	}
@@ -5596,7 +5596,7 @@ int tls_cert_match_signature_algorithms(const uint8_t *cert, size_t certlen,
 		error_print();
 		return -1;
 	}
-	if (subject_public_key.algor != OID_ec_public_key) {
+	if (subject_public_key.algor != OID_ec_public_key && subject_public_key.algor != OID_sm2) {
 		error_print();
 		return -1;
 	}
@@ -5647,7 +5647,7 @@ int tls_cert_chain_match_signature_algorithms_cert(
 			error_print();
 			return -1;
 		}
-		if (subject_public_key.algor != OID_ec_public_key) {
+		if (subject_public_key.algor != OID_ec_public_key && subject_public_key.algor != OID_sm2) {
 			error_print();
 			return -1;
 		}
