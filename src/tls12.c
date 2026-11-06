@@ -1759,8 +1759,6 @@ int tls_send_client_certificate(TLS_CONNECT *conn)
 	int ret;
 	const uint8_t *client_certs;
 	size_t client_certs_len;
-	uint8_t client_certs_without_enc[TLS_MAX_CERTIFICATES_SIZE];
-	size_t client_certs_without_enc_len;
 
 	if(conn->verbose) tls_trace("send client Certificate\n");
 
@@ -1772,19 +1770,6 @@ int tls_send_client_certificate(TLS_CONNECT *conn)
 	if (conn->recordlen == 0) {
 		client_certs = conn->client_certs;
 		client_certs_len = conn->client_certs_len;
-		if (conn->protocol == TLS_protocol_tlcp
-			&& (conn->cipher_suite == TLS_cipher_ecc_sm4_cbc_sm3
-				|| conn->cipher_suite == TLS_cipher_ecc_sm4_gcm_sm3)) {
-			if (tlcp_client_certs_without_encryption_cert(conn->client_certs, conn->client_certs_len,
-				client_certs_without_enc, &client_certs_without_enc_len,
-				sizeof(client_certs_without_enc)) != 1) {
-				error_print();
-				tls_send_alert(conn, TLS_alert_internal_error);
-				return -1;
-			}
-			client_certs = client_certs_without_enc;
-			client_certs_len = client_certs_without_enc_len;
-		}
 		if (tls_record_set_handshake_certificate(conn->record, &conn->recordlen,
 			client_certs, client_certs_len) != 1) {
 			error_print();

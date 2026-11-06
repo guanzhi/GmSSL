@@ -411,8 +411,7 @@ int tls_cert_chain_verify(
 	if (verify_chain) {
 		if (protocol == TLS_protocol_tlcp
 			&& (cert_chain_type == X509_cert_chain_server
-				|| (cert_chain_type == X509_cert_chain_client
-					&& tls_cipher_suite_is_tlcp_ecdhe(cipher_suite)))) {
+				|| cert_chain_type == X509_cert_chain_client)) {
 			ret = x509_certs_verify_tlcp(cert_chain, cert_chain_len, cert_chain_type,
 				cacerts, cacerts_len, crl, crl_len, ocsp, ocsp_len,
 				verify_depth, verify_result);
