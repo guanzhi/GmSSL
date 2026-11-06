@@ -1627,6 +1627,7 @@ int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock);
 
 
 int tls_do_handshake(TLS_CONNECT *conn);
+int tls_get_verify_result(TLS_CONNECT *conn, int *result);
 
 int tls_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentlen);
 int tls_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen);
