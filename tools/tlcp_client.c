@@ -479,16 +479,11 @@ bad:
 			passbuf, sizeof(passbuf), 0) != 1) {
 			goto end;
 		}
-		if (has_ecdhe_cipher_suite) {
-			if (tls_ctx_set_tlcp_client_certificate_and_keys(&ctx, certfile, keyfile, pass) != 1) {
-				fprintf(stderr, "%s: failed to load TLCP client double certificate chain and keys\n", prog);
-				goto end;
-			}
-		} else {
-			if (tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
-				fprintf(stderr, "%s: failed to load client certificate\n", prog);
-				goto end;
-			}
+		/* TLCP client certificates are always a signing/encryption pair.
+		 * The ECC and ECDHE suites use the same dual-certificate message. */
+		if (tls_ctx_set_tlcp_client_certificate_and_keys(&ctx, certfile, keyfile, pass) != 1) {
+			fprintf(stderr, "%s: failed to load TLCP client double certificate chain and keys\n", prog);
+			goto end;
 		}
 	}
 
