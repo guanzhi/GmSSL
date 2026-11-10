@@ -1904,6 +1904,9 @@ int tls_send_certificate_verify(TLS_CONNECT *conn)
 		int sign_algor = OID_undef;
 		const uint8_t *signer_id = NULL;
 		size_t signer_idlen = 0;
+		const uint8_t *sign_data = conn->transcript;
+		size_t sign_datalen = conn->transcript_len;
+		uint8_t transcript_hash[SM3_DIGEST_SIZE] = {0};
 
 		sign_algor = tls_signature_scheme_algorithm_oid(conn->sig_alg);
 		if (sign_algor == OID_undef) {
@@ -1914,15 +1917,28 @@ int tls_send_certificate_verify(TLS_CONNECT *conn)
 			signer_id = (uint8_t *)SM2_DEFAULT_ID;
 			signer_idlen = SM2_DEFAULT_ID_LENGTH;
 		}
+		if (conn->protocol == TLS_protocol_tlcp && sign_algor == OID_sm2sign_with_sm3) {
+			DIGEST_CTX tmp_ctx = conn->dgst_ctx;
+			if (digest_finish(&tmp_ctx, transcript_hash, &sign_datalen) != 1
+				|| sign_datalen != SM3_DIGEST_SIZE) {
+				gmssl_secure_clear(&tmp_ctx, sizeof(tmp_ctx));
+				error_print();
+				return -1;
+			}
+			gmssl_secure_clear(&tmp_ctx, sizeof(tmp_ctx));
+			sign_data = transcript_hash;
+		}
 
 		if (x509_sign_init(&sign_ctx, sign_key, sign_algor, signer_id, signer_idlen) != 1
-			|| x509_sign_update(&sign_ctx, conn->transcript, conn->transcript_len) != 1
+			|| x509_sign_update(&sign_ctx, sign_data, sign_datalen) != 1
 			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
+			gmssl_secure_clear(transcript_hash, sizeof(transcript_hash));
 			error_print();
 			return -1;
 		}
 		gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
+		gmssl_secure_clear(transcript_hash, sizeof(transcript_hash));
 
 		if (conn->protocol == TLS_protocol_tls12) {
 			ret = tls12_record_set_handshake_certificate_verify(conn->record, &conn->recordlen,
@@ -2969,6 +2985,9 @@ int tls_recv_certificate_verify(TLS_CONNECT *conn)
 
 	const uint8_t *client_cert;
 	size_t client_cert_len;
+	const uint8_t *verify_data = conn->transcript;
+	size_t verify_datalen = conn->transcript_len;
+	uint8_t transcript_hash[SM3_DIGEST_SIZE] = {0};
 
 	if (!conn->client_certificate_verify) {
 		error_print();
@@ -3042,12 +3061,25 @@ int tls_recv_certificate_verify(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
+	if (conn->protocol == TLS_protocol_tlcp && sig_alg == OID_sm2sign_with_sm3) {
+		DIGEST_CTX tmp_ctx = conn->dgst_ctx;
+		if (digest_finish(&tmp_ctx, transcript_hash, &verify_datalen) != 1
+			|| verify_datalen != SM3_DIGEST_SIZE) {
+			gmssl_secure_clear(&tmp_ctx, sizeof(tmp_ctx));
+			error_print();
+			return -1;
+		}
+		gmssl_secure_clear(&tmp_ctx, sizeof(tmp_ctx));
+		verify_data = transcript_hash;
+	}
 	if (x509_verify_init(&sign_ctx, &client_sign_key, sig_alg, signer_id, signer_idlen, sig, siglen) != 1
-		|| x509_verify_update(&sign_ctx, conn->transcript, conn->transcript_len) != 1
+		|| x509_verify_update(&sign_ctx, verify_data, verify_datalen) != 1
 		|| x509_verify_finish(&sign_ctx) != 1) {
+		gmssl_secure_clear(transcript_hash, sizeof(transcript_hash));
 		error_print();
 		return -1;
 	}
+	gmssl_secure_clear(transcript_hash, sizeof(transcript_hash));
 
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
